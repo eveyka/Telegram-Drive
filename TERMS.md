@@ -1,7 +1,7 @@
 # Terms of Service & End User License Agreement (EULA)
 
 **Product**: TG Drive: Unlimited Cloud  
-**Publisher**: Eveyka Software (by Jupiter Bania)  
+**Publisher**: Eveyka Software  
 **Effective Date**: September 18, 2026  
 
 ---
@@ -53,4 +53,4 @@ By downloading, installing, purchasing, or using **TG Drive: Unlimited Cloud** (
 ### 8. Contact & Support
 For license support, questions, or transfers, please contact:
 * **Support Email / Telegram**: [Contact Developer](https://t.me/Theexposes)
-* **GitHub Repository**: [https://github.com/jupiterbania/Telegram-Drive](https://github.com/jupiterbania/Telegram-Drive)
+* **GitHub Repository**: [https://github.com/eveyka/Telegram-Drive-Public](https://github.com/eveyka/Telegram-Drive-Public)

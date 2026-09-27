@@ -8,11 +8,11 @@
 
 Organize, stream, sync, upload, and download files directly to your Telegram cloud on **Android**, **Windows**, **macOS**, **Linux**, and **iOS**.
 
-[![Release](https://img.shields.io/badge/Release-v1.2.0-0ea5e9.svg?style=for-the-badge&logo=github)](https://github.com/jupiterbania/Telegram-Drive/releases/tag/v1.2.0)
-[![Android](https://img.shields.io/badge/Android-11.7%20MB-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white)](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk)
-[![Windows](https://img.shields.io/badge/Windows-x64-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe)
-[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%7C%20Intel-000000.svg?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg)
-[![Linux](https://img.shields.io/badge/Linux-AppImage%20%7C%20DEB-FCC624.svg?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage)
+[![Release](https://img.shields.io/badge/Release-v1.2.0-0ea5e9.svg?style=for-the-badge&logo=github)](https://github.com/eveyka/Telegram-Drive-Public/releases/tag/v1.2.0)
+[![Android](https://img.shields.io/badge/Android-11.7%20MB-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white)](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk)
+[![Windows](https://img.shields.io/badge/Windows-x64-0078D6.svg?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe)
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20%7C%20Intel-000000.svg?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg)
+[![Linux](https://img.shields.io/badge/Linux-AppImage%20%7C%20DEB-FCC624.svg?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -29,15 +29,15 @@ Download the latest release **v1.2.0** for your device:
 
 | Platform | Type | Architecture / Package | Size | Direct Download Link |
 | :--- | :--- | :--- | :--- | :--- |
-| 📱 **Android** | `APK` | ARM64 / Universal Release | `~11.7 MB` | [⬇️ **Download Android APK**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk) |
-| 💻 **Windows** | `EXE` | Full NSIS Installer Setup | `~26.9 MB` | [⬇️ **Download Windows Installer**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe) |
-| 💻 **Windows** | `EXE` | Standalone Portable Edition | `~16.2 MB` | [⬇️ **Download Windows Portable**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Portable.exe) |
-| 🍏 **macOS** | `DMG` | Apple Silicon (M1 / M2 / M3 / M4) | `~9.0 MB` | [⬇️ **Download macOS ARM64**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg) |
-| 🍏 **macOS** | `DMG` | Intel x64 Processor | `~9.4 MB` | [⬇️ **Download macOS Intel**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Intel-x64.dmg) |
-| 🐧 **Linux** | `AppImage` | Universal Linux x64 | `~87.1 MB` | [⬇️ **Download Linux AppImage**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage) |
-| 🐧 **Linux** | `DEB` | Debian / Ubuntu / Mint | `~9.9 MB` | [⬇️ **Download Linux .deb**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.deb) |
-| 🍎 **iOS** | `IPA` | Sideload / AltStore / TrollStore | `Package` | [⬇️ **Download iOS IPA**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Direct-Install.ipa) |
-| 🍎 **iOS** | `ZIP` | Xcode Simulator App | `Package` | [⬇️ **Download iOS Simulator Zip**](https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Simulator-App.zip) |
+| 📱 **Android** | `APK` | ARM64 / Universal Release | `~11.7 MB` | [⬇️ **Download Android APK**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk) |
+| 💻 **Windows** | `EXE` | Full NSIS Installer Setup | `~26.9 MB` | [⬇️ **Download Windows Installer**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe) |
+| 💻 **Windows** | `EXE` | Standalone Portable Edition | `~16.2 MB` | [⬇️ **Download Windows Portable**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Portable.exe) |
+| 🍏 **macOS** | `DMG` | Apple Silicon (M1 / M2 / M3 / M4) | `~9.0 MB` | [⬇️ **Download macOS ARM64**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg) |
+| 🍏 **macOS** | `DMG` | Intel x64 Processor | `~9.4 MB` | [⬇️ **Download macOS Intel**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Intel-x64.dmg) |
+| 🐧 **Linux** | `AppImage` | Universal Linux x64 | `~87.1 MB` | [⬇️ **Download Linux AppImage**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage) |
+| 🐧 **Linux** | `DEB` | Debian / Ubuntu / Mint | `~9.9 MB` | [⬇️ **Download Linux .deb**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.deb) |
+| 🍎 **iOS** | `IPA` | Sideload / AltStore / TrollStore | `Package` | [⬇️ **Download iOS IPA**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Direct-Install.ipa) |
+| 🍎 **iOS** | `ZIP` | Xcode Simulator App | `Package` | [⬇️ **Download iOS Simulator Zip**](https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Simulator-App.zip) |
 
 ---
 
@@ -144,7 +144,7 @@ Telegram requires third-party applications to authenticate via official API cred
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/jupiterbania/Telegram-Drive.git
+git clone https://github.com/eveyka/Telegram-Drive-Public.git
 cd Telegram-Drive/app
 
 # 2. Install dependencies

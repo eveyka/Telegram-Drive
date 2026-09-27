@@ -3,7 +3,7 @@ pkgver=@PKGVER@
 pkgrel=1
 pkgdesc='Local-first Telegram file workspace (prebuilt upstream binary)'
 arch=('x86_64')
-url='https://github.com/jupiterbania/Telegram-Drive'
+url='https://github.com/eveyka/Telegram-Drive-Public'
 license=('MIT')
 depends=(
   'cairo'

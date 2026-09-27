@@ -6,7 +6,7 @@ We take the security and privacy of Telegram Drive seriously. If you discover a 
 
 ### How to Report
 
-- Report security concerns or vulnerability details privately via [GitHub Security Advisories](https://github.com/jupiterbania/Telegram-Drive/security/advisories) or by opening a confidential discussion with the repository maintainers.
+- Report security concerns or vulnerability details privately via [GitHub Security Advisories](https://github.com/eveyka/Telegram-Drive-Public/security/advisories) or by opening a confidential discussion with the repository maintainers.
 - Please provide detailed steps to reproduce the issue along with the affected platform and app version.
 
 > [!WARNING]

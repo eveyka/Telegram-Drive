@@ -88,7 +88,7 @@ export function useUpdateCheck() {
 
                 // If native check returned null (up to date or no newer manifest), verify against GitHub Release tag
                 try {
-                    const ghRes = await fetch('https://api.github.com/repos/jupiterbania/Telegram-Drive/releases/latest', {
+                    const ghRes = await fetch('https://api.github.com/repos/eveyka/Telegram-Drive-Public/releases/latest', {
                         headers: { 'Accept': 'application/vnd.github.v3+json' },
                     });
                     if (ghRes.ok) {
@@ -135,7 +135,7 @@ export function useUpdateCheck() {
                 }
             } catch (desktopCheckErr) {
                 try {
-                    const ghRes = await fetch('https://api.github.com/repos/jupiterbania/Telegram-Drive/releases/latest', {
+                    const ghRes = await fetch('https://api.github.com/repos/eveyka/Telegram-Drive-Public/releases/latest', {
                         headers: { 'Accept': 'application/vnd.github.v3+json' },
                     });
                     if (ghRes.ok) {

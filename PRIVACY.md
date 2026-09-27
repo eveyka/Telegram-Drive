@@ -1,7 +1,7 @@
 # Privacy Policy
 
 **Product**: TG Drive: Unlimited Cloud  
-**Publisher**: Eveyka Software (by Jupiter Bania)  
+**Publisher**: Eveyka Software  
 **Effective Date**: September 18, 2026  
 
 TG Drive: Unlimited Cloud is built from the ground up as a **local-first, zero-knowledge** client application. We respect your privacy and believe your personal files, encryption keys, and credentials should belong solely to you.
@@ -41,4 +41,4 @@ TG Drive: Unlimited Cloud is built from the ground up as a **local-first, zero-k
 ### 5. Contact & Privacy Inquiries
 If you have any questions regarding this Privacy Policy, you can reach out via:
 * **Telegram**: [@Theexposes](https://t.me/Theexposes)
-* **GitHub**: [https://github.com/jupiterbania/Telegram-Drive](https://github.com/jupiterbania/Telegram-Drive)
+* **GitHub**: [https://github.com/eveyka/Telegram-Drive-Public](https://github.com/eveyka/Telegram-Drive-Public)

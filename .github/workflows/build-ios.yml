@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Target Release Tag (e.g. v1.2.0)'
+        description: 'Target Release Tag (e.g. v1.0.0)'
         required: false
-        default: 'v1.2.0'
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -104,7 +104,7 @@ jobs:
       - name: Package iOS IPA & Simulator Artifacts
         working-directory: app
         env:
-          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.2.0' }}
+          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.0.0' }}
         run: |
           mkdir -p ios-artifacts
           
@@ -157,24 +157,18 @@ jobs:
           echo "=== Summary of iOS Artifacts ==="
           ls -lh ios-artifacts/
 
-      - name: Clean Old iOS Release Assets & Upload New iOS Package
+      - name: Upload iOS Artifacts to Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: TG-Drive-${{ github.event.inputs.release_tag || 'v1.0.0' }}-iOS-Artifacts
+          path: app/ios-artifacts/*
+
+      - name: Publish iOS Release Assets
         working-directory: app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.2.0' }}
+          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.0.0' }}
         run: |
-          echo "Deleting any older iOS assets from release ${TAG_NAME}..."
-          gh release delete-asset "${TAG_NAME}" "TG-Drive-${TAG_NAME}-iOS-Direct-Install.ipa" --yes 2>/dev/null || true
-          gh release delete-asset "${TAG_NAME}" "TG-Drive-${TAG_NAME}-iOS.ipa" --yes 2>/dev/null || true
-          gh release delete-asset "${TAG_NAME}" "TG-Drive-${TAG_NAME}-iOS-Simulator-App.zip" --yes 2>/dev/null || true
-          gh release delete-asset "${TAG_NAME}" "Telegram-Drive-${TAG_NAME}-ios.ipa" --yes 2>/dev/null || true
-          gh release delete-asset "${TAG_NAME}" "Telegram-Drive-${TAG_NAME}-ios-app.zip" --yes 2>/dev/null || true
-          
-          if [ -d ios-artifacts ] && [ "$(ls -A ios-artifacts)" ]; then
-            echo "Uploading new iOS assets to release ${TAG_NAME}..."
-            gh release upload "${TAG_NAME}" ios-artifacts/* --clobber
-            echo "iOS release assets uploaded successfully!"
-          else
-            echo "Error: No iOS artifacts found to upload."
-            exit 1
-          fi
+          echo "Checking/creating release ${TAG_NAME}..."
+          gh release create "${TAG_NAME}" --title "TG Drive ${TAG_NAME}" --notes "Official iOS Release ${TAG_NAME}" ios-artifacts/* || gh release upload "${TAG_NAME}" ios-artifacts/* --clobber
+          echo "iOS release assets uploaded successfully!"

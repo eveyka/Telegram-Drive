@@ -133,7 +133,7 @@ export async function handleTelegramBotUpdate(
       reply_markup: {
         inline_keyboard: [
           [
-            { text: '📥 Download App', url: 'https://github.com/jupiterbania/Telegram-Drive/releases' },
+            { text: '📥 Download App', url: 'https://github.com/eveyka/Telegram-Drive-Public/releases' },
             { text: '💎 Upgrade to PRO', url: 'https://tg-drive.vercel.app/pricing' },
           ],
           [

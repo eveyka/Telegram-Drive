@@ -870,7 +870,7 @@ export function renderEveykaHtml(): string {
           <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: 8px;">(Digitally Signed & Verified Binaries)</span>
         </div>
       </div>
-      <a href="https://github.com/jupiterbania/Telegram-Drive/releases/latest" target="_blank" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;">
+      <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/latest" target="_blank" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;">
         View Release Notes & Checksums →
       </a>
     </div>
@@ -893,10 +893,10 @@ export function renderEveykaHtml(): string {
           </ul>
         </div>
         <div class="download-btn-group">
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk" target="_blank" class="btn btn-success" style="width: 100%; font-size: 1rem; padding: 14px;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-ARM64.apk" target="_blank" class="btn btn-success" style="width: 100%; font-size: 1rem; padding: 14px;">
             ⬇️ Download Android APK (~11.7 MB)
           </a>
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-Universal.apk" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 10px;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Android-Universal.apk" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 10px;">
             ⬇️ Universal APK Mirror (~11.7 MB) →
           </a>
         </div>
@@ -917,10 +917,10 @@ export function renderEveykaHtml(): string {
           </ul>
         </div>
         <div class="download-btn-group">
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 14px;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; font-size: 1rem; padding: 14px;">
             ⬇️ Download Windows Installer (~26.9 MB)
           </a>
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Portable.exe" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 10px;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Windows-x64-Portable.exe" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.85rem; padding: 10px;">
             ⬇️ Download Portable EXE (~16.2 MB) →
           </a>
         </div>
@@ -942,10 +942,10 @@ export function renderEveykaHtml(): string {
           </ul>
         </div>
         <div class="download-btn-group">
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem; border-color: rgba(139, 92, 246, 0.5);">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Apple-Silicon-ARM64.dmg" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem; border-color: rgba(139, 92, 246, 0.5);">
             ⬇️ Apple Silicon (M1/M2/M3/M4) (~9.0 MB)
           </a>
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Intel-x64.dmg" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-macOS-Intel-x64.dmg" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
             ⬇️ Intel Mac DMG (x86_64) (~9.4 MB)
           </a>
         </div>
@@ -964,10 +964,10 @@ export function renderEveykaHtml(): string {
           </ul>
         </div>
         <div class="download-btn-group">
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.AppImage" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
             ⬇️ Download AppImage (~87.1 MB)
           </a>
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.deb" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-Linux-x64.deb" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.84rem;">
             ⬇️ Download Debian / Ubuntu .deb (~9.9 MB)
           </a>
         </div>
@@ -986,10 +986,10 @@ export function renderEveykaHtml(): string {
           </ul>
         </div>
         <div class="download-btn-group">
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Direct-Install.ipa" target="_blank" class="btn btn-amber" style="width: 100%; font-size: 0.86rem;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Direct-Install.ipa" target="_blank" class="btn btn-amber" style="width: 100%; font-size: 0.86rem;">
             ⬇️ Download iOS IPA Package
           </a>
-          <a href="https://github.com/jupiterbania/Telegram-Drive/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Simulator-App.zip" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.82rem;">
+          <a href="https://github.com/eveyka/Telegram-Drive-Public/releases/download/v1.2.0/TG-Drive-v1.2.0-iOS-Simulator-App.zip" target="_blank" class="btn btn-secondary" style="width: 100%; font-size: 0.82rem;">
             ⬇️ Xcode Simulator App (.zip) →
           </a>
         </div>

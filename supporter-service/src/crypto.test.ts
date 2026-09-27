@@ -52,7 +52,7 @@ describe('Commercial Crypto Module', () => {
       exp: null,
       iat: Math.floor(Date.now() / 1000),
       iss: 'tg-drive-licensing',
-      name: 'Jupiter Bania',
+      name: 'Eveyka',
     };
 
     const token = await issueLicenseToken(claims, env);
