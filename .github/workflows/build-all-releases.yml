@@ -325,56 +325,119 @@ jobs:
         working-directory: app
         run: npm run build
 
+      - name: Build Rust Library for iOS targets
+        working-directory: app
+        run: |
+          cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios --release
+          cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios-sim --release
+
       - name: Initialize Tauri iOS project
         working-directory: app
         run: |
-          npm run tauri ios init
+          npx tauri ios init
 
-      - name: Build iOS using Tauri and Xcode
+      - name: Build iOS Application with Xcode (Device & Simulator)
         working-directory: app
         run: |
-          npm run tauri ios build -- --target aarch64 --ci || true
-          if [ -d "src-tauri/gen/apple" ]; then
-            cd src-tauri/gen/apple
-            if [ -d "app_iOS.xcworkspace" ]; then
-              xcodebuild -workspace app_iOS.xcworkspace \
-                -scheme app_iOS \
-                -configuration Release \
-                -sdk iphoneos \
-                -derivedDataPath derivedData \
-                CODE_SIGNING_ALLOWED=NO \
-                CODE_SIGNING_REQUIRED=NO \
-                CODE_SIGN_IDENTITY="" \
-                PROVISIONING_PROFILE_SPECIFIER="" \
-                build || true
-            else
-              xcodebuild -project app.xcodeproj \
-                -scheme app_iOS \
-                -configuration Release \
-                -sdk iphoneos \
-                -derivedDataPath derivedData \
-                CODE_SIGNING_ALLOWED=NO \
-                CODE_SIGNING_REQUIRED=NO \
-                CODE_SIGN_IDENTITY="" \
-                PROVISIONING_PROFILE_SPECIFIER="" \
-                build || true
-            fi
+          cd src-tauri/gen/apple
+          
+          # Find project or workspace
+          if [ -d "app_iOS.xcworkspace" ]; then
+            PROJECT_ARG="-workspace app_iOS.xcworkspace"
+          elif [ -d "app.xcodeproj" ]; then
+            PROJECT_ARG="-project app.xcodeproj"
+          else
+            XCODEPROJ=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+            PROJECT_ARG="-project $XCODEPROJ"
           fi
+          
+          echo "Using Xcode target: $PROJECT_ARG"
+          xcodebuild $PROJECT_ARG -list || true
+          SCHEME="app_iOS"
+          
+          # 1. Build for Physical iOS Device (aarch64 / iphoneos)
+          echo "=== Building for Physical iOS Devices (arm64 iphoneos) ==="
+          xcodebuild $PROJECT_ARG \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath derivedData-device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build
+
+          # 2. Build for iOS Simulator (aarch64 / iphonesimulator)
+          echo "=== Building for iOS Simulator (iphonesimulator) ==="
+          xcodebuild $PROJECT_ARG \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath derivedData-sim \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build || true
 
       - name: Package iOS IPA & Simulator Artifacts
         working-directory: app
+        env:
+          TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
         run: |
           mkdir -p ios-artifacts
-          TAG="${{ github.event.inputs.release_tag || github.ref_name }}"
-          APP_PATH=$(find src-tauri -name "*.app" | head -n 1)
-          if [ -n "$APP_PATH" ]; then
-            echo "Found iOS App at: $APP_PATH"
-            mkdir -p Payload
-            cp -r "$APP_PATH" Payload/
-            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" Payload
-            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Simulator-App.zip" "$APP_PATH"
+          TAG="${TAG_NAME}"
+          
+          echo "=== Locating built .app bundles ==="
+          find src-tauri -name "*.app" -type d
+          
+          # 1. Device App (.app for physical iPhone)
+          DEVICE_APP=$(find src-tauri/gen/apple/derivedData-device -name "*.app" -type d | head -n 1)
+          if [ -z "$DEVICE_APP" ]; then
+            DEVICE_APP=$(find src-tauri -path "*Release-iphoneos*" -name "*.app" -type d | head -n 1)
           fi
-          ls -la ios-artifacts/
+          if [ -z "$DEVICE_APP" ]; then
+            DEVICE_APP=$(find src-tauri -name "*.app" -type d | head -n 1)
+          fi
+          
+          # 2. Simulator App (.app for iOS Simulator)
+          SIM_APP=$(find src-tauri/gen/apple/derivedData-sim -name "*.app" -type d | head -n 1)
+          if [ -z "$SIM_APP" ]; then
+            SIM_APP=$(find src-tauri -path "*Release-iphonesimulator*" -name "*.app" -type d | head -n 1)
+          fi
+          
+          if [ -n "$DEVICE_APP" ] && [ -d "$DEVICE_APP" ]; then
+            echo "Packaging Physical Device IPA from: $DEVICE_APP"
+            
+            # Ad-hoc sign the bundle for sideloading support (AltStore, TrollStore, SideStore, Sideloadly, Scarlet, Feather)
+            codesign --force --deep -s - "$DEVICE_APP" || true
+            
+            rm -rf Payload
+            mkdir -p Payload
+            cp -R "$DEVICE_APP" Payload/
+            
+            # Package IPA
+            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" Payload
+            cp "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" "ios-artifacts/TG-Drive-${TAG}-iOS.ipa"
+            echo "Created IPA: TG-Drive-${TAG}-iOS-Direct-Install.ipa"
+          else
+            echo "Error: Device .app not found!"
+            exit 1
+          fi
+          
+          if [ -n "$SIM_APP" ] && [ -d "$SIM_APP" ]; then
+            echo "Packaging Simulator bundle from: $SIM_APP"
+            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Simulator-App.zip" "$SIM_APP"
+            echo "Created Simulator zip: TG-Drive-${TAG}-iOS-Simulator-App.zip"
+          elif [ -n "$DEVICE_APP" ] && [ -d "$DEVICE_APP" ]; then
+            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Simulator-App.zip" "$DEVICE_APP"
+          fi
+          
+          echo "=== Summary of iOS Artifacts ==="
+          ls -lh ios-artifacts/
 
       - name: Upload iOS artifacts to Release
         working-directory: app
