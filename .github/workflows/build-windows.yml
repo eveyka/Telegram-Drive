@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Target Release Tag (e.g. v1.2.0)'
+        description: 'Target Release Tag (e.g. v1.0.0)'
         required: false
-        default: 'v1.2.0'
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -69,7 +69,7 @@ jobs:
         working-directory: app
         run: |
           New-Item -ItemType Directory -Force -Path windows-artifacts
-          $tag = "${{ github.event.inputs.release_tag || 'v1.2.0' }}"
+          $tag = "${{ github.event.inputs.release_tag || 'v1.0.0' }}"
           
           # Find NSIS installer
           $nsis = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -Recurse | Select-Object -First 1
@@ -111,6 +111,6 @@ jobs:
         working-directory: app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.2.0' }}
+          TAG_NAME: ${{ github.event.inputs.release_tag || 'v1.0.0' }}
         run: |
           gh release upload "${{ env.TAG_NAME }}" windows-artifacts/* --clobber

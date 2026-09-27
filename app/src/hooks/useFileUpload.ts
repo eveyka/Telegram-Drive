@@ -147,30 +147,39 @@ export function useFileUpload(
 
         // Listen for upload progress (for sync uploads on all platforms, and general uploads on Android)
         listen<ProgressPayload>('upload-progress', (event) => {
-            setUploadQueue(q => q.map(i =>
-                i.id === event.payload.id ? {
+            setUploadQueue(q => q.map(i => {
+                if (i.id !== event.payload.id) return i;
+                // Never let stale/delayed progress callbacks overwrite a completed or terminal state
+                if (['success', 'cancelled', 'error'].includes(i.status)) {
+                    return i;
+                }
+                return {
                     ...i,
                     status: (i.status === 'encrypting' && event.payload.percent > 0) ? 'uploading' : i.status,
                     progress: event.payload.percent,
                     uploadedBytes: event.payload.uploaded_bytes,
                     totalBytes: event.payload.total_bytes,
                     speedBytesPerSec: event.payload.speed_bytes_per_sec,
-                } : i
-            ));
+                };
+            }));
         }).then(fn => { unlistenProgress = fn; });
 
         if (isAndroidPlatform) {
             listen<RemoteProgressPayload>('remote-upload-progress', (event) => {
-                setUploadQueue(q => q.map(i =>
-                    i.id === event.payload.id && !['paused', 'cancelled', 'waiting_for_network'].includes(i.status) ? {
+                setUploadQueue(q => q.map(i => {
+                    if (i.id !== event.payload.id) return i;
+                    if (['success', 'cancelled', 'error', 'paused', 'waiting_for_network'].includes(i.status)) {
+                        return i;
+                    }
+                    return {
                         ...i,
                         status: event.payload.phase,
                         progress: event.payload.percent,
                         speedBytesPerSec: event.payload.speed,
                         uploadedBytes: event.payload.uploaded_bytes,
                         totalBytes: event.payload.total_bytes,
-                    } : i
-                ));
+                    };
+                }));
             }).then(fn => { unlistenRemote = fn; });
         }
 

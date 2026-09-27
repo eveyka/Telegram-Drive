@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Target Release Tag (e.g. v1.2.0)'
+        description: 'Target Release Tag (e.g. v1.0.0)'
         required: false
-        default: 'v1.2.0'
+        default: 'v1.0.0'
       clean_old_assets:
         description: 'Delete old assets from the release before uploading new ones?'
         type: boolean

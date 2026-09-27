@@ -83,15 +83,20 @@ export function useFileDownload(
         if (!isAndroidPlatform) return;
         let unlisten: UnlistenFn | undefined;
         listen<ProgressPayload>('download-progress', (event) => {
-            setDownloadQueue(q => q.map(i =>
-                i.id === event.payload.id ? {
+            setDownloadQueue(q => q.map(i => {
+                if (i.id !== event.payload.id) return i;
+                // Never let stale/delayed progress callbacks overwrite a completed or terminal state
+                if (['success', 'cancelled', 'error', 'paused', 'waiting_for_network', 'cooldown'].includes(i.status)) {
+                    return i;
+                }
+                return {
                     ...i,
                     progress: event.payload.percent,
                     downloadedBytes: event.payload.uploaded_bytes,
                     totalBytes: event.payload.total_bytes,
                     speedBytesPerSec: event.payload.speed_bytes_per_sec,
-                } : i
-            ));
+                };
+            }));
         }).then(fn => { unlisten = fn; });
         return () => { unlisten?.(); };
     }, []);

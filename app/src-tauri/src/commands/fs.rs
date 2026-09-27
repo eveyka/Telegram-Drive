@@ -3184,7 +3184,7 @@ pub async fn cmd_download_file(
                     0
                 };
                 let percent = if total_size > 0 {
-                    ((downloaded as f64 / total_size as f64) * 100.0).min(100.0) as u8
+                    ((downloaded as f64 / total_size as f64) * 100.0).min(99.0) as u8
                 } else {
                     0
                 };
@@ -3254,20 +3254,6 @@ pub async fn cmd_download_file(
         actual_save_path,
         actual_written
     );
-
-    // Emit completion
-    if !tid.is_empty() {
-        let _ = app_handle.emit(
-            "download-progress",
-            ProgressPayload {
-                id: tid,
-                percent: 100,
-                uploaded_bytes: downloaded,
-                total_bytes: total_size,
-                speed_bytes_per_sec: 0,
-            },
-        );
-    }
 
     #[cfg(target_os = "android")]
     {
@@ -3381,6 +3367,20 @@ pub async fn cmd_download_file(
     }
 
     bandwidth_reservation.commit();
+
+    // Emit final completion progress strictly after file write, sync, verification, and Android MediaStore publishing succeed.
+    if !tid.is_empty() {
+        let _ = app_handle.emit(
+            "download-progress",
+            ProgressPayload {
+                id: tid,
+                percent: 100,
+                uploaded_bytes: downloaded,
+                total_bytes: total_size,
+                speed_bytes_per_sec: 0,
+            },
+        );
+    }
 
     Ok("Download successful".to_string())
 }
@@ -3665,19 +3665,6 @@ async fn cmd_download_encrypted_file(
         let _ = app_handle.emit("vault-locked", "auto_lock");
     }
 
-    if !tid.is_empty() {
-        let _ = app_handle.emit(
-            "download-progress",
-            ProgressPayload {
-                id: tid,
-                percent: 100,
-                uploaded_bytes: plaintext_written,
-                total_bytes: plaintext_written,
-                speed_bytes_per_sec: 0,
-            },
-        );
-    }
-
     let protected_mime = decoded_metadata
         .as_ref()
         .map(|metadata| metadata.mime_type.as_str())
@@ -3703,6 +3690,21 @@ async fn cmd_download_encrypted_file(
             )
         })?;
     }
+
+    // Emit final completion progress strictly after file decryption, verification, and Android MediaStore publishing succeed.
+    if !tid.is_empty() {
+        let _ = app_handle.emit(
+            "download-progress",
+            ProgressPayload {
+                id: tid,
+                percent: 100,
+                uploaded_bytes: plaintext_written,
+                total_bytes: plaintext_written,
+                speed_bytes_per_sec: 0,
+            },
+        );
+    }
+
     log::info!(
         "Encrypted download complete: message {} -> {} ({} verified plaintext bytes, MIME {})",
         message_id,

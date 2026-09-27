@@ -107,8 +107,8 @@ class UploadForegroundService : Service() {
       transferType: String?,
       previewPath: String?,
     ) {
-      if (active <= 0 && !isPaused) {
-        // Active is 0 and not paused: do NOT restart or keep ongoing foreground notification
+      if (!isTransferActive && active <= 0 && !isPaused) {
+        // Active is 0 and not paused and not active: do NOT restart or keep ongoing foreground notification
         return
       }
       isTransferActive = true
@@ -165,12 +165,18 @@ class UploadForegroundService : Service() {
       isTransferActive = false
       TransferRecoveryWorker.setPendingTransfers(context, false)
       TransferJobService.cancel(context)
+      mainHandler.removeCallbacksAndMessages(null)
 
       mainHandler.post {
         val instance = activeInstance
         if (instance != null) {
           try {
-            instance.stopForeground(STOP_FOREGROUND_REMOVE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+              instance.stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+              @Suppress("DEPRECATION")
+              instance.stopForeground(true)
+            }
             instance.stopSelf()
           } catch (e: Throwable) {
             Log.w("UploadService", "Error stopping service instance", e)
@@ -291,7 +297,12 @@ class UploadForegroundService : Service() {
       ACTION_UPDATE -> {
         if (!isTransferActive) {
           // Stale update intent arrived after stopService: clean up and exit immediately
-          stopForeground(STOP_FOREGROUND_REMOVE)
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+          } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+          }
           getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
           stopSelf()
           return START_NOT_STICKY
@@ -307,7 +318,12 @@ class UploadForegroundService : Service() {
       }
       ACTION_STOP -> {
         isTransferActive = false
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+          stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+          @Suppress("DEPRECATION")
+          stopForeground(true)
+        }
         getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
         stopSelf()
       }
@@ -317,7 +333,12 @@ class UploadForegroundService : Service() {
         isTransferActive = false
         MainActivity.emitTransferAction("cancel")
         TransferRecoveryWorker.setPendingTransfers(this, false)
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+          stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+          @Suppress("DEPRECATION")
+          stopForeground(true)
+        }
         getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
         stopSelf()
       }
@@ -329,7 +350,12 @@ class UploadForegroundService : Service() {
     if (activeInstance == this) {
       activeInstance = null
     }
-    stopForeground(STOP_FOREGROUND_REMOVE)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      stopForeground(STOP_FOREGROUND_REMOVE)
+    } else {
+      @Suppress("DEPRECATION")
+      stopForeground(true)
+    }
     getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
     super.onDestroy()
   }
@@ -339,7 +365,12 @@ class UploadForegroundService : Service() {
     MainActivity.emitTransferAction("timeout")
     Log.w("UploadService", "Android data-sync foreground-service timeout reached")
     TransferRecoveryWorker.schedule(this)
-    stopForeground(STOP_FOREGROUND_REMOVE)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      stopForeground(STOP_FOREGROUND_REMOVE)
+    } else {
+      @Suppress("DEPRECATION")
+      stopForeground(true)
+    }
     getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
     stopSelf(startId)
   }
@@ -409,7 +440,7 @@ class UploadForegroundService : Service() {
       .setOnlyAlertOnce(true)
       .setOngoing(true)
       .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-      .setProgress(100, progress, activeCount == 0)
+      .setProgress(100, progress, false)
 
     if (activeCount > 1) {
       builder.setSubText("$activeCount files")
@@ -427,6 +458,7 @@ class UploadForegroundService : Service() {
   }
 
   private fun notifyProgress() {
+    if (!isTransferActive || activeInstance == null) return
     getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, createNotification())
   }
 }

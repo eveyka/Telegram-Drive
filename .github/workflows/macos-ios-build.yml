@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release Tag to upload assets to (e.g. v1.2.0)'
+        description: 'Release Tag to upload assets to (e.g. v1.0.0)'
         required: false
-        default: 'v1.2.0'
+        default: 'v1.0.0'
   push:
     tags:
       - 'v*'
@@ -75,10 +75,12 @@ jobs:
 
       - name: Prepare macOS release artifacts
         working-directory: app
+        env:
+          TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
         run: |
           mkdir -p macos-artifacts
-          find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -exec cp {} "macos-artifacts/Telegram-Drive-v1.2.0-${{ matrix.artifact_suffix }}.dmg" \; || true
-          find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -maxdepth 1 -name "*.app" -exec tar -czf "macos-artifacts/Telegram-Drive-v1.2.0-${{ matrix.artifact_suffix }}.app.tar.gz" -C "src-tauri/target/${{ matrix.target }}/release/bundle/macos" "TG Drive.app" \; || true
+          find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name "*.dmg" -exec cp {} "macos-artifacts/Telegram-Drive-${TAG_NAME}-${{ matrix.artifact_suffix }}.dmg" \; || true
+          find "src-tauri/target/${{ matrix.target }}/release/bundle/macos" -maxdepth 1 -name "*.app" -exec tar -czf "macos-artifacts/Telegram-Drive-${TAG_NAME}-${{ matrix.artifact_suffix }}.app.tar.gz" -C "src-tauri/target/${{ matrix.target }}/release/bundle/macos" "TG Drive.app" \; || true
           ls -la macos-artifacts/
 
       - name: Upload macOS artifacts to Release
@@ -160,6 +162,8 @@ jobs:
 
       - name: Package iOS IPA & Archive Artifacts
         working-directory: app
+        env:
+          TAG_NAME: ${{ github.event.inputs.release_tag || github.ref_name }}
         run: |
           mkdir -p ios-artifacts
           APP_PATH=$(find src-tauri -name "*.app" | head -n 1)
@@ -167,10 +171,10 @@ jobs:
             echo "Found iOS App at: $APP_PATH"
             mkdir -p Payload
             cp -r "$APP_PATH" Payload/
-            zip -r ios-artifacts/Telegram-Drive-v1.2.0-ios.ipa Payload
-            zip -r ios-artifacts/Telegram-Drive-v1.2.0-ios-app.zip "$APP_PATH"
+            zip -r "ios-artifacts/Telegram-Drive-${TAG_NAME}-ios.ipa" Payload
+            zip -r "ios-artifacts/Telegram-Drive-${TAG_NAME}-ios-app.zip" "$APP_PATH"
           fi
-          find src-tauri -name "*.xcarchive" -exec zip -r ios-artifacts/Telegram-Drive-v1.2.0-ios.xcarchive.zip {} \; || true
+          find src-tauri -name "*.xcarchive" -exec zip -r "ios-artifacts/Telegram-Drive-${TAG_NAME}-ios.xcarchive.zip" {} \; || true
           ls -la ios-artifacts/
 
       - name: Upload iOS artifacts to Release
