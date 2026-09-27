@@ -120,6 +120,13 @@ export function FileExplorer({
         onPreview(file, sortedFiles, thumbnail);
     }, [onPreview, sortedFiles]);
 
+    const handleCardClick = useCallback((e: React.MouseEvent, file: TelegramFile) => {
+        onFileClick(e, file, sortedFiles);
+    }, [onFileClick, sortedFiles]);
+
+    const handleListItemClick = useCallback((e: React.MouseEvent, file: TelegramFile) => {
+        onFileClick(e, file, sortedFiles);
+    }, [onFileClick, sortedFiles]);
 
     const gridRows = useMemo(() => {
         const rows: (TelegramFile | 'upload' | 'upload-folder')[][] = [];
@@ -132,18 +139,19 @@ export function FileExplorer({
         return rows;
     }, [sortedFiles, columns, showFolderUpload]);
 
-
     const listItems = useMemo(() => {
         const tail: ('upload' | 'upload-folder')[] = ['upload'];
         if (showFolderUpload) tail.push('upload-folder');
         return [...sortedFiles, ...tail];
-    }, [sortedFiles, activeFolderId, showFolderUpload]);
+    }, [sortedFiles, showFolderUpload]);
 
+    const estimateCardHeight = useCallback(() => cardHeight, [cardHeight]);
+    const estimateListRowHeight = useCallback(() => LIST_ROW_HEIGHT, []);
 
     const gridVirtualizer = useVirtualizer({
         count: gridRows.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: useCallback(() => cardHeight, [cardHeight]),
+        estimateSize: estimateCardHeight,
         overscan: 2,
         gap: GRID_GAP,
     });
@@ -151,7 +159,7 @@ export function FileExplorer({
     const listVirtualizer = useVirtualizer({
         count: listItems.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => LIST_ROW_HEIGHT,
+        estimateSize: estimateListRowHeight,
         overscan: 5,
     });
 
@@ -299,15 +307,15 @@ export function FileExplorer({
                                                 key={`${file.folder_id ?? 'home'}:${file.id}`}
                                                 file={file}
                                                 isSelected={selectedIds.includes(file.id)}
-                                                onClick={(e: React.MouseEvent) => onFileClick(e, file, sortedFiles)}
-                                                onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, file)}
-                                                onDelete={() => onDelete(file)}
-                                                onDownload={() => onDownload(file)}
-                                                onPreview={(thumb) => handlePreviewRequest(file, thumb)}
+                                                onClick={handleCardClick}
+                                                onContextMenu={handleContextMenu}
+                                                onDelete={onDelete}
+                                                onDownload={onDownload}
+                                                onPreview={handlePreviewRequest}
                                                 activeFolderId={file.folder_id ?? activeFolderId}
                                                 height={cardHeight}
-                                                onToggleSelection={() => onToggleSelection(file.id)}
-                                                onShare={onShare ? () => onShare(file) : undefined}
+                                                onToggleSelection={onToggleSelection}
+                                                onShare={onShare}
                                                 selectedIds={selectedIds}
                                                 disableDrag={selectionDisabled}
                                             />
@@ -384,7 +392,7 @@ export function FileExplorer({
                                     <FileListItem
                                         file={file}
                                         selectedIds={selectedIds}
-                                        onFileClick={(e, clickedFile) => onFileClick(e, clickedFile, sortedFiles)}
+                                        onFileClick={handleListItemClick}
                                         handleContextMenu={handleContextMenu}
                                         disableDrag={selectionDisabled}
                                     />

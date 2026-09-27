@@ -83,7 +83,7 @@ describe('Android sponsor visibility', () => {
     expect(screen.queryByRole('complementary', { name: /sponsored content/i })).toBeNull();
     expect(onManualDismiss).toHaveBeenCalledOnce();
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(15 * 60 * 1_000 - 301); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(60 * 1_000 - 301); });
     expect(screen.queryByRole('complementary', { name: /sponsored content/i })).toBeNull();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(screen.getByRole('complementary', { name: /sponsored content/i })).toBeTruthy();
@@ -94,7 +94,7 @@ describe('Android sponsor visibility', () => {
     const onSupport = vi.fn();
     render(<AdsterraBanner visible onSupport={onSupport} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove ads forever for $5 once' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Remove ads/i }));
 
     expect(onSupport).toHaveBeenCalledOnce();
     expect(openSponsorLink).not.toHaveBeenCalled();

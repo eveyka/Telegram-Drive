@@ -1,6 +1,120 @@
 export type LicensePlan = 'lifetime' | 'annual' | 'monthly' | 'trial';
 export type DevicePlatform = 'windows' | 'android' | 'ios' | 'macos' | 'linux' | 'web' | 'other';
 
+export interface ProUserRow {
+  id: string;
+  telegram_user_id: string;
+  phone_number?: string | null;
+  first_name?: string | null;
+  username?: string | null;
+  plan_type: LicensePlan;
+  is_pro: number;
+  is_banned: number;
+  ban_reason?: string | null;
+  notes?: string | null;
+  created_at: number;
+  expires_at?: number | null;
+  last_active_at?: number | null;
+}
+
+export interface PaymentTransactionRow {
+  id: string;
+  order_id: string;
+  payment_id?: string | null;
+  telegram_user_id: string;
+  phone_number?: string | null;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  plan_type: LicensePlan;
+  amount: number; // In paise (e.g. 39900 for Rs 399)
+  currency: string;
+  status: 'created' | 'paid' | 'failed' | 'refunded';
+  payment_method?: string | null;
+  signature?: string | null;
+  created_at: number;
+  paid_at?: number | null;
+}
+
+export interface BotSubscriberRow {
+  telegram_user_id: string;
+  chat_id: string;
+  username?: string | null;
+  first_name?: string | null;
+  subscribed_at: number;
+  is_active: number;
+}
+
+export interface DeviceActivationRow {
+  id: string;
+  license_key: string;
+  hardware_id: string;
+  device_name: string;
+  platform: DevicePlatform;
+  activated_at: number;
+  last_seen_at: number;
+  is_revoked: number;
+}
+
+export interface LicenseClaims {
+  sub: string; // telegram user id
+  hwid?: string;
+  tg_id?: string;
+  phone?: string;
+  plan: LicensePlan;
+  exp: number | null;
+  iat: number;
+  iss: string;
+  name?: string;
+}
+
+export interface Env {
+  DB: D1Database;
+  APP_NAME?: string;
+  STORE_URL?: string;
+  ADMIN_SECRET?: string;
+  SIGNING_PRIVATE_KEY?: string;
+  SIGNING_PUBLIC_KEY?: string;
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
+  RAZORPAY_WEBHOOK_SECRET?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  MAX_DEFAULT_DEVICES?: string;
+  LEMON_SQUEEZY_WEBHOOK_SECRET?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+  GMAIL_USER?: string;
+  GMAIL_APP_PASSWORD?: string;
+}
+
+export interface CreateRazorpayOrderRequest {
+  telegram_user_id: string | number;
+  phone_number?: string;
+  customer_name?: string;
+  customer_email?: string;
+  plan_type?: LicensePlan;
+  amount?: number;
+}
+
+export interface VerifyRazorpayPaymentRequest {
+  order_id: string;
+  payment_id: string;
+  signature: string;
+  telegram_user_id: string | number;
+  phone_number?: string;
+  customer_name?: string;
+  customer_email?: string;
+  plan_type?: LicensePlan;
+}
+
+export interface BroadcastMessageRequest {
+  message: string;
+  parse_mode?: 'Markdown' | 'HTML';
+  button_text?: string;
+  button_url?: string;
+  target_user_id?: string;
+}
+
+// Retain legacy interface for backward compatibility
 export interface LicenseRow {
   id: string;
   license_key: string;
@@ -17,67 +131,30 @@ export interface LicenseRow {
   expires_at: number | null;
 }
 
-export interface DeviceActivationRow {
-  id: string;
+export interface ActivationRequest {
   license_key: string;
   hardware_id: string;
-  device_name: string;
-  platform: DevicePlatform;
-  activated_at: number;
-  last_seen_at: number;
-  is_revoked: number;
+  device_name?: string;
+  platform?: DevicePlatform;
+  telegram_user_id?: string;
+  phone_number?: string;
 }
 
-export interface LicenseClaims {
-  sub: string; // license key or telegram user id
-  hwid?: string; // hardware ID (optional for account-bound mode)
-  tg_id?: string; // telegram user id
-  phone?: string; // phone number
-  plan: LicensePlan;
-  exp: number | null; // expiry timestamp or null for lifetime
-  iat: number;
-  iss: string;
-  name?: string;
-}
-
-export interface Env {
-  DB: D1Database;
-  APP_NAME?: string;
-  STORE_URL?: string;
-  MAX_DEFAULT_DEVICES?: string;
-  ADMIN_SECRET?: string;
-  SIGNING_PRIVATE_KEY?: string; // Hex or base64 Ed25519 JWK / PEM / Raw
-  SIGNING_PUBLIC_KEY?: string;
-  LEMON_SQUEEZY_WEBHOOK_SECRET?: string;
-  LEMON_SQUEEZY_API_KEY?: string;
-  RESEND_API_KEY?: string;
-  EMAIL_FROM?: string;
-  GMAIL_USER?: string;
-  GMAIL_APP_PASSWORD?: string;
-  RAZORPAY_KEY_ID?: string;
-  RAZORPAY_KEY_SECRET?: string;
-  RAZORPAY_WEBHOOK_SECRET?: string;
-  TELEGRAM_BOT_TOKEN?: string;
-}
-
-export interface OrderStatusResponse {
-  paid: boolean;
-  order_id?: string;
+export interface CreateLicenseRequest {
   license_key?: string;
+  telegram_user_id?: string;
+  phone_number?: string;
+  customer_name?: string;
+  customer_email?: string;
   plan_type?: LicensePlan;
-  customer_name?: string | null;
-  customer_email?: string | null;
+  max_devices?: number;
+  notes?: string;
   expires_at?: number | null;
-  token?: string;
 }
 
-export interface RecoveryOtpRow {
-  id: string;
-  email: string;
-  otp_hash: string;
-  attempts: number;
-  expires_at: number;
-  created_at: number;
+export interface DeactivateRequest {
+  license_key: string;
+  hardware_id: string;
 }
 
 export interface RequestOtpRequest {
@@ -91,39 +168,15 @@ export interface VerifyOtpRequest {
 
 export interface SelfResetDeviceRequest {
   email: string;
-  session_token: string;
-  hardware_id: string;
-}
-
-export interface ActivationRequest {
   license_key: string;
-  hardware_id: string;
-  device_name?: string;
-  platform?: DevicePlatform;
-  telegram_user_id?: string;
-  phone_number?: string;
+  hardware_id?: string;
+  session_token?: string;
 }
 
 export interface VerifyRequest {
-  license_key: string;
-  hardware_id: string;
   token?: string;
-}
-
-export interface DeactivateRequest {
-  license_key: string;
-  hardware_id: string;
-}
-
-export interface CreateLicenseRequest {
-  customer_name?: string;
-  customer_email?: string;
-  telegram_user_id?: string;
-  phone_number?: string;
-  plan_type?: LicensePlan;
-  max_devices?: number;
-  notes?: string;
-  count?: number; // for bulk generation
+  license_key?: string;
+  hardware_id?: string;
 }
 
 export interface CheckAccountRequest {
@@ -133,13 +186,14 @@ export interface CheckAccountRequest {
 
 export interface AccountStatusResponse {
   active: boolean;
-  license_key?: string | null;
+  is_pro?: boolean;
   plan_type?: LicensePlan;
   customer_name?: string | null;
   customer_email?: string | null;
   expires_at?: number | null;
   token?: string;
   terms_version: string;
+  message?: string;
 }
 
 export interface CrashReportRow {
@@ -152,5 +206,3 @@ export interface CrashReportRow {
   occurred_at: string;
   created_at: number;
 }
-
-

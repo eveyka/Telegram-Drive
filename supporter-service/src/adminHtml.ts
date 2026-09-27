@@ -149,33 +149,97 @@ export function renderAdminDashboardHtml(appName: string): string {
       </div>
     </div>
 
-    <!-- Live Pricing & Razorpay Gateway Controller -->
-    <div class="glass-card p-5 rounded-2xl border border-cyan-500/20 glow-cyan">
-      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <!-- Membership Plans & Dynamic Pricing Controller -->
+    <div class="glass-card p-6 rounded-2xl border border-cyan-500/30 glow-cyan space-y-5">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
         <div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-              Live Gateway & Pricing Controller
+              ⚡ Membership Plans & Pricing Controller
             </span>
-            <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Razorpay Gateway Live</span>
+            <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Synced with Live App & Store</span>
           </div>
-          <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-            Current Live Price: <span id="displayLivePrice" class="text-emerald-400 font-mono text-2xl font-black">₹399.00</span>
-          </h3>
-          <p class="text-xs text-slate-400">Razorpay Key: <span class="font-mono text-cyan-300">rzp_live_T1mw2QboxNW91L</span> | Webhook: <span class="font-mono text-slate-300">/api/webhooks/razorpay</span></p>
+          <h3 class="text-lg font-bold text-white mt-1">Configure Pro Plans, Pricing & Payment URLs</h3>
+          <p class="text-xs text-slate-400">Whatever you set here will instantly appear inside the Android & Desktop apps for all users.</p>
+        </div>
+      </div>
+
+      <form id="plansForm" onsubmit="handleSavePlans(event)" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 1. Lifetime Pro Plan -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border-2 border-amber-500/40 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                👑 Lifetime Pro
+              </span>
+              <span class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">Best Value</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+              <input type="number" id="planLifetimePrice" min="1" step="1" placeholder="499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+              <input type="number" id="planLifetimeOrig" min="1" step="1" placeholder="1499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+              <input type="url" id="planLifetimeUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+            </div>
+          </div>
+
+          <!-- 2. 1-Year Annual Pass -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase text-sky-400 flex items-center gap-1.5">
+                🌟 1-Year Annual Pass
+              </span>
+              <span class="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">365 Days</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+              <input type="number" id="planAnnualPrice" min="1" step="1" placeholder="299" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-sky-400 focus:outline-none focus:border-sky-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+              <input type="number" id="planAnnualOrig" min="1" step="1" placeholder="599" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-sky-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+              <input type="url" id="planAnnualUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-400 font-mono">
+            </div>
+          </div>
+
+          <!-- 3. 1-Month Pass -->
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
+                📅 1-Month Pass
+              </span>
+              <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded">30 Days</span>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+              <input type="number" id="planMonthlyPrice" min="1" step="1" placeholder="49" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-purple-400 focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+              <input type="number" id="planMonthlyOrig" min="1" step="1" placeholder="99" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-purple-400">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+              <input type="url" id="planMonthlyUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-400 font-mono">
+            </div>
+          </div>
         </div>
 
-        <form id="priceForm" onsubmit="handleUpdatePrice(event)" class="flex items-center gap-3 w-full md:w-auto">
-          <div class="relative flex-1 md:w-44">
-            <span class="absolute left-3.5 top-2.5 text-sm font-bold text-slate-400">₹</span>
-            <input type="number" id="inputNewPrice" min="1" step="1" placeholder="399" required class="w-full pl-8 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
-          </div>
-          <button type="submit" id="btnUpdatePrice" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] whitespace-nowrap">
-            Update Price Live
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="submit" id="btnSavePlans" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:brightness-110 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all">
+            Save All Membership Plans
           </button>
-        </form>
-      </div>
-      <div id="priceUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
+        </div>
+      </form>
+      <div id="plansUpdateMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
     </div>
 
     <!-- Free Trial Controller -->
@@ -473,6 +537,138 @@ export function renderAdminDashboardHtml(appName: string): string {
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- 💎 Pro Telegram Users Manager (Direct Account-Linked Entitlements) -->
+    <div id="proUsersSection" class="glass-card p-5 rounded-2xl border border-violet-500/30 glow-cyan">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
+              💎 Pro Telegram Accounts
+            </span>
+            <span id="proUsersCountBadge" class="text-[10px] text-emerald-400 font-semibold">Account-Linked Pro Users</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Users whose Telegram User IDs are unlocked for 100% ad-free pro access across all devices.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <input type="text" id="proUserSearchInput" oninput="handleProUserSearch()" placeholder="Search Telegram ID / Username..." class="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500">
+            <span class="absolute left-2.5 top-1.5 text-slate-500 text-xs">🔍</span>
+          </div>
+          <button onclick="loadProUsers()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+            <span>🔄</span> Refresh
+          </button>
+          <button onclick="openUpgradeProModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98] flex items-center gap-1.5">
+            <span>➕</span> Grant Pro
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3">Telegram User</th>
+              <th class="px-4 py-3">Phone</th>
+              <th class="px-4 py-3">Plan</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Joined Date</th>
+              <th class="px-4 py-3">Expires At</th>
+              <th class="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="proUsersTableBody" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                Loading Pro users...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 💳 Razorpay Direct Transactions -->
+    <div id="paymentTransactionsSection" class="glass-card p-5 rounded-2xl border border-blue-500/20">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+              💳 Razorpay Orders & Payments
+            </span>
+            <span class="text-[10px] text-slate-400">Direct In-App UPI / Card Purchases</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Live audit log of all generated Razorpay orders and payment completions.</p>
+        </div>
+        <button onclick="loadPaymentTransactions()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+          <span>🔄</span> Refresh
+        </button>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3">Order ID</th>
+              <th class="px-4 py-3">Payment ID</th>
+              <th class="px-4 py-3">Telegram User</th>
+              <th class="px-4 py-3">Amount</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Created At</th>
+              <th class="px-4 py-3">Paid At</th>
+            </tr>
+          </thead>
+          <tbody id="paymentTransactionsTableBody" class="divide-y divide-slate-800/60">
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                Loading transactions...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 📢 Telegram Bot & Broadcast Manager -->
+    <div id="broadcastSection" class="glass-card p-5 rounded-2xl border border-sky-500/30 glow-cyan space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+              📢 Telegram Bot Broadcast & Marketing
+            </span>
+            <span id="botSubscriberCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Active Bot Subscribers</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Broadcast new feature updates, discounts, flash sales, or announcements directly to user Telegram inboxes.</p>
+        </div>
+      </div>
+
+      <form id="broadcastForm" onsubmit="handleSendBroadcast(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Message Text (Supports Markdown format)</label>
+          <textarea id="broadcastMessageInput" rows="4" required placeholder="🔥 *Special 50% OFF Weekend Deal!* 💎&#10;&#10;Upgrade to TG Drive PRO today for only ₹199! No ads forever.&#10;&#10;Tap below to claim now! 👇" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button Text (Optional)</label>
+            <input type="text" id="broadcastButtonTextInput" placeholder="🚀 Upgrade to PRO" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button URL (Optional)</label>
+            <input type="url" id="broadcastButtonUrlInput" placeholder="https://tg-drive.vercel.app/pricing" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <span class="text-[11px] text-slate-400">💡 Uses official Telegram Bot API with rate-limited queueing.</span>
+          <button type="submit" id="btnSendBroadcast" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center gap-2">
+            <span>🚀</span> Send Broadcast to All Subscribers
+          </button>
+        </div>
+      </form>
+      <div id="broadcastStatusMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
     </div>
   </main>
 
@@ -853,8 +1049,11 @@ export function renderAdminDashboardHtml(appName: string): string {
       document.getElementById('dashboardView').classList.remove('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
       loadStats();
+      loadProUsers();
+      loadPaymentTransactions();
+      loadBotSubscribers();
       loadLicenses();
-      loadPricing();
+      loadPlans();
       loadTrialSettings();
       loadDiscounts();
       loadOffers();
@@ -940,65 +1139,78 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    async function loadPricing() {
+    async function loadPlans() {
       try {
-        const res = await fetch('/api/admin/pricing', {
+        const res = await fetch('/api/admin/plans', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!res.ok) return;
         const data = await res.json();
-        if (data.formatted_price) {
-          document.getElementById('displayLivePrice').textContent = data.formatted_price;
-          document.getElementById('inputNewPrice').placeholder = data.price;
-        }
-        if (data.configured) {
-          document.getElementById('pricingStatusBadge').textContent = '🟢 ' + (data.gateway || 'Razorpay') + ' Live Sync: ' + (data.product_name || 'TG Drive Pro');
+        if (document.getElementById('planLifetimePrice')) {
+          document.getElementById('planLifetimePrice').value = data.lifetime_price || 499;
+          document.getElementById('planLifetimeOrig').value = data.lifetime_orig || 1499;
+          document.getElementById('planLifetimeUrl').value = data.lifetime_url || '';
+
+          document.getElementById('planAnnualPrice').value = data.annual_price || 299;
+          document.getElementById('planAnnualOrig').value = data.annual_orig || 599;
+          document.getElementById('planAnnualUrl').value = data.annual_url || '';
+
+          document.getElementById('planMonthlyPrice').value = data.monthly_price || 49;
+          document.getElementById('planMonthlyOrig').value = data.monthly_orig || 99;
+          document.getElementById('planMonthlyUrl').value = data.monthly_url || '';
         }
       } catch (err) {
-        console.error('Failed to load pricing:', err);
+        console.error('Failed to load plans:', err);
       }
     }
 
-    async function handleUpdatePrice(e) {
+    async function handleSavePlans(e) {
       e.preventDefault();
-      const newPrice = parseFloat(document.getElementById('inputNewPrice').value);
-      if (!newPrice || newPrice <= 0) return;
-
-      const btn = document.getElementById('btnUpdatePrice');
-      const msgBox = document.getElementById('priceUpdateMsg');
+      const btn = document.getElementById('btnSavePlans');
+      const msgBox = document.getElementById('plansUpdateMsg');
       btn.disabled = true;
-      btn.textContent = 'Updating...';
+      btn.textContent = 'Saving Plans…';
       msgBox.classList.add('hidden');
 
+      const payload = {
+        lifetime_price: parseFloat(document.getElementById('planLifetimePrice').value) || 499,
+        lifetime_orig: parseFloat(document.getElementById('planLifetimeOrig').value) || 1499,
+        lifetime_url: document.getElementById('planLifetimeUrl').value.trim(),
+        annual_price: parseFloat(document.getElementById('planAnnualPrice').value) || 299,
+        annual_orig: parseFloat(document.getElementById('planAnnualOrig').value) || 599,
+        annual_url: document.getElementById('planAnnualUrl').value.trim(),
+        monthly_price: parseFloat(document.getElementById('planMonthlyPrice').value) || 49,
+        monthly_orig: parseFloat(document.getElementById('planMonthlyOrig').value) || 99,
+        monthly_url: document.getElementById('planMonthlyUrl').value.trim(),
+      };
+
       try {
-        const res = await fetch('/api/admin/pricing/update', {
+        const res = await fetch('/api/admin/plans', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ price: newPrice })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (res.ok && data.success) {
           msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          msgBox.textContent = data.message || 'Price updated successfully!';
+          msgBox.textContent = data.message || 'All membership plans updated successfully! Apps will sync immediately.';
           msgBox.classList.remove('hidden');
-          document.getElementById('displayLivePrice').textContent = '₹' + newPrice.toFixed(2);
-          document.getElementById('inputNewPrice').value = '';
-          showToast('Live price updated on Razorpay!');
+          showToast('Membership plans saved live!');
         } else {
           msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          msgBox.textContent = data.error || 'Failed to update price.';
+          msgBox.textContent = data.error || 'Failed to save plans.';
           msgBox.classList.remove('hidden');
         }
       } catch (err) {
         msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-        msgBox.textContent = 'Network error while updating price.';
+        msgBox.textContent = 'Network error while updating plans.';
         msgBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Update Price Live';
+        btn.textContent = 'Save All Membership Plans';
       }
     }
 
@@ -2141,7 +2353,347 @@ export function renderAdminDashboardHtml(appName: string): string {
         showToast('Network error clearing crash reports');
       }
     }
+
+    // -------------------------------------------------------------
+    // Pro Users Management (pro_users)
+    // -------------------------------------------------------------
+    let cachedProUsers = [];
+
+    async function loadProUsers(query = '') {
+      const tbody = document.getElementById('proUsersTableBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Pro accounts...</td></tr>';
+      try {
+        const url = query ? '/api/admin/pro-users?q=' + encodeURIComponent(query) : '/api/admin/pro-users';
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + adminToken } });
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Failed to load Pro accounts</td></tr>';
+          return;
+        }
+        const data = await res.json();
+        cachedProUsers = data.users || [];
+        document.getElementById('proUsersCountBadge').textContent = \`\${cachedProUsers.length} Account(s)\`;
+
+        if (cachedProUsers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No Pro accounts registered yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = cachedProUsers.map(u => {
+          const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString() : '—';
+          const expires = u.expires_at ? new Date(u.expires_at * 1000).toLocaleDateString() : '<span class="text-amber-400 font-bold">Lifetime (Forever)</span>';
+          const statusBadge = u.is_banned === 1
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">Banned</span>'
+            : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Active PRO</span>';
+
+          const nameDisp = u.first_name || u.username ? \`\${u.first_name || ''} \${u.username ? '(@' + u.username + ')' : ''}\` : 'Telegram User';
+
+          return \`
+            <tr class="hover:bg-slate-900/50 transition-colors">
+              <td class="px-4 py-3 font-mono font-bold text-white flex items-center gap-1.5">
+                <span>💎</span>
+                <div>
+                  <div>\${u.telegram_user_id}</div>
+                  <div class="text-[11px] font-sans font-normal text-slate-400">\${nameDisp}</div>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-slate-300 font-mono text-xs">\${u.phone_number || '—'}</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30">\${u.plan_type}</span></td>
+              <td class="px-4 py-3">\${statusBadge}</td>
+              <td class="px-4 py-3 text-slate-400 text-xs">\${joined}</td>
+              <td class="px-4 py-3 text-xs">\${expires}</td>
+              <td class="px-4 py-3 text-right space-x-1">
+                \${u.is_banned === 1 
+                  ? \`<button onclick="handleUnbanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold text-[10px]">Unban</button>\`
+                  : \`<button onclick="handleBanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 font-bold text-[10px]">Ban</button>\`
+                }
+                <button onclick="handleDeleteProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:text-rose-400 font-bold text-[10px]">Delete</button>
+              </td>
+            </tr>
+          \`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Network error loading Pro users</td></tr>';
+      }
+    }
+
+    let proUserSearchTimeout;
+    function handleProUserSearch() {
+      clearTimeout(proUserSearchTimeout);
+      proUserSearchTimeout = setTimeout(() => {
+        const q = document.getElementById('proUserSearchInput').value.trim();
+        loadProUsers(q);
+      }, 300);
+    }
+
+    function openUpgradeProModal() {
+      document.getElementById('upgradeProModal').classList.remove('hidden');
+    }
+
+    function closeUpgradeProModal() {
+      document.getElementById('upgradeProModal').classList.add('hidden');
+    }
+
+    async function handleGrantPro(e) {
+      e.preventDefault();
+      const tgId = document.getElementById('grantTgUserId').value.trim();
+      const firstName = document.getElementById('grantFirstName').value.trim();
+      const username = document.getElementById('grantUsername').value.trim();
+      const plan = document.getElementById('grantPlanType').value;
+      const days = parseInt(document.getElementById('grantDurationDays').value, 10) || 0;
+      const notes = document.getElementById('grantNotes').value.trim();
+
+      const btn = document.getElementById('btnSubmitGrantPro');
+      btn.disabled = true;
+      btn.textContent = 'Granting...';
+
+      try {
+        const res = await fetch('/api/admin/pro-users/upgrade', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_user_id: tgId,
+            first_name: firstName,
+            username: username,
+            plan_type: plan,
+            duration_days: days,
+            notes: notes
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Pro granted to Telegram user ' + tgId + '!');
+          closeUpgradeProModal();
+          loadProUsers();
+          loadStats();
+        } else {
+          alert(data.error || 'Failed to grant Pro');
+        }
+      } catch (err) {
+        alert('Network error granting Pro');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Grant Pro Now';
+      }
+    }
+
+    async function handleBanProUser(tgId) {
+      const reason = prompt('Enter ban reason (optional):', 'Terms violation');
+      if (reason === null) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/ban', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgId, reason })
+        });
+        if (res.ok) {
+          showToast('User ' + tgId + ' banned');
+          loadProUsers();
+          loadStats();
+        }
+      } catch (err) {
+        showToast('Error banning user');
+      }
+    }
+
+    async function handleUnbanProUser(tgId) {
+      try {
+        const res = await fetch('/api/admin/pro-users/unban', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgId })
+        });
+        if (res.ok) {
+          showToast('User ' + tgId + ' unbanned');
+          loadProUsers();
+          loadStats();
+        }
+      } catch (err) {
+        showToast('Error unbanning user');
+      }
+    }
+
+    async function handleDeleteProUser(tgId) {
+      if (!confirm('Are you sure you want to permanently delete Pro entitlement for Telegram user ' + tgId + '?')) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/delete', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgId })
+        });
+        if (res.ok) {
+          showToast('User ' + tgId + ' deleted');
+          loadProUsers();
+          loadStats();
+        }
+      } catch (err) {
+        showToast('Error deleting user');
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Razorpay Payments Management (payment_transactions)
+    // -------------------------------------------------------------
+    async function loadPaymentTransactions() {
+      const tbody = document.getElementById('paymentTransactionsTableBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading transactions...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/payment-transactions', { headers: { 'Authorization': 'Bearer ' + adminToken } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const txs = data.transactions || [];
+
+        if (txs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No payment transactions recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = txs.map(t => {
+          const amt = '₹' + (t.amount >= 100 ? (t.amount / 100).toFixed(2) : t.amount);
+          const created = t.created_at ? new Date(t.created_at * 1000).toLocaleString() : '—';
+          const paid = t.paid_at ? new Date(t.paid_at * 1000).toLocaleString() : '—';
+          const statusBadge = t.status === 'paid'
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✅ Paid</span>'
+            : t.status === 'created'
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Created</span>'
+              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">❌ Failed</span>';
+
+          return \`
+            <tr class="hover:bg-slate-900/50 transition-colors">
+              <td class="px-4 py-3 font-mono font-bold text-white text-xs">\${t.order_id}</td>
+              <td class="px-4 py-3 font-mono text-slate-300 text-xs">\${t.payment_id || '—'}</td>
+              <td class="px-4 py-3 font-mono text-cyan-400 text-xs">\${t.telegram_user_id}</td>
+              <td class="px-4 py-3 font-mono font-bold text-emerald-400 text-xs">\${amt}</td>
+              <td class="px-4 py-3">\${statusBadge}</td>
+              <td class="px-4 py-3 text-slate-400 text-[11px]">\${created}</td>
+              <td class="px-4 py-3 text-slate-400 text-[11px]">\${paid}</td>
+            </tr>
+          \`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Error loading payment transactions</td></tr>';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Telegram Bot Subscribers & Broadcasts
+    // -------------------------------------------------------------
+    async function loadBotSubscribers() {
+      try {
+        const res = await fetch('/api/admin/bot-subscribers', { headers: { 'Authorization': 'Bearer ' + adminToken } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = data.active_count || (data.subscribers ? data.subscribers.length : 0);
+        document.getElementById('botSubscriberCountBadge').textContent = count + ' Active Bot Subscriber(s)';
+      } catch (err) {
+        console.error('Error loading bot subscribers:', err);
+      }
+    }
+
+    async function handleSendBroadcast(e) {
+      e.preventDefault();
+      const msg = document.getElementById('broadcastMessageInput').value.trim();
+      const btnText = document.getElementById('broadcastButtonTextInput').value.trim();
+      const btnUrl = document.getElementById('broadcastButtonUrlInput').value.trim();
+
+      if (!msg) {
+        alert('Please enter a message to broadcast');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to broadcast this message to all Telegram bot subscribers?')) {
+        return;
+      }
+
+      const btn = document.getElementById('btnSendBroadcast');
+      const statusBox = document.getElementById('broadcastStatusMsg');
+      btn.disabled = true;
+      btn.textContent = 'Broadcasting...';
+      statusBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/broadcast', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg,
+            button_text: btnText || undefined,
+            button_url: btnUrl || undefined,
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          statusBox.textContent = '🚀 Broadcast sent successfully! Delivered to ' + data.sent_count + ' user(s)' + (data.failed_count > 0 ? ' (' + data.failed_count + ' failed)' : '') + '.';
+          statusBox.classList.remove('hidden');
+          showToast('Broadcast dispatched on Telegram!');
+        } else {
+          statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          statusBox.textContent = data.error || 'Failed to send broadcast';
+          statusBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        statusBox.textContent = 'Network error while broadcasting';
+        statusBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Send Broadcast to All Subscribers';
+      }
+    }
   </script>
+
+  <!-- Grant Pro Modal -->
+  <div id="upgradeProModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-md p-6 rounded-2xl glow-cyan space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>💎</span> Grant Pro to Telegram User
+        </h3>
+        <button onclick="closeUpgradeProModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <form id="grantProForm" onsubmit="handleGrantPro(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Telegram User ID <span class="text-rose-400">*</span></label>
+          <input type="text" id="grantTgUserId" required placeholder="e.g. 123456789" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">First Name</label>
+            <input type="text" id="grantFirstName" placeholder="John" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
+            <input type="text" id="grantUsername" placeholder="@john_doe" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Plan</label>
+            <select id="grantPlanType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+              <option value="lifetime">⭐ Lifetime Pro</option>
+              <option value="annual">📅 1 Year</option>
+              <option value="monthly">🌙 1 Month</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Duration Days (0=Forever)</label>
+            <input type="number" id="grantDurationDays" placeholder="0" min="0" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Notes</label>
+          <input type="text" id="grantNotes" placeholder="VIP Supporter / Contest winner" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeUpgradeProModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">Cancel</button>
+          <button type="submit" id="btnSubmitGrantPro" class="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-xs font-bold hover:from-violet-400 hover:to-indigo-500">Grant Pro Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Process Payout Modal -->
   <div id="processPayoutModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">

@@ -1,31 +1,45 @@
 /**
  * Adsterra Monetization & Ad Network Configuration
  * 
- * Replace the values below with your personal Adsterra Publisher account keys
- * or configure them in Cloudflare Worker for dynamic over-the-air updates.
+ * Configured with active Adsterra publisher keys & smartlinks.
  */
 
 export interface AdsterraConfig {
   /** Your Adsterra Direct Link (Smartlink) URL */
   directLinkUrl: string;
-  /** Your Adsterra 300x250 Banner Zone Key */
+  /** Alternate / Fallback Direct Link URL */
+  fallbackDirectLinkUrl?: string;
+  /** Your Adsterra Banner Zone Key */
   bannerZoneKey: string;
-  /** Your Adsterra 300x250 Banner Script URL */
-  bannerScriptUrl?: string;
+  /** Your Adsterra Banner Script URL */
+  bannerScriptUrl: string;
+  /** Banner width */
+  bannerWidth: number;
+  /** Banner height */
+  bannerHeight: number;
   /** Your Adsterra Native / Social Bar Zone Script URL (optional) */
   socialBarScriptUrl?: string;
-  /** Ad cooldown interval between impressions (in milliseconds) - Default: 15 mins */
+  /** Ad cooldown interval after manual dismiss (in milliseconds) - Default: 1 min */
   cooldownMs: number;
-  /** Auto-dismiss countdown in seconds - Default: 10s */
+  /** Cooldown between automatic action-triggered direct links (in milliseconds) - Default: 5 mins */
+  actionTriggerCooldownMs: number;
+  /** Whether action-triggered direct links (e.g. on file download) are enabled */
+  enableActionDirectLinks: boolean;
+  /** Auto-dismiss countdown in seconds (0 = persistent until user closes) */
   autoDismissSeconds: number;
 }
 
 export const ADSTERRA_CONFIG: AdsterraConfig = {
   // User's Active Adsterra Smartlink (Direct Link)
-  directLinkUrl: 'https://www.profitableratecpmnetwork.com/jjf7657e3m?key=ce5513558127ef2ddb8280919a539411',
-  // Adsterra 300x250 Banner Key
-  bannerZoneKey: '9396e3814bf36c82b64a6ddc1c7538ea',
-  bannerScriptUrl: 'https://www.highrevenueformat.com/9396e3814bf36c82b64a6ddc1c7538ea/invoke.js',
-  cooldownMs: 15 * 60 * 1000,
-  autoDismissSeconds: 10,
+  directLinkUrl: 'https://www.profitableratecpmnetwork.com/gr3ba9pja?key=45510c1e39c688625bc6973957e221ae',
+  fallbackDirectLinkUrl: 'https://www.profitableratecpmnetwork.com/gr3ba9pja?key=45510c1e39c688625bc6973957e221ae',
+  // Adsterra 320x50 Banner Key & Script
+  bannerZoneKey: '62d4a6f015cbff1fd2ab211f514e0183',
+  bannerScriptUrl: 'https://www.highrevenueformat.com/62d4a6f015cbff1fd2ab211f514e0183/invoke.js',
+  bannerWidth: 320,
+  bannerHeight: 50,
+  cooldownMs: 60 * 1000, // 1 minute cooldown after closing banner
+  actionTriggerCooldownMs: 5 * 60 * 1000, // 5 minutes cooldown between download-triggered direct links
+  enableActionDirectLinks: true,
+  autoDismissSeconds: 0, // 0 = persistent banner for maximum visibility
 };

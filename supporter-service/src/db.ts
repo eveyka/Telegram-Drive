@@ -1,4 +1,4 @@
-import type { CrashReportRow, DeviceActivationRow, DevicePlatform, LicensePlan, LicenseRow } from './types';
+import type { CrashReportRow, DeviceActivationRow, DevicePlatform, LicensePlan, LicenseRow, ProUserRow, PaymentTransactionRow, BotSubscriberRow } from './types';
 
 // Creates a new license
 export async function createLicense(
@@ -524,6 +524,51 @@ export async function ensureStoreTables(db: D1Database): Promise<void> {
       )`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_crash_reports_created_at ON crash_reports(created_at DESC)`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_crash_reports_version ON crash_reports(app_version)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS pro_users (
+        id TEXT PRIMARY KEY,
+        telegram_user_id TEXT UNIQUE NOT NULL,
+        phone_number TEXT,
+        first_name TEXT,
+        username TEXT,
+        plan_type TEXT NOT NULL DEFAULT 'lifetime',
+        is_pro INTEGER NOT NULL DEFAULT 1,
+        is_banned INTEGER NOT NULL DEFAULT 0,
+        ban_reason TEXT,
+        notes TEXT,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        last_active_at INTEGER
+      )`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_pro_users_tg_id ON pro_users(telegram_user_id)`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_pro_users_phone ON pro_users(phone_number)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS payment_transactions (
+        id TEXT PRIMARY KEY,
+        order_id TEXT NOT NULL UNIQUE,
+        payment_id TEXT,
+        telegram_user_id TEXT NOT NULL,
+        phone_number TEXT,
+        customer_name TEXT,
+        customer_email TEXT,
+        plan_type TEXT NOT NULL DEFAULT 'lifetime',
+        amount INTEGER NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'INR',
+        status TEXT NOT NULL DEFAULT 'created',
+        payment_method TEXT,
+        signature TEXT,
+        created_at INTEGER NOT NULL,
+        paid_at INTEGER
+      )`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_payment_order_id ON payment_transactions(order_id)`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_payment_tg_id ON payment_transactions(telegram_user_id)`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS bot_subscribers (
+        telegram_user_id TEXT PRIMARY KEY,
+        chat_id TEXT NOT NULL,
+        username TEXT,
+        first_name TEXT,
+        subscribed_at INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1
+      )`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_bot_subs_chat_id ON bot_subscribers(chat_id)`),
     ]);
 
     // Ensure telegram_user_id and phone_number columns exist on licenses table
@@ -1200,6 +1245,401 @@ export async function deleteCrashReport(db: D1Database, id: string): Promise<boo
   } catch {
     return false;
   }
+}
+
+// -------------------------------------------------------------
+// Razorpay Payment Transactions & Direct Account Entitlement
+// -------------------------------------------------------------
+
+export async function createPaymentTransaction(
+  db: D1Database,
+  data: {
+    id: string;
+    order_id: string;
+    telegram_user_id: string;
+    phone_number?: string | null;
+    customer_name?: string | null;
+    customer_email?: string | null;
+    plan_type: LicensePlan;
+    amount: number;
+    currency?: string;
+    status?: 'created' | 'paid' | 'failed' | 'refunded';
+  }
+): Promise<PaymentTransactionRow> {
+  await ensureStoreTables(db);
+  const now = Math.floor(Date.now() / 1000);
+  const status = data.status || 'created';
+  await db
+    .prepare(
+      `INSERT INTO payment_transactions (
+        id, order_id, telegram_user_id, phone_number, customer_name, customer_email, plan_type, amount, currency, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      data.id,
+      data.order_id,
+      data.telegram_user_id,
+      data.phone_number || null,
+      data.customer_name || null,
+      data.customer_email || null,
+      data.plan_type,
+      data.amount,
+      data.currency || 'INR',
+      status,
+      now
+    )
+    .run();
+
+  return {
+    id: data.id,
+    order_id: data.order_id,
+    payment_id: null,
+    telegram_user_id: data.telegram_user_id,
+    phone_number: data.phone_number || null,
+    customer_name: data.customer_name || null,
+    customer_email: data.customer_email || null,
+    plan_type: data.plan_type,
+    amount: data.amount,
+    currency: data.currency || 'INR',
+    status: 'created',
+    payment_method: null,
+    signature: null,
+    created_at: now,
+    paid_at: null,
+  };
+}
+
+export async function getPaymentTransactionByOrderId(
+  db: D1Database,
+  orderId: string
+): Promise<PaymentTransactionRow | null> {
+  await ensureStoreTables(db);
+  return await db
+    .prepare('SELECT * FROM payment_transactions WHERE order_id = ?')
+    .bind(orderId.trim())
+    .first<PaymentTransactionRow>();
+}
+
+export async function updatePaymentTransactionSuccess(
+  db: D1Database,
+  orderId: string,
+  paymentId: string,
+  signature: string,
+  paymentMethod?: string | null
+): Promise<boolean> {
+  await ensureStoreTables(db);
+  const now = Math.floor(Date.now() / 1000);
+  const res = await db
+    .prepare(
+      `UPDATE payment_transactions 
+       SET status = 'paid', payment_id = ?, signature = ?, payment_method = ?, paid_at = ?
+       WHERE order_id = ?`
+    )
+    .bind(paymentId, signature, paymentMethod || 'razorpay', now, orderId)
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function listPaymentTransactions(
+  db: D1Database,
+  limit = 100,
+  offset = 0
+): Promise<PaymentTransactionRow[]> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('SELECT * FROM payment_transactions ORDER BY created_at DESC LIMIT ? OFFSET ?')
+    .bind(limit, offset)
+    .all<PaymentTransactionRow>();
+  return res.results || [];
+}
+
+// -------------------------------------------------------------
+// Direct Pro Account Management (pro_users)
+// -------------------------------------------------------------
+
+export async function upsertProUser(
+  db: D1Database,
+  data: {
+    telegram_user_id: string;
+    phone_number?: string | null;
+    first_name?: string | null;
+    username?: string | null;
+    plan_type?: LicensePlan;
+    expires_at?: number | null;
+    notes?: string | null;
+  }
+): Promise<ProUserRow> {
+  await ensureStoreTables(db);
+  const now = Math.floor(Date.now() / 1000);
+  const tgId = String(data.telegram_user_id).trim();
+  const phone = data.phone_number ? String(data.phone_number).trim() : null;
+  const plan = data.plan_type || 'lifetime';
+  const id = `user_tg_${tgId}`;
+
+  await db
+    .prepare(
+      `INSERT INTO pro_users (
+        id, telegram_user_id, phone_number, first_name, username, plan_type, is_pro, is_banned, created_at, expires_at, last_active_at, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?, ?)
+      ON CONFLICT(telegram_user_id) DO UPDATE SET
+        phone_number = COALESCE(excluded.phone_number, pro_users.phone_number),
+        first_name = COALESCE(excluded.first_name, pro_users.first_name),
+        username = COALESCE(excluded.username, pro_users.username),
+        plan_type = excluded.plan_type,
+        is_pro = 1,
+        is_banned = 0,
+        ban_reason = NULL,
+        expires_at = excluded.expires_at,
+        last_active_at = excluded.last_active_at,
+        notes = COALESCE(excluded.notes, pro_users.notes)`
+    )
+    .bind(
+      id,
+      tgId,
+      phone,
+      data.first_name || null,
+      data.username || null,
+      plan,
+      now,
+      data.expires_at || null,
+      now,
+      data.notes || null
+    )
+    .run();
+
+  return {
+    id,
+    telegram_user_id: tgId,
+    phone_number: phone,
+    first_name: data.first_name || null,
+    username: data.username || null,
+    plan_type: plan,
+    is_pro: 1,
+    is_banned: 0,
+    ban_reason: null,
+    notes: data.notes || null,
+    created_at: now,
+    expires_at: data.expires_at || null,
+    last_active_at: now,
+  };
+}
+
+export async function getProUserByTelegramId(
+  db: D1Database,
+  telegramUserId: string
+): Promise<ProUserRow | null> {
+  await ensureStoreTables(db);
+  return await db
+    .prepare('SELECT * FROM pro_users WHERE telegram_user_id = ?')
+    .bind(String(telegramUserId).trim())
+    .first<ProUserRow>();
+}
+
+export async function listProUsers(
+  db: D1Database,
+  limit = 100,
+  offset = 0
+): Promise<ProUserRow[]> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('SELECT * FROM pro_users ORDER BY created_at DESC LIMIT ? OFFSET ?')
+    .bind(limit, offset)
+    .all<ProUserRow>();
+  return res.results || [];
+}
+
+export async function searchProUsers(
+  db: D1Database,
+  query: string
+): Promise<ProUserRow[]> {
+  await ensureStoreTables(db);
+  const q = `%${query.trim()}%`;
+  const res = await db
+    .prepare(
+      `SELECT * FROM pro_users 
+       WHERE telegram_user_id LIKE ? OR username LIKE ? OR first_name LIKE ? OR phone_number LIKE ?
+       ORDER BY created_at DESC LIMIT 50`
+    )
+    .bind(q, q, q, q)
+    .all<ProUserRow>();
+  return res.results || [];
+}
+
+export async function banProUser(
+  db: D1Database,
+  telegramUserId: string,
+  reason?: string
+): Promise<boolean> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('UPDATE pro_users SET is_pro = 0, is_banned = 1, ban_reason = ? WHERE telegram_user_id = ?')
+    .bind(reason || 'Violated terms of service', String(telegramUserId).trim())
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function unbanProUser(
+  db: D1Database,
+  telegramUserId: string
+): Promise<boolean> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('UPDATE pro_users SET is_pro = 1, is_banned = 0, ban_reason = NULL WHERE telegram_user_id = ?')
+    .bind(String(telegramUserId).trim())
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+export async function deleteProUser(
+  db: D1Database,
+  telegramUserId: string
+): Promise<boolean> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('DELETE FROM pro_users WHERE telegram_user_id = ?')
+    .bind(String(telegramUserId).trim())
+    .run();
+  return (res.meta?.changes ?? 0) > 0;
+}
+
+// Upgrades or registers a Telegram account as PRO directly (both pro_users and licenses table)
+export async function directUpgradeProUser(
+  db: D1Database,
+  data: {
+    telegram_user_id: string;
+    phone_number?: string | null;
+    customer_name?: string | null;
+    customer_email?: string | null;
+    username?: string | null;
+    plan_type?: LicensePlan;
+    expires_at?: number | null;
+    notes?: string | null;
+  }
+): Promise<LicenseRow> {
+  await ensureStoreTables(db);
+  const now = Math.floor(Date.now() / 1000);
+  const tgId = String(data.telegram_user_id).trim();
+  const phone = data.phone_number ? String(data.phone_number).trim() : null;
+  const plan = data.plan_type || 'lifetime';
+
+  // 1. Upsert in pro_users table
+  await upsertProUser(db, {
+    telegram_user_id: tgId,
+    phone_number: phone,
+    first_name: data.customer_name || null,
+    username: data.username || null,
+    plan_type: plan,
+    expires_at: data.expires_at || null,
+    notes: data.notes || null,
+  });
+
+  // 2. Check if existing record exists in legacy licenses for this Telegram ID
+  const existing = await getLicenseByTelegramAccount(db, tgId, phone);
+  if (existing) {
+    await db
+      .prepare(
+        `UPDATE licenses 
+         SET is_banned = 0, ban_reason = NULL, plan_type = ?, 
+             customer_name = COALESCE(?, customer_name), 
+             customer_email = COALESCE(?, customer_email),
+             phone_number = COALESCE(?, phone_number),
+             notes = COALESCE(?, notes),
+             expires_at = ?
+         WHERE id = ?`
+      )
+      .bind(
+        plan,
+        data.customer_name || null,
+        data.customer_email || null,
+        phone,
+        data.notes || null,
+        data.expires_at || null,
+        existing.id
+      )
+      .run();
+
+    return {
+      ...existing,
+      plan_type: plan,
+      is_banned: 0,
+      ban_reason: null,
+      customer_name: data.customer_name || existing.customer_name,
+      customer_email: data.customer_email || existing.customer_email,
+      phone_number: phone || existing.phone_number,
+      expires_at: data.expires_at || null,
+    };
+  }
+
+  // Create new PRO record in licenses table for legacy backwards-compatibility
+  const id = `pro_${tgId}_${Date.now()}`;
+  const virtualKey = `TG-PRO-${tgId}`;
+  return await createLicense(db, {
+    id,
+    license_key: virtualKey,
+    telegram_user_id: tgId,
+    phone_number: phone,
+    customer_name: data.customer_name || null,
+    customer_email: data.customer_email || null,
+    plan_type: plan,
+    max_devices: 999, // Unlocked
+    notes: data.notes || 'Razorpay Direct Purchase',
+    expires_at: data.expires_at || null,
+  });
+}
+
+// -------------------------------------------------------------
+// Telegram Bot Subscribers & Broadcasts
+// -------------------------------------------------------------
+
+export async function upsertBotSubscriber(
+  db: D1Database,
+  data: {
+    telegram_user_id: string;
+    chat_id: string;
+    username?: string | null;
+    first_name?: string | null;
+  }
+): Promise<void> {
+  await ensureStoreTables(db);
+  const now = Math.floor(Date.now() / 1000);
+  await db
+    .prepare(
+      `INSERT INTO bot_subscribers (telegram_user_id, chat_id, username, first_name, subscribed_at, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)
+       ON CONFLICT(telegram_user_id) DO UPDATE SET
+         chat_id = excluded.chat_id,
+         username = excluded.username,
+         first_name = excluded.first_name,
+         is_active = 1`
+    )
+    .bind(
+      String(data.telegram_user_id).trim(),
+      String(data.chat_id).trim(),
+      data.username || null,
+      data.first_name || null,
+      now
+    )
+    .run();
+}
+
+export async function listBotSubscribers(
+  db: D1Database,
+  onlyActive = true
+): Promise<BotSubscriberRow[]> {
+  await ensureStoreTables(db);
+  const query = onlyActive
+    ? 'SELECT * FROM bot_subscribers WHERE is_active = 1 ORDER BY subscribed_at DESC'
+    : 'SELECT * FROM bot_subscribers ORDER BY subscribed_at DESC';
+  const res = await db.prepare(query).all<BotSubscriberRow>();
+  return res.results || [];
+}
+
+export async function countBotSubscribers(db: D1Database): Promise<number> {
+  await ensureStoreTables(db);
+  const res = await db
+    .prepare('SELECT COUNT(*) as count FROM bot_subscribers WHERE is_active = 1')
+    .first<{ count: number }>();
+  return res?.count || 0;
 }
 
 

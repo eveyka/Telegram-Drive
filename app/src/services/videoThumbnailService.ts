@@ -233,9 +233,15 @@ export function extractFrameFromVideoUrl(videoUrl: string): Promise<string | nul
 
         video.onloadeddata = () => {
             try {
-                // Seek minimally (0.1s) to avoid downloading deeper into the video stream
+                // Seek intelligently into video to avoid initial black intro screens
                 const duration = video.duration;
-                const targetTime = Number.isFinite(duration) && duration > 0.5 ? 0.1 : 0.0;
+                let targetTime = 0.0;
+                if (Number.isFinite(duration) && duration > 2.0) {
+                    targetTime = Math.min(1.0, duration * 0.1);
+                } else if (Number.isFinite(duration) && duration > 0.5) {
+                    targetTime = 0.25;
+                }
+
                 if (targetTime > 0) {
                     video.currentTime = targetTime;
                 } else {

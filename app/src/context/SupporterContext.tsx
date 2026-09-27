@@ -82,9 +82,44 @@ export function SupporterProvider({ children }: { children: ReactNode }) {
     }
     try {
       const next = await invoke<SupporterStatus>('cmd_get_supporter_status');
+      if (next.ad_free || next.state === 'active') {
+        setStatus(next);
+        return next;
+      }
+
+      // Check client-side license manager (Telegram account sync or active Pro key)
+      const localLic = await licenseManager.loadLicense().catch(() => null);
+      if (localLic && localLic.isLicensed && (!localLic.expiresAt || localLic.expiresAt > Math.floor(Date.now() / 1000))) {
+        const merged: SupporterStatus = {
+          ...next,
+          state: 'active',
+          ad_free: true,
+          message: 'TG Drive Pro is active on your account.',
+          recovery_code_saved: true,
+          expires_at: localLic.expiresAt,
+          offline_until: localLic.expiresAt || (Math.floor(Date.now() / 1000) + 30 * 86400),
+        };
+        setStatus(merged);
+        return merged;
+      }
+
       setStatus(next);
       return next;
     } catch (error) {
+      // Even if native backend call fails, check client-side license
+      const localLic = await licenseManager.loadLicense().catch(() => null);
+      if (localLic && localLic.isLicensed && (!localLic.expiresAt || localLic.expiresAt > Math.floor(Date.now() / 1000))) {
+        const fallback: SupporterStatus = {
+          ...unavailableStatus,
+          state: 'active',
+          ad_free: true,
+          message: 'TG Drive Pro is active on your account.',
+          recovery_code_saved: true,
+          expires_at: localLic.expiresAt,
+        };
+        setStatus(fallback);
+        return fallback;
+      }
       const next = { ...unavailableStatus, message: error instanceof Error ? error.message : String(error) };
       setStatus(next);
       return next;
@@ -112,6 +147,19 @@ export function SupporterProvider({ children }: { children: ReactNode }) {
     setStatus(current => ({ ...current, checkout_pending: true }));
     return checkout;
   }, []);
+
+  // Listen to license updates across windows/tabs/modals
+  useEffect(() => {
+    const onLicenseChange = () => {
+      void refreshStatus();
+    };
+    window.addEventListener('tg_drive_license_updated', onLicenseChange);
+    window.addEventListener('storage', onLicenseChange);
+    return () => {
+      window.removeEventListener('tg_drive_license_updated', onLicenseChange);
+      window.removeEventListener('storage', onLicenseChange);
+    };
+  }, [refreshStatus]);
 
   useEffect(() => {
     let cancelled = false;

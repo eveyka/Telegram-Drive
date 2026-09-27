@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useRef, memo } from 'react';
-import { Folder, Eye, Trash2, Link, Check, Play } from 'lucide-react';
+import { Folder, Eye, Trash2, Link, Check, Play, MoreVertical } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { TelegramFile } from '../../../types';
 import {
@@ -21,16 +21,16 @@ import i18n from '../../../i18n';
 
 interface FileCardProps {
     file: TelegramFile;
-    onDelete: () => void;
-    onDownload: () => void;
-    onPreview?: (thumbnail?: string | null) => void;
-    onShare?: () => void;
+    onDelete: (file: TelegramFile) => void;
+    onDownload: (file: TelegramFile) => void;
+    onPreview?: (file: TelegramFile, thumbnail?: string | null) => void;
+    onShare?: (file: TelegramFile) => void;
     isSelected: boolean;
-    onClick?: (e: React.MouseEvent) => void;
-    onContextMenu?: (e: React.MouseEvent) => void;
+    onClick?: (e: React.MouseEvent, file: TelegramFile) => void;
+    onContextMenu?: (e: React.MouseEvent, file: TelegramFile) => void;
     activeFolderId?: number | null;
     height?: number;
-    onToggleSelection?: () => void;
+    onToggleSelection?: (id: number) => void;
     selectedIds?: number[];
     disableDrag?: boolean;
 }
@@ -69,18 +69,20 @@ export const FileCard = memo(function FileCard({ file, onDelete, onDownload, onP
     }, [setDraggableNodeRef, setDroppableNodeRef]);
     const isFileDragOver = isFolder && isOver && dragActive?.data.current?.kind === 'telegram-files';
 
-    // Lazy video metadata badge (.mp4 only)
+    // Lazy video metadata badge (.mp4 only, bounded to viewport)
     const { data: videoMeta, isLoading: videoMetaLoading } = useVideoMetadata(
         file.id,
         file.folder_id ?? null,
         file.name,
+        isInViewport,
     );
 
-    // Cached HLS variants
+    // Cached HLS variants (bounded to viewport)
     const { data: cachedVariants } = useCachedVariants(
         file.id,
         file.folder_id ?? null,
         file.name,
+        isInViewport,
     );
     const cachedQualities = (cachedVariants || []).filter(v => v.available).map(v => v.quality);
 
@@ -114,57 +116,48 @@ export const FileCard = memo(function FileCard({ file, onDelete, onDownload, onP
 
     // Lazy load thumbnail for image and video files
     useEffect(() => {
-        if (isFolder || !isPotentialMedia) return;
+        if (isFolder || !isPotentialMedia || !isInViewport) return;
 
         let cancelled = false;
 
-        const tryLoad = () => {
+        const currentIsImage = isImageFile(file.name, file.mime_type);
+        const currentIsVideo = isVideoFile(file.name, file.mime_type);
+        const isEncrypted = Boolean(file.encryption_state?.startsWith('encrypted'));
+        const isEncryptedUnlocked = file.encryption_state === 'encrypted_unlocked';
+        if (!currentIsImage && !currentIsVideo && !isEncrypted) return;
+        if (isEncrypted && !isEncryptedUnlocked) return;
+
+        // 1. Synchronous check
+        const syncCached = getCachedThumbnail(file.id, activeFolderId);
+        if (syncCached) {
+            setThumbnail(syncCached);
+            setThumbnailReady(true);
+            return;
+        }
+
+        // 2. Asynchronous peek (IndexedDB check) only when in viewport
+        peekThumbnail(file.id, activeFolderId).then((persisted) => {
             if (cancelled) return;
-            const currentIsImage = isImageFile(file.name, file.mime_type);
-            const currentIsVideo = isVideoFile(file.name, file.mime_type);
-            // For encrypted files (isPotentialMedia=true but not yet image/video by name),
-            // still attempt thumbnail load — the backend handles decryption.
-            const isEncrypted = Boolean(file.encryption_state?.startsWith('encrypted'));
-            const isEncryptedUnlocked = file.encryption_state === 'encrypted_unlocked';
-            if (!currentIsImage && !currentIsVideo && !isEncrypted) return;
-
-            // 1. Synchronous check
-            const syncCached = getCachedThumbnail(file.id, activeFolderId);
-            if (syncCached) {
-                setThumbnail(syncCached);
+            if (persisted) {
+                setThumbnail(persisted);
                 setThumbnailReady(true);
-                return;
+            } else {
+                // 3. Network / IPC thumbnail extraction
+                loadThumbnail(file.id, activeFolderId, 10, file.name).then((result) => {
+                    if (!cancelled && result) {
+                        setThumbnail(result);
+                    }
+                }).catch(() => {});
             }
-
-            // 2. Asynchronous peek (IndexedDB check)
-            peekThumbnail(file.id, activeFolderId).then((persisted) => {
-                if (cancelled) return;
-                if (persisted) {
-                    setThumbnail(persisted);
-                    setThumbnailReady(true);
-                }
-            });
-
-            // 3. Only fetch from network/IPC when in or near viewport
-            // Encrypted but locked files shouldn't waste time trying
-            if (!isInViewport) return;
-            if (isEncrypted && !isEncryptedUnlocked) return;
-
-            loadThumbnail(file.id, activeFolderId, 10, file.name).then((result) => {
-                if (!cancelled && result) {
-                    if (result !== syncCached) setThumbnailReady(false);
-                    setThumbnail(result);
-                }
-            }).catch(() => {
-                // Silently fail - will show icon instead
-            });
-        };
-
-        tryLoad();
+        }).catch(() => {});
 
         const unsubscribe = subscribeThumbnailInvalidation(() => {
             if (!cancelled) {
-                tryLoad();
+                const updated = getCachedThumbnail(file.id, activeFolderId);
+                if (updated) {
+                    setThumbnail(updated);
+                    setThumbnailReady(true);
+                }
             }
         });
 
@@ -180,20 +173,20 @@ export const FileCard = memo(function FileCard({ file, onDelete, onDownload, onP
     return (
         <div
             ref={setNodeRef}
-            className="file-card-container relative h-full min-w-0 overflow-hidden"
+            className="file-card-container file-card-optimized relative h-full min-w-0 overflow-hidden"
             style={{ opacity: isDragging ? 0.45 : undefined }}
             {...(!isFolder ? attributes : {})}
             {...(!isFolder ? listeners : {})}
             role="group"
             aria-label={file.name}
-            onContextMenu={onContextMenu}
-            onClick={onClick}
+            onContextMenu={(e) => onContextMenu?.(e, file)}
+            onClick={(e) => onClick?.(e, file)}
         >
             <div
-                className={`group relative h-full w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border backdrop-blur-sm transition-all duration-200
+                className={`group relative h-full w-full min-w-0 cursor-pointer overflow-hidden rounded-xl border transition-all duration-200
                 ${isSelected 
                     ? 'border-app-accent bg-app-selected/80 shadow-md ring-2 ring-app-accent/60' 
-                    : 'border-white/5 bg-app-surface/60 hover:-translate-y-0.5 hover:border-app-accent/40 hover:bg-app-surface/85 hover:shadow-lg'}
+                    : 'border-white/5 bg-app-surface/90 hover:-translate-y-0.5 hover:border-app-accent/40 hover:bg-app-surface hover:shadow-lg'}
                 ${isFileDragOver ? 'bg-app-selected ring-2 ring-app-accent' : ''}`}
                 style={height ? { height: `${height}px` } : { aspectRatio: '4/3' }}
             >
@@ -256,7 +249,7 @@ export const FileCard = memo(function FileCard({ file, onDelete, onDownload, onP
                     aria-pressed={isSelected}
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (onToggleSelection) onToggleSelection();
+                        if (onToggleSelection) onToggleSelection(file.id);
                     }}
                     className={`absolute start-2 top-2 z-10 flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full border transition-all duration-150 ${isSelected ? 'border-app-accent bg-app-accent text-app-accent-contrast shadow-sm scale-100' : 'border-white/50 bg-black/40 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:scale-110'}`}
                 >
@@ -283,21 +276,33 @@ export const FileCard = memo(function FileCard({ file, onDelete, onDownload, onP
                     </div>
                 </div>
 
-                {/* Modern Quick actions floating pill on hover */}
+                {/* Modern Quick actions floating pill on hover / 3-dot trigger */}
                 <div className="file-card-actions absolute end-2 top-2 z-10 flex max-w-[calc(100%-2.75rem)] items-center gap-0.5 overflow-hidden rounded-full border border-white/15 bg-black/65 p-1 opacity-0 shadow-lg backdrop-blur-md transition-all duration-200 group-hover:opacity-100 focus-within:opacity-100">
-                    <button type="button" aria-label={`Preview ${file.name}`} onClick={(e) => { e.stopPropagation(); if (onPreview) onPreview(thumbnail) }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.preview")}>
+                    <button type="button" aria-label={`Preview ${file.name}`} onClick={(e) => { e.stopPropagation(); if (onPreview) onPreview(file, thumbnail) }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.preview")}>
                         <Eye className="h-3.5 w-3.5" />
                     </button>
-                    <button type="button" aria-label={`Download ${file.name}`} onClick={(e) => { e.stopPropagation(); onDownload() }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.download")}>
+                    <button type="button" aria-label={`Download ${file.name}`} onClick={(e) => { e.stopPropagation(); onDownload(file) }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.download")}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
                     {actions.canShare && onShare && (
-                        <button type="button" aria-label={`Share ${file.name}`} onClick={(e) => { e.stopPropagation(); onShare() }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.share")}>
+                        <button type="button" aria-label={`Share ${file.name}`} onClick={(e) => { e.stopPropagation(); onShare(file) }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white" title={i18n.t("files.share")}>
                             <Link className="h-3.5 w-3.5" />
                         </button>
                     )}
-                    <button type="button" aria-label={`Delete ${file.name}`} onClick={(e) => { e.stopPropagation(); onDelete() }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-red-500/80 hover:text-white" title="Delete">
+                    <button type="button" aria-label={`Delete ${file.name}`} onClick={(e) => { e.stopPropagation(); onDelete(file) }} className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-red-500/80 hover:text-white" title="Delete">
                         <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        aria-label={`More actions for ${file.name}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onContextMenu?.(e, file);
+                        }}
+                        className="quiet-control file-action-btn flex h-6 w-6 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                        title={i18n.t("common.more_options", "More options")}
+                    >
+                        <MoreVertical className="h-3.5 w-3.5" />
                     </button>
                 </div>
             </div>

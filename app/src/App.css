@@ -50,26 +50,26 @@
   --color-telegram-glass-border: var(--color-app-text);
 }
 
-/* Light Theme Overrides */
+/* Light Theme Overrides (Eye-Friendly / Reduced Glare) */
 :root.light {
-  --color-app-canvas: #f0f2f5;
-  --color-app-sidebar: #e8ecf1;
+  --color-app-canvas: #f4f6f8;
+  --color-app-sidebar: #edf0f4;
   --color-app-surface: #ffffff;
   --color-app-surface-raised: #ffffff;
-  --color-app-surface-sunken: #e2e8f0;
+  --color-app-surface-sunken: #e7ecf2;
   --color-app-accent: #0284c7;
   --color-app-accent-hover: #0369a1;
-  --color-app-accent-soft: rgba(2, 132, 199, 0.12);
+  --color-app-accent-soft: rgba(2, 132, 199, 0.10);
   --color-app-accent-contrast: #ffffff;
-  --color-app-text: #0f172a;
-  --color-app-text-secondary: #475569;
-  --color-app-text-tertiary: #64748b;
-  --color-app-border-subtle: rgba(15, 23, 42, 0.08);
-  --color-app-border: rgba(15, 23, 42, 0.14);
-  --color-app-border-strong: rgba(15, 23, 42, 0.25);
-  --color-app-hover: rgba(15, 23, 42, 0.05);
-  --color-app-selected: rgba(2, 132, 199, 0.12);
-  --color-app-overlay: rgba(15, 23, 42, 0.45);
+  --color-app-text: #1e293b;
+  --color-app-text-secondary: #556477;
+  --color-app-text-tertiary: #7c8ba1;
+  --color-app-border-subtle: rgba(15, 23, 42, 0.06);
+  --color-app-border: rgba(15, 23, 42, 0.10);
+  --color-app-border-strong: rgba(15, 23, 42, 0.18);
+  --color-app-hover: rgba(15, 23, 42, 0.04);
+  --color-app-selected: rgba(2, 132, 199, 0.10);
+  --color-app-overlay: rgba(15, 23, 42, 0.35);
   --color-app-success: #16a34a;
   --color-app-warning: #d97706;
   --color-app-danger: #dc2626;
@@ -84,7 +84,7 @@
   --color-telegram-border: var(--color-app-border);
   --color-telegram-hover: var(--color-app-hover);
   --color-telegram-glass-bg: #ffffff;
-  --color-telegram-glass-border: rgba(15, 23, 42, 0.15);
+  --color-telegram-glass-border: rgba(15, 23, 42, 0.10);
 }
 
 /* ==========================================================================
@@ -798,15 +798,10 @@ textarea:disabled {
   background-color: var(--color-telegram-primary) !important;
 }
 
-/* Smooth scrolling and off-screen rendering optimization */
-.file-card-optimized {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 160px;
-}
-
+/* Optimized rendering for file items */
+.file-card-optimized,
 .file-row-optimized {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 72px;
+  will-change: transform;
 }
 
 /* Hardware accelerated smooth scrolling across containers */
@@ -1297,4 +1292,87 @@ body,
   will-change: transform;
 }
 
+/* High-performance touch responsiveness & zero-latency taps */
+button, [role="button"], a, input, select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.file-card-optimized {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+.file-row-optimized {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style;
+}
+
+/* Custom High-Performance Smooth Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+:root.light .custom-scrollbar {
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+:root.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+:root.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* Performance Mode & Mobile GPU Acceleration */
+.performance-mode *,
+.performance-mode *::before,
+.performance-mode *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Hardware accelerated layer promotions for mobile cards & modal overlays */
+.file-card-optimized,
+.file-row-optimized,
+.mobile-sheet-container,
+.mobile-nav-bar {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Fluid hardware accelerated smooth transitions */
+.smooth-mobile-transition {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease-out;
+  will-change: transform, opacity;
+}
 

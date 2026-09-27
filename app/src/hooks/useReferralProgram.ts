@@ -136,7 +136,7 @@ export function useReferralProgram(initialEmail?: string, initialName?: string) 
   }, [userEmail, userName, fetchProfile]);
 
   const referralCode = profile?.referral_code || 'TG-DRIVE';
-  const shareLink = `https://t.me/tg_drive_bot?start=ref_${referralCode}`;
+  const shareLink = `https://t.me/tg_drive_pro_bot?start=ref_${referralCode}`;
   const viralMessage = `⚡ Hey! Upgrade to TG Drive Lifetime Pro (Unlimited Cloud Storage backed by Telegram)!\n\nUse my Referral Code "${referralCode}" during purchase checkout to get an instant ${settings.friend_discount_value}% discount!\n\nGet Pro here: ${shareLink}`;
 
   const copyCode = useCallback(async () => {

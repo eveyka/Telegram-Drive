@@ -79,6 +79,9 @@ export class LicenseManager {
             parsed.hardwareId = hwid;
           }
           this.currentLicense = parsed;
+          if (parsed.isLicensed) {
+            this.notifyLicenseUpdated(parsed);
+          }
           return parsed;
         }
       } catch {
@@ -97,6 +100,14 @@ export class LicenseManager {
     };
     this.currentLicense = defaultInfo;
     return defaultInfo;
+  }
+
+  public notifyLicenseUpdated(info: LicenseInfo): void {
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('tg_drive_license_updated', { detail: info }));
+      } catch {}
+    }
   }
 
   public detectPlatform(): string {
@@ -178,6 +189,7 @@ export class LicenseManager {
 
       localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
       this.currentLicense = licenseInfo;
+      this.notifyLicenseUpdated(licenseInfo);
 
       return {
         success: true,
@@ -241,6 +253,7 @@ export class LicenseManager {
 
       localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
       this.currentLicense = licenseInfo;
+      this.notifyLicenseUpdated(licenseInfo);
 
       return {
         success: true,
@@ -304,6 +317,7 @@ export class LicenseManager {
 
         localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
         this.currentLicense = licenseInfo;
+        this.notifyLicenseUpdated(licenseInfo);
 
         return {
           success: true,
@@ -323,6 +337,345 @@ export class LicenseManager {
         isLicensed: false,
         message: err instanceof Error ? err.message : 'Error connecting to license server.',
       };
+    }
+  }
+
+  // Dynamically load Razorpay Checkout JS SDK if not present
+  public async loadRazorpaySdk(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    if ((window as unknown as { Razorpay?: unknown }).Razorpay) return true;
+
+    return new Promise(resolve => {
+      const existing = document.querySelector('script[src*="checkout.razorpay.com"]');
+      if (existing) {
+        let attempts = 0;
+        const check = setInterval(() => {
+          attempts++;
+          if ((window as unknown as { Razorpay?: unknown }).Razorpay) {
+            clearInterval(check);
+            resolve(true);
+          } else if (attempts > 30) {
+            clearInterval(check);
+            resolve(false);
+          }
+        }, 100);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => {
+        let attempts = 0;
+        const check = setInterval(() => {
+          attempts++;
+          if ((window as unknown as { Razorpay?: unknown }).Razorpay) {
+            clearInterval(check);
+            resolve(true);
+          } else if (attempts > 20) {
+            clearInterval(check);
+            resolve(Boolean((window as unknown as { Razorpay?: unknown }).Razorpay));
+          }
+        }, 50);
+      };
+      script.onerror = () => {
+        console.warn('Failed to load Razorpay checkout script from CDN');
+        resolve(false);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  // Creates Razorpay Order on supporter-service backend
+  public async createRazorpayOrder(data: {
+    telegramUserId: string | number;
+    planType?: LicensePlan;
+    amount?: number;
+    customerName?: string;
+    customerEmail?: string;
+    phoneNumber?: string;
+  }): Promise<{
+    success: boolean;
+    orderId?: string;
+    keyId?: string;
+    amount?: number;
+    currency?: string;
+    error?: string;
+  }> {
+    try {
+      const res = await fetch(`${this.apiEndpoint}/api/payment/razorpay/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_user_id: String(data.telegramUserId),
+          plan_type: data.planType || 'lifetime',
+          amount: data.amount,
+          customer_name: data.customerName,
+          customer_email: data.customerEmail,
+          phone_number: data.phoneNumber,
+        }),
+      });
+
+      const body = (await res.json()) as {
+        success?: boolean;
+        order_id?: string;
+        key_id?: string;
+        amount?: number;
+        currency?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !body.success || !body.order_id) {
+        return { success: false, error: body.error || 'Failed to create payment order' };
+      }
+
+      return {
+        success: true,
+        orderId: body.order_id,
+        keyId: body.key_id,
+        amount: body.amount,
+        currency: body.currency,
+      };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Network error creating order' };
+    }
+  }
+
+  // Verifies Razorpay payment signature & unlocks Pro entitlement
+  public async verifyRazorpayPayment(data: {
+    orderId: string;
+    paymentId: string;
+    signature: string;
+    telegramUserId: string | number;
+    planType?: LicensePlan;
+    customerName?: string;
+    customerEmail?: string;
+    phoneNumber?: string;
+  }): Promise<{ success: boolean; isPro: boolean; license?: LicenseInfo; error?: string }> {
+    const hwid = await this.getHardwareId();
+    const tgId = String(data.telegramUserId).trim();
+
+    try {
+      const res = await fetch(`${this.apiEndpoint}/api/payment/razorpay/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: data.orderId,
+          payment_id: data.paymentId,
+          signature: data.signature,
+          telegram_user_id: tgId,
+          plan_type: data.planType || 'lifetime',
+          customer_name: data.customerName,
+          customer_email: data.customerEmail,
+          phone_number: data.phoneNumber,
+        }),
+      });
+
+      const body = (await res.json()) as {
+        success?: boolean;
+        is_pro?: boolean;
+        plan_type?: LicensePlan;
+        token?: string;
+        expires_at?: number | null;
+        error?: string;
+        message?: string;
+      };
+
+      if (!res.ok || !body.success) {
+        return { success: false, isPro: false, error: body.error || 'Payment verification failed' };
+      }
+
+      const licenseInfo: LicenseInfo = {
+        isLicensed: true,
+        licenseKey: `TG-PRO-${tgId}`,
+        planType: body.plan_type || data.planType || 'lifetime',
+        customerName: data.customerName || null,
+        expiresAt: body.expires_at || null,
+        token: body.token || null,
+        hardwareId: hwid,
+        maxDevices: 999,
+        lastVerifiedAt: Math.floor(Date.now() / 1000),
+      };
+
+      localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
+      this.currentLicense = licenseInfo;
+      this.notifyLicenseUpdated(licenseInfo);
+
+      return { success: true, isPro: true, license: licenseInfo };
+    } catch (err) {
+      return { success: false, isPro: false, error: err instanceof Error ? err.message : 'Network error verifying payment' };
+    }
+  }
+
+  // Starts full seamless Razorpay Checkout Flow (UPI / GPay / PhonePe / Cards / Netbanking)
+  public async startRazorpayCheckout(params: {
+    telegramUserId: string | number;
+    planType?: LicensePlan;
+    amount?: number;
+    planName?: string;
+    customerName?: string;
+    customerEmail?: string;
+    phoneNumber?: string;
+    onOpen?: () => void;
+    onSuccess?: (license: LicenseInfo) => void;
+    onError?: (error: string) => void;
+    onDismiss?: () => void;
+  }): Promise<void> {
+    const sdkLoaded = await this.loadRazorpaySdk();
+    const orderRes = await this.createRazorpayOrder({
+      telegramUserId: params.telegramUserId,
+      planType: params.planType || 'lifetime',
+      amount: params.amount,
+      customerName: params.customerName,
+      customerEmail: params.customerEmail,
+      phoneNumber: params.phoneNumber,
+    });
+
+    if (!orderRes.success || !orderRes.orderId) {
+      params.onError?.(orderRes.error || 'Could not initiate payment order');
+      return;
+    }
+
+    const RazorpayCtor = (window as unknown as {
+      Razorpay?: new (opts: unknown) => {
+        open: () => void;
+        on?: (event: string, cb: (data: unknown) => void) => void;
+      };
+    }).Razorpay;
+
+    if (sdkLoaded && RazorpayCtor) {
+      let paymentCompleted = false;
+
+      const options = {
+        key: orderRes.keyId || 'rzp_live_default',
+        amount: orderRes.amount,
+        currency: orderRes.currency || 'INR',
+        name: 'TG Drive Cloud',
+        description: `${params.planName || 'Lifetime Pro'} Upgrade`,
+        image: 'https://tg-drive.vercel.app/logo.png',
+        order_id: orderRes.orderId,
+        prefill: {
+          name: params.customerName || '',
+          email: params.customerEmail || '',
+          contact: params.phoneNumber || '',
+        },
+        theme: {
+          color: '#8b5cf6',
+        },
+        method: {
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: true,
+          emi: true,
+          paylater: true,
+        },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay using UPI / QR',
+                instruments: [
+                  {
+                    method: 'upi',
+                  },
+                ],
+              },
+              other: {
+                name: 'Other Payment Methods',
+                instruments: [
+                  {
+                    method: 'card',
+                  },
+                  {
+                    method: 'netbanking',
+                  },
+                  {
+                    method: 'wallet',
+                  },
+                  {
+                    method: 'paylater',
+                  },
+                ],
+              },
+            },
+            sequence: ['block.upi', 'block.other'],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          paymentCompleted = true;
+          const verifyRes = await this.verifyRazorpayPayment({
+            orderId: response.razorpay_order_id || orderRes.orderId!,
+            paymentId: response.razorpay_payment_id,
+            signature: response.razorpay_signature,
+            telegramUserId: params.telegramUserId,
+            planType: params.planType || 'lifetime',
+            customerName: params.customerName,
+            customerEmail: params.customerEmail,
+            phoneNumber: params.phoneNumber,
+          });
+
+          if (verifyRes.success && verifyRes.license) {
+            params.onSuccess?.(verifyRes.license);
+          } else {
+            params.onError?.(verifyRes.error || 'Payment verification failed');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            console.log('Razorpay modal closed');
+            if (!paymentCompleted) {
+              if (params.onDismiss) {
+                params.onDismiss();
+              } else {
+                params.onError?.('Payment cancelled');
+              }
+            }
+          },
+        },
+      };
+
+      const rzpInstance = new RazorpayCtor(options);
+
+      if (typeof rzpInstance.on === 'function') {
+        rzpInstance.on('payment.failed', (response: unknown) => {
+          console.warn('Razorpay payment failed:', response);
+          const errObj = response as { error?: { description?: string } };
+          const errMsg = errObj?.error?.description || 'Payment failed or was declined.';
+          params.onError?.(errMsg);
+        });
+      }
+
+      rzpInstance.open();
+      params.onOpen?.();
+    } else {
+      // Fallback: If SDK script blocked or in web view, create checkout link & open in browser
+      const fallbackUrl = `${this.apiEndpoint}/api/store/create-checkout-link`;
+      try {
+        const linkRes = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: params.customerName || 'TG Drive User',
+            email: params.customerEmail || `tg_${params.telegramUserId}@telegram.org`,
+            telegram_user_id: String(params.telegramUserId),
+            phone_number: params.phoneNumber,
+          }),
+        });
+        const linkData = (await linkRes.json()) as { payment_url?: string };
+        if (linkData.payment_url) {
+          params.onOpen?.();
+          window.open(linkData.payment_url, '_blank');
+          params.onDismiss?.();
+        } else {
+          params.onError?.('Unable to generate checkout URL');
+        }
+      } catch {
+        params.onError?.('Unable to open checkout modal');
+      }
     }
   }
 
@@ -373,6 +726,7 @@ export class LicenseManager {
 
         localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
         this.currentLicense = licenseInfo;
+        this.notifyLicenseUpdated(licenseInfo);
 
         return {
           paid: true,
@@ -518,6 +872,51 @@ export class LicenseManager {
       countdownText,
     };
   }
+
+  public async getStoreConfig(): Promise<StoreConfig | null> {
+    try {
+      const cacheBust = `_t=${Date.now()}`;
+      const res = await fetch(`${DEFAULT_LICENSE_API}/api/store/config?${cacheBust}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as StoreConfig;
+        return data;
+      }
+    } catch (e) {
+      console.warn('[licenseManager] Failed to fetch live store config:', e);
+    }
+    return null;
+  }
+}
+
+export interface StorePlan {
+  id: string;
+  name: string;
+  badge?: string;
+  price: number;
+  formatted_price?: string;
+  originalPrice?: number;
+  original_price?: number;
+  formatted_original_price?: string;
+  discountPercent?: number;
+  discount_percent?: number;
+  period?: string;
+  periodLabel?: string;
+  duration_days?: number;
+  description: string;
+  buy_url?: string;
+  features: string[];
+}
+
+export interface StoreConfig {
+  product_name: string;
+  price: number;
+  formatted_price: string;
+  currency: string;
+  buy_url: string;
+  trial_enabled: boolean;
+  trial_days: number;
+  trial_label: string;
+  plans: StorePlan[];
 }
 
 export const licenseManager = LicenseManager.getInstance();

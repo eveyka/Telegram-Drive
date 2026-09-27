@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Key,
   ShieldCheck,
-  ShoppingBag,
   AlertCircle,
   CheckCircle2,
   Loader2,
@@ -15,7 +13,6 @@ import {
   Check,
   User,
   Mail,
-  ClipboardPaste,
   Zap,
   Gift,
   X,
@@ -25,7 +22,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { licenseManager, type LicenseInfo } from '../../services/licenseManager';
-import { openExternalUrl } from '../../utils/url';
 import { useTheme } from '../../context/ThemeContext';
 import { checkEmailValidity } from '../../utils/emailValidation';
 
@@ -75,7 +71,6 @@ interface PaywallGateModalProps {
   onClose?: () => void;
   onLogout?: () => void;
   isCompulsory?: boolean;
-  purchaseUrl?: string;
   telegramAccount?: TelegramAccountCheckoutInfo | null;
   expiredReason?: string | null;
   triggerFeature?: PaywallTriggerFeature;
@@ -95,7 +90,6 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
   onClose,
   onLogout,
   isCompulsory = false,
-  purchaseUrl = 'https://rzp.io/rzp/eBLEV0w',
   telegramAccount,
   expiredReason,
   triggerFeature,
@@ -103,12 +97,6 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const [activeTab, setActiveTab] = useState<'purchase' | 'activate'>('purchase');
-  const [keyInput, setKeyInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
   const [storeConfig, setStoreConfig] = useState<StoreConfigInfo | null>(null);
   const [activeOffer, setActiveOffer] = useState<ActiveOfferInfo | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -128,22 +116,14 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
   } | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  // Recipient form inputs for personalized certificate & key delivery
+  // Recipient form inputs for account binding
   const [customerName, setCustomerName] = useState(() => localStorage.getItem('tg_drive_checkout_name') || '');
   const [customerEmail, setCustomerEmail] = useState(() => localStorage.getItem('tg_drive_checkout_email') || '');
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
-  const [activatedTrialInfo, setActivatedTrialInfo] = useState<{
-    key: string;
-    email: string;
-    days: number;
-    license: LicenseInfo;
-  } | null>(null);
-  const [keyCopied, setKeyCopied] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [waitingSessionId, setWaitingSessionId] = useState<string | null>(null);
-  const [isWaitingPayment, setIsWaitingPayment] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Fetch live store settings & active offers dynamically from cloud worker
   const refreshStoreData = useCallback(async () => {
@@ -273,64 +253,6 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
   if (!isOpen) return null;
 
   // Auto-format key with TGDRV prefix and clean hyphens
-  const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
-    if (!val.startsWith('TGDRV') && val.length > 0 && !val.includes('-')) {
-      val = 'TGDRV-' + val;
-    }
-    setKeyInput(val);
-    if (errorMessage) setErrorMessage(null);
-  };
-
-  const handlePasteKey = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        let clean = text.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
-        if (!clean.startsWith('TGDRV') && clean.length >= 10 && !clean.includes('-')) {
-          clean = 'TGDRV-' + clean;
-        }
-        setKeyInput(clean);
-      }
-    } catch {
-      // Clipboard access not available
-    }
-  };
-
-  const handleActivate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!keyInput.trim()) {
-      setErrorMessage('Please enter a valid license key.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    try {
-      const result = await licenseManager.activateLicense(
-        keyInput.trim(),
-        undefined,
-        undefined,
-        telegramAccount?.userId,
-        telegramAccount?.phoneNumber
-      );
-      if (result.success && result.license) {
-        setSuccessMessage('License verified & activated successfully! Welcome to TG Drive Pro.');
-        setTimeout(() => {
-          onActivated(result.license!);
-        }, 1200);
-      } else {
-        setErrorMessage(result.message || 'Invalid license key. Please check and try again.');
-      }
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Error connecting to license server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = couponCode.trim().toUpperCase();
@@ -419,13 +341,11 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
     setTrialLoading(true);
     try {
       const result = await licenseManager.claimFreeTrial(customerName.trim(), customerEmail.trim());
-      if (result.success && result.license && result.license.licenseKey) {
-        setActivatedTrialInfo({
-          key: result.license.licenseKey,
-          email: customerEmail.trim().toLowerCase(),
-          days: exactTrialDays,
-          license: result.license,
-        });
+      if (result.success && result.license) {
+        setSuccessMessage(`🎉 Free Trial Activated! Enjoy ${exactTrialDays} days of Pro access.`);
+        setTimeout(() => {
+          onActivated(result.license!);
+        }, 800);
       } else {
         setFormError(result.message || 'Unable to claim free trial. Please check details.');
       }
@@ -447,88 +367,53 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
 
     const cleanName = customerName.trim();
     const cleanEmail = customerEmail.trim().toLowerCase();
+    const tgUserId = telegramAccount?.userId ? String(telegramAccount.userId) : '';
 
     setCheckoutLoading(true);
 
     try {
-      const res = await fetch(`${LICENSE_API_BASE}/api/store/create-checkout-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: cleanName,
-          email: cleanEmail,
-          coupon_code: appliedCoupon?.code || activeOffer?.coupon_code || '',
-          referral_code: appliedCoupon?.code || '',
-          telegram_user_id: telegramAccount?.userId ? String(telegramAccount.userId) : '',
-          phone_number: telegramAccount?.phoneNumber || '',
-        }),
-      });
-
-      const data = (await res.json()) as { success?: boolean; payment_url?: string; order_id?: string; session_id?: string; error?: string };
-
-      if (res.ok && data.payment_url) {
-        if (data.session_id || data.order_id) {
-          setWaitingSessionId(data.session_id || data.order_id || null);
-          setIsWaitingPayment(true);
-        }
-        void openExternalUrl(data.payment_url);
-      } else {
-        const targetUrl = storeConfig?.buy_url || purchaseUrl;
-        const separator = targetUrl.includes('?') ? '&' : '?';
-        const phoneParam = telegramAccount?.phoneNumber ? `&prefill[contact]=${encodeURIComponent(telegramAccount.phoneNumber)}` : '';
-        const urlWithPrefill = `${targetUrl}${separator}prefill[name]=${encodeURIComponent(cleanName)}&prefill[email]=${encodeURIComponent(cleanEmail)}${phoneParam}`;
-        setIsWaitingPayment(true);
-        void openExternalUrl(urlWithPrefill);
+      if (tgUserId) {
+        // Direct seamless in-app Razorpay modal checkout
+        await licenseManager.startRazorpayCheckout({
+          telegramUserId: tgUserId,
+          planType: 'lifetime',
+          amount: currentPrice,
+          planName: 'Lifetime Pro',
+          customerName: cleanName,
+          customerEmail: cleanEmail,
+          phoneNumber: telegramAccount?.phoneNumber || undefined,
+          onOpen: () => {
+            setCheckoutLoading(false);
+          },
+          onSuccess: (license) => {
+            setCheckoutLoading(false);
+            setSuccessMessage('🎉 Payment verified! TG Drive PRO is now unlocked on your account.');
+            setTimeout(() => {
+              onActivated(license);
+            }, 800);
+          },
+          onError: (err) => {
+            console.warn('In-app checkout modal note:', err);
+            setCheckoutLoading(false);
+            setFormError(`Payment error: ${err || 'Checkout was cancelled or could not be completed.'}`);
+          },
+          onDismiss: () => {
+            setCheckoutLoading(false);
+          },
+        });
+        setCheckoutLoading(false);
+        return;
       }
-    } catch {
-      const targetUrl = storeConfig?.buy_url || purchaseUrl;
-      const separator = targetUrl.includes('?') ? '&' : '?';
-      const phoneParam = telegramAccount?.phoneNumber ? `&prefill[contact]=${encodeURIComponent(telegramAccount.phoneNumber)}` : '';
-      const urlWithPrefill = `${targetUrl}${separator}prefill[name]=${encodeURIComponent(cleanName)}&prefill[email]=${encodeURIComponent(cleanEmail)}${phoneParam}`;
-      setIsWaitingPayment(true);
-      void openExternalUrl(urlWithPrefill);
+
+      setCheckoutLoading(false);
+      setFormError('Telegram user account not detected. Please ensure you are logged into Telegram.');
+    } catch (err) {
+      setCheckoutLoading(false);
+      setFormError(err instanceof Error ? err.message : 'Failed to launch checkout.');
     } finally {
       setCheckoutLoading(false);
     }
   };
-
-  // Real-time automatic background polling after launching payment link
-  useEffect(() => {
-    if (!isOpen || !isWaitingPayment) return;
-
-    let cancelled = false;
-    const cleanEmail = customerEmail.trim().toLowerCase();
-    const tgUserId = telegramAccount?.userId ? String(telegramAccount.userId) : undefined;
-    const phone = telegramAccount?.phoneNumber || undefined;
-
-    const interval = window.setInterval(async () => {
-      if (cancelled) return;
-      try {
-        const res = await licenseManager.pollOrderStatus(
-          waitingSessionId || '',
-          cleanEmail,
-          tgUserId,
-          phone
-        );
-
-        if (!cancelled && res.paid && res.license) {
-          cancelled = true;
-          setIsWaitingPayment(false);
-          setSuccessMessage('🎉 Payment Confirmed! Pro License Activated Successfully.');
-          setTimeout(() => {
-            onActivated(res.license!);
-          }, 1200);
-        }
-      } catch {
-        // Continue polling silently
-      }
-    }, 3000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [isOpen, isWaitingPayment, waitingSessionId, customerEmail, telegramAccount, onActivated]);
 
   // Base price computation — always use live admin price as the source of truth
   const basePrice = Math.round(storeConfig?.price !== undefined ? storeConfig.price : 399);
@@ -763,117 +648,6 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
           </div>
         )}
 
-        {/* 2. Segmented Tabs */}
-        <div className={`relative mb-3 grid grid-cols-2 rounded-xl p-1 border shadow-inner ${
-          isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900/90 border-slate-800/90'
-        }`}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('purchase')}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'purchase'
-                ? 'bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
-                : isLight
-                ? 'text-slate-600 hover:text-slate-900 font-medium'
-                : 'text-slate-400 hover:text-white font-medium'
-            }`}
-          >
-            <ShoppingBag className="h-3.5 w-3.5" />
-            <span>Get License</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('activate')}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'activate'
-                ? 'bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
-                : isLight
-                ? 'text-slate-600 hover:text-slate-900 font-medium'
-                : 'text-slate-400 hover:text-white font-medium'
-            }`}
-          >
-            <Key className="h-3.5 w-3.5" />
-            <span>Activate Key</span>
-          </button>
-        </div>
-
-        {/* ========================================================= */}
-        {/* TAB 1: STRUCTURED PURCHASE & FREE TRIAL VIEW              */}
-        {/* ========================================================= */}
-        {activeTab === 'purchase' && (
-          activatedTrialInfo ? (
-            <div className="space-y-3.5 py-3 animate-fade-in text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-                <CheckCircle2 className="h-8 w-8 stroke-[2.5]" />
-              </div>
-
-              <div>
-                <h3 className={`text-base font-black tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  Free Trial Activated!
-                </h3>
-                <p className={`text-xs mt-0.5 leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Full Pro Access is now unlocked on your device for {activatedTrialInfo.days} days.
-                </p>
-              </div>
-
-              {/* On-screen Key Backup Card */}
-              <div className={`rounded-2xl border p-3.5 text-left space-y-2.5 shadow-sm ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                    isLight ? 'text-slate-700' : 'text-slate-200'
-                  }`}>
-                    <Key className="h-3.5 w-3.5 text-cyan-500" />
-                    <span>Your Trial License Key</span>
-                  </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                    isLight ? 'bg-cyan-50 border-cyan-200 text-cyan-700' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
-                  }`}>
-                    {activatedTrialInfo.days} Days
-                  </span>
-                </div>
-
-                <div className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border font-mono text-sm font-black tracking-wider shadow-inner ${
-                  isLight ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-700 text-cyan-400'
-                }`}>
-                  <span className="truncate">{activatedTrialInfo.key}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(activatedTrialInfo.key);
-                      setKeyCopied(true);
-                      setTimeout(() => setKeyCopied(false), 2000);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-sm"
-                  >
-                    {keyCopied ? (
-                      <>
-                        <Check className="h-3 w-3" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <span>Copy</span>
-                    )}
-                  </button>
-                </div>
-
-                <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  A backup PDF Certificate & activation key have also been emailed to <strong>{activatedTrialInfo.email}</strong>.
-                </p>
-              </div>
-
-              {/* Continue to Pro CTA */}
-              <button
-                type="button"
-                onClick={() => onActivated(activatedTrialInfo.license)}
-                className="w-full rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500 hover:from-cyan-300 hover:via-cyan-400 hover:to-blue-400 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-              >
-                <span>Continue to TG Drive Pro</span>
-                <span>&rarr;</span>
-              </button>
-            </div>
-          ) : (
           <div className="space-y-3 animate-fade-in">
             
             {/* 1. LICENSE DELIVERY INFO (FIRST SECTION) */}
@@ -1278,19 +1052,8 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
               </span>
             </div>
 
-            {/* Bottom Switcher */}
+            {/* Bottom Actions */}
             <div className="text-center pt-0.5 space-y-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('activate')}
-                className={`text-xs transition-colors inline-flex items-center gap-1 cursor-pointer ${
-                  isLight ? 'text-slate-500 hover:text-cyan-600' : 'text-slate-400 hover:text-cyan-400'
-                }`}
-              >
-                <span>Already have a key?</span>
-                <span className="font-semibold text-cyan-500 underline">Activate here &rarr;</span>
-              </button>
-
               <div>
                 <button
                   type="button"
@@ -1331,123 +1094,6 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
               )}
             </div>
           </div>
-          )
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 2: CLEAN LICENSE ACTIVATION VIEW                      */}
-        {/* ========================================================= */}
-        {activeTab === 'activate' && (
-          <form onSubmit={handleActivate} className="space-y-3.5 animate-fade-in">
-            <div className={`rounded-2xl border p-3.5 space-y-3 shadow-sm transition-colors ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-800'
-            }`}>
-              <div className="flex items-center justify-between">
-                <label className={`block text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                  Enter your 16-character license key:
-                </label>
-                <button
-                  type="button"
-                  onClick={handlePasteKey}
-                  className="text-[11px] text-cyan-500 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300 font-medium inline-flex items-center gap-1 transition-colors"
-                >
-                  <ClipboardPaste className="h-3 w-3" />
-                  <span>Paste Key</span>
-                </button>
-              </div>
-              
-              <div className="relative">
-                <input
-                  type="text"
-                  value={keyInput}
-                  onChange={handleKeyChange}
-                  placeholder="TGDRV-XXXX-XXXX-XXXX"
-                  maxLength={22}
-                  disabled={loading}
-                  className={`w-full rounded-xl border px-4 py-3 font-mono text-sm font-bold tracking-widest shadow-inner focus:outline-none focus:ring-1 transition-all disabled:opacity-50 ${
-                    isLight
-                      ? 'bg-white border-slate-300 text-cyan-700 placeholder-slate-400 focus:border-cyan-500 focus:ring-cyan-500/20'
-                      : 'bg-slate-950 border-slate-700 text-cyan-400 placeholder-slate-600 focus:border-cyan-400 focus:ring-cyan-500/20'
-                  }`}
-                />
-                <Key className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-400" />
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                <span>Sent to your email after purchase / trial</span>
-                <button
-                  type="button"
-                  onClick={() => void openExternalUrl(`${LICENSE_API_BASE}/recover`)}
-                  className="text-cyan-500 hover:underline font-medium inline-flex items-center gap-1"
-                >
-                  <span>Recover Key via OTP</span>
-                  <ExternalLink className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Error / Success Feedback */}
-            {errorMessage && (
-              <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-500">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 text-rose-500" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {successMessage && (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-500">
-                <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                <span>{successMessage}</span>
-              </div>
-            )}
-
-            {/* Activate Button */}
-            <button
-              type="submit"
-              disabled={loading || !keyInput.trim()}
-              className="w-full rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-500 hover:from-cyan-300 hover:via-cyan-400 hover:to-blue-400 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Validating Key...</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Activate License</span>
-                </>
-              )}
-            </button>
-
-            {/* Bottom Switcher */}
-            <div className="text-center pt-0.5 space-y-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('purchase')}
-                className={`text-xs transition-colors inline-flex items-center gap-1 cursor-pointer ${
-                  isLight ? 'text-slate-500 hover:text-cyan-600' : 'text-slate-400 hover:text-cyan-400'
-                }`}
-              >
-                <span>Don't have a key?</span>
-                <span className="font-semibold text-cyan-500 underline">Get License &rarr;</span>
-              </button>
-
-              {onLogout && (
-                <div className="pt-2 border-t border-slate-800/40">
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className="text-xs text-slate-400 hover:text-rose-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer font-medium"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span>Need to switch account? Log Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </form>
-        )}
       </div>
     </div>
   );

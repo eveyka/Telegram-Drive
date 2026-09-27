@@ -1,5 +1,5 @@
 export const SUPPORTER_PROMPT_INTERVAL_MS = 24 * 60 * 60 * 1_000;
-export const SPONSOR_AD_INTERVAL_MS = 15 * 60 * 1_000;
+export const SPONSOR_AD_INTERVAL_MS = 60 * 1_000; // 1 minute cooldown after manual dismiss
 export const SUPPORTER_VALUE_MOMENT_EVENT = 'telegram-drive-supporter-value-moment';
 
 export type SupporterValueMoment = 'upload_completed' | 'download_completed';
@@ -13,7 +13,19 @@ interface SupporterVisibilityStatus {
 }
 
 export function shouldShowSponsorContent(status: SupporterVisibilityStatus): boolean {
-  return status.state !== 'loading' && !status.ad_free;
+  if (status.ad_free || status.state === 'active' || status.state === 'loading') return false;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('tg_drive_license_data');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.isLicensed && (!parsed.expiresAt || parsed.expiresAt > Math.floor(Date.now() / 1000))) {
+          return false;
+        }
+      }
+    }
+  } catch {}
+  return !status.ad_free;
 }
 
 export function sponsorAdCooldownRemaining(
@@ -58,5 +70,34 @@ export const PAYWALL_OPEN_EVENT = 'telegram-drive-open-paywall';
 
 export function openPaywallGate(feature: 'folders' | 'autobackup' | 'speed' | 'ads' | 'encryption' | 'general' = 'general'): void {
   window.dispatchEvent(new CustomEvent(PAYWALL_OPEN_EVENT, { detail: { feature } }));
+}
+
+export interface BasicFolderItem {
+  id: number;
+  name: string;
+}
+
+/**
+ * Checks whether a folder is locked for a free or expired user.
+ * Rules:
+ * 1. Pro users have all folders unlocked.
+ * 2. Saved Messages (null / 'saved') is always unlocked.
+ * 3. The 1st custom folder (index 0) is unlocked for free users.
+ * 4. Any 2nd, 3rd... custom folders (index >= 1) are locked when Pro is inactive or expired.
+ */
+export function isCustomFolderLocked(
+  folderId: number | string | null | undefined,
+  folders: BasicFolderItem[],
+  isPro: boolean
+): boolean {
+  if (isPro) return false;
+  if (folderId === null || folderId === undefined || folderId === 'saved' || folderId === 'all') return false;
+
+  const numId = Number(folderId);
+  const customFolders = folders.filter(
+    f => f.name.toLowerCase() !== 'saved messages' && f.name.toLowerCase() !== 'saved'
+  );
+  const index = customFolders.findIndex(f => f.id === numId);
+  return index >= 1;
 }
 

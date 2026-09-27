@@ -53,12 +53,18 @@ fn update_client() -> Result<reqwest::Client, String> {
 }
 
 #[cfg(target_os = "android")]
-async fn fetch_limited(client: &reqwest::Client, url: &str, max: usize) -> Result<Vec<u8>, String> {
+async fn fetch_limited(client: &reqwest::Client, url: &str, max: usize) -> Result<Option<Vec<u8>>, String> {
     let response = client
         .get(url)
         .send()
         .await
-        .map_err(|error| format!("Unable to contact the update service: {error}"))?
+        .map_err(|error| format!("Unable to contact the update service: {error}"))?;
+
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+
+    let response = response
         .error_for_status()
         .map_err(|error| format!("The update service returned an error: {error}"))?;
     if response
@@ -74,7 +80,7 @@ async fn fetch_limited(client: &reqwest::Client, url: &str, max: usize) -> Resul
     if bytes.len() > max {
         return Err("The update metadata exceeded the safe size limit".into());
     }
-    Ok(bytes.to_vec())
+    Ok(Some(bytes.to_vec()))
 }
 
 #[cfg(target_os = "android")]
@@ -111,9 +117,8 @@ fn validate_manifest(manifest: &AndroidUpdateManifest) -> Result<(), String> {
         .map_err(|_| "The update metadata contains an invalid download URL".to_string())?;
     if url.scheme() != "https"
         || url.host_str() != Some("github.com")
-        || !url
-            .path()
-            .starts_with("/caamer20/Telegram-Drive/releases/download/")
+        || !(url.path().starts_with("/jupiterbania/Telegram-Drive/releases/download/")
+            || url.path().starts_with("/caamer20/Telegram-Drive/releases/download/"))
         || !url.path().ends_with(&format!("/{}", manifest.filename))
     {
         return Err("The update metadata contains an untrusted download URL".into());
@@ -122,12 +127,18 @@ fn validate_manifest(manifest: &AndroidUpdateManifest) -> Result<(), String> {
 }
 
 #[cfg(target_os = "android")]
-async fn fetch_verified_manifest() -> Result<AndroidUpdateManifest, String> {
+async fn fetch_verified_manifest() -> Result<Option<AndroidUpdateManifest>, String> {
     let client = update_client()?;
-    let (manifest_bytes, signature_bytes) = tokio::try_join!(
+    let (manifest_res, signature_res) = tokio::try_join!(
         fetch_limited(&client, UPDATE_MANIFEST_URL, MAX_MANIFEST_BYTES),
         fetch_limited(&client, UPDATE_SIGNATURE_URL, MAX_MANIFEST_BYTES),
     )?;
+
+    let (manifest_bytes, signature_bytes) = match (manifest_res, signature_res) {
+        (Some(m), Some(s)) => (m, s),
+        _ => return Ok(None),
+    };
+
     let signature_text = std::str::from_utf8(&signature_bytes)
         .map_err(|_| "The update signature is not valid UTF-8".to_string())?;
     let key = minisign_verify::PublicKey::decode(UPDATE_PUBLIC_KEY)
@@ -140,7 +151,7 @@ async fn fetch_verified_manifest() -> Result<AndroidUpdateManifest, String> {
     let manifest: AndroidUpdateManifest = serde_json::from_slice(&manifest_bytes)
         .map_err(|_| "The signed update manifest is invalid".to_string())?;
     validate_manifest(&manifest)?;
-    Ok(manifest)
+    Ok(Some(manifest))
 }
 
 #[cfg(target_os = "android")]
@@ -165,7 +176,10 @@ fn current_version_code() -> Result<u64, String> {
 pub async fn cmd_check_android_update() -> Result<Option<AndroidUpdateManifest>, String> {
     #[cfg(target_os = "android")]
     {
-        let manifest = fetch_verified_manifest().await?;
+        let manifest = match fetch_verified_manifest().await? {
+            Some(m) => m,
+            None => return Ok(None),
+        };
         return Ok((manifest.version_code > current_version_code()?).then_some(manifest));
     }
     #[cfg(not(target_os = "android"))]
@@ -221,7 +235,10 @@ pub async fn cmd_download_and_install_android_update(
         use tauri::{Emitter, Manager};
         use tokio::io::AsyncWriteExt;
 
-        let manifest = fetch_verified_manifest().await?;
+        let manifest = match fetch_verified_manifest().await? {
+            Some(m) => m,
+            None => return Err("No update package available".into()),
+        };
         if manifest.version_code <= current_version_code()? {
             return Err("This update is not newer than the installed application".into());
         }

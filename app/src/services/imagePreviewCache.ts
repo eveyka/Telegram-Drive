@@ -31,7 +31,7 @@ const normalizeAssetSource = (value: string): string => {
 /* IndexedDB Persistent Storage for Thumbnails                                 */
 /* ========================================================================== */
 
-const IDB_NAME = 'telegram_drive_image_cache_v3';
+const IDB_NAME = 'telegram_drive_image_cache_v4';
 const IDB_STORE = 'thumbnails';
 let idbInstance: IDBDatabase | null = null;
 let idbDisabled = false;
@@ -43,6 +43,7 @@ function purgeLegacyDatabase(): void {
     try {
         indexedDB.deleteDatabase('telegram_drive_image_cache_v1');
         indexedDB.deleteDatabase('telegram_drive_image_cache_v2');
+        indexedDB.deleteDatabase('telegram_drive_image_cache_v3');
     } catch {
         // Ignore legacy deletion error
     }
@@ -416,6 +417,11 @@ export const loadThumbnail = (
     // Check IndexedDB asynchronously before enqueuing IPC call
     const request = new Promise<string | null>((resolve, reject) => {
         getPersistentEntry(key).then((persistedSrc) => {
+            if (!pendingThumbnails.has(key)) {
+                // Request was cancelled while reading IndexedDB
+                resolve(persistedSrc || null);
+                return;
+            }
             if (persistedSrc) {
                 remember(thumbnailCache, key, persistedSrc, THUMBNAIL_CACHE_MAX_ITEMS);
                 pendingThumbnails.delete(key);
@@ -434,6 +440,10 @@ export const loadThumbnail = (
             });
             processThumbnailQueue();
         }).catch(() => {
+            if (!pendingThumbnails.has(key)) {
+                resolve(null);
+                return;
+            }
             thumbnailQueue.push({
                 key,
                 fileId,

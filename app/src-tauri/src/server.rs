@@ -16,7 +16,7 @@ mod desktop_ads {
 
     const AD_SCRIPT_HOST: &str = "www.highrevenueformat.com";
     const AD_SCRIPT_URL: &str =
-        "https://www.highrevenueformat.com/9396e3814bf36c82b64a6ddc1c7538ea/invoke.js";
+        "https://www.highrevenueformat.com/62d4a6f015cbff1fd2ab211f514e0183/invoke.js";
     const AD_SCRIPT_MAX_BYTES: usize = 512 * 1024;
     const AD_SCRIPT_FALLBACK_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
     const AD_DOH_URL: &str =
@@ -54,17 +54,17 @@ mod desktop_ads {
   <title>Ad Banner</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 300px; height: 250px; overflow: hidden; background: transparent; }
+    html, body { width: 320px; height: 50px; overflow: hidden; background: transparent; }
     iframe, img { display: block; border: 0; }
   </style>
 </head>
 <body>
   <script>
     window.atOptions = {
-      key: '9396e3814bf36c82b64a6ddc1c7538ea',
+      key: '62d4a6f015cbff1fd2ab211f514e0183',
       format: 'iframe',
-      height: 250,
-      width: 300,
+      height: 50,
+      width: 320,
       params: {}
     };
 
@@ -174,7 +174,7 @@ mod desktop_ads {
     })();
   </script>
   <script
-    src="https://www.highrevenueformat.com/9396e3814bf36c82b64a6ddc1c7538ea/invoke.js"
+    src="https://www.highrevenueformat.com/62d4a6f015cbff1fd2ab211f514e0183/invoke.js"
     onload="window.telegramDriveDirectAdReady()"
     onerror="window.telegramDriveDirectAdFailed()">
   </script>

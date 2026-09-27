@@ -1,32 +1,34 @@
 import { lazy, useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Folder, Download, LogOut, RefreshCw, UploadCloud, MoreVertical, Trash2, Pencil, Globe, Shield, Lock, ChevronDown, ChevronLeft, ChevronRight, Share2, Link, X, Wifi, Activity, Zap, Eye, EyeOff, HelpCircle, Pause, Play, RotateCcw, Sliders, Film, Settings as SettingsIcon, FolderPlus, Bookmark, Search, Sparkles, LayoutGrid, List, HardDrive, KeyRound, ShieldCheck, ShieldAlert, Fingerprint, Clock, Cloud, Image as ImageIcon, FileText, FileCode, Layers, Sun, Moon, CheckSquare, Check, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Music, WifiOff, User, Copy, Smartphone, Gift, Wallet } from 'lucide-react';
+import { Folder, Download, LogOut, RefreshCw, UploadCloud, MoreVertical, Trash2, Pencil, Globe, Shield, Lock, ChevronDown, ChevronLeft, ChevronRight, Share2, Link, X, Wifi, Activity, Zap, Eye, EyeOff, HelpCircle, Pause, Play, RotateCcw, Sliders, Film, Settings as SettingsIcon, FolderPlus, Bookmark, Search, Sparkles, LayoutGrid, List, HardDrive, KeyRound, ShieldCheck, ShieldAlert, Fingerprint, Clock, Cloud, Image as ImageIcon, FileText, FileCode, Layers, Sun, Moon, CheckSquare, Check, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, AlertCircle, Music, WifiOff, User, Copy, Smartphone, Gift, Camera, ArrowLeft, MessageSquare } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { listen } from '@tauri-apps/api/event';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { openExternalUrl } from '../../utils/url';
+import { triggerSmartDirectLink } from '../../services/sponsorLinks';
 import { BottomNavBar, type MobileTab } from './BottomNavBar';
 import { TouchFileList } from './TouchFileList';
-import AdsterraBanner from '../shared/AdsterraBanner';
 import { DriveConceptTour } from '../desktop/dashboard/DriveConceptTour';
 import { ActionPopover, ActionItem } from './ActionPopover';
-import { ShareDialog } from '../desktop/dashboard/ShareDialog';
-import { RenameFolderSheet } from './RenameFolderSheet';
-import { RenameFileSheet } from './RenameFileSheet';
-import { CreateFolderSheet } from './CreateFolderSheet';
-import { MakePublicChannelSheet } from './MakePublicChannelSheet';
 import { AppLockScreen } from './AppLockScreen';
 import { hashAppPin } from '../../utils/security';
 const LazyAutoBackupSheet = lazy(() => import('./AutoBackupSheet').then((module) => ({ default: module.AutoBackupSheet })));
+const LazyRenameFolderSheet = lazy(() => import('./RenameFolderSheet').then((module) => ({ default: module.RenameFolderSheet })));
+const LazyRenameFileSheet = lazy(() => import('./RenameFileSheet').then((module) => ({ default: module.RenameFileSheet })));
+const LazyCreateFolderSheet = lazy(() => import('./CreateFolderSheet').then((module) => ({ default: module.CreateFolderSheet })));
+const LazyMakePublicChannelSheet = lazy(() => import('./MakePublicChannelSheet').then((module) => ({ default: module.MakePublicChannelSheet })));
+const LazyShareDialog = lazy(() => import('../desktop/dashboard/ShareDialog').then((module) => ({ default: module.ShareDialog })));
 import { useSync } from '../../context/SyncContext';
 import { useEncryption } from '../../hooks/useEncryption';
 const LazyVaultPassphraseModal = lazy(() => import('./VaultPassphraseModal').then((module) => ({ default: module.VaultPassphraseModal })));
 import { MobileSupporterCard } from './MobileSupporterCard';
 import { SupporterOfferDialog } from '../shared/SupporterOfferDialog';
-import { PaywallGateModal, type PaywallTriggerFeature } from '../shared/PaywallGateModal';
+import type { PaywallTriggerFeature } from '../shared/PaywallGateModal';
+import { LockedFeatureModal } from '../shared/LockedFeatureModal';
+import { TelegramPremiumView } from '../shared/TelegramPremiumView';
 import { SmartAdBanner } from '../shared/SmartAdBanner';
-import { licenseManager, type LicenseInfo } from '../../services/licenseManager';
+import { licenseManager, type LicenseInfo, type StoreConfig } from '../../services/licenseManager';
 import { usePlatform } from '../../hooks/usePlatform';
 import { useTelegramConnection } from '../../hooks/useTelegramConnection';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -61,6 +63,7 @@ import { updateFileQueryData } from '../../services/fileListRefresh';
 import {
   SUPPORTER_VALUE_MOMENT_EVENT,
   type SupporterPromptTrigger,
+  isCustomFolderLocked,
 } from '../../services/supporterVisibility';
 import { getCachedPreview, setCachedPreview, notifyThumbnailInvalidation } from '../../services/imagePreviewCache';
 import { resetStreamInfoCache, clearAllThumbnailFailures } from '../../services/videoThumbnailService';
@@ -120,47 +123,47 @@ type SettingsSubpage =
   | 'account'
   | 'pro_plans';
 
-function SettingsMenuCard({
+function TelegramSettingRow({
   icon: Icon,
-  iconColorClass,
-  iconBgClass,
-  iconBorderClass,
+  iconBg,
   title,
   subtitle,
   badge,
   onClick,
+  showChevron = true,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  iconColorClass: string;
-  iconBgClass: string;
-  iconBorderClass: string;
+  iconBg: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   badge?: React.ReactNode;
   onClick: () => void;
+  showChevron?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 hover:border-telegram-primary/40 hover:bg-telegram-hover/30 active:scale-[0.98] transition-all duration-200 text-left group shadow-xs backdrop-blur-md"
+      className="w-full flex items-center justify-between px-4 py-3 hover:bg-telegram-hover/30 active:bg-telegram-hover/50 transition-colors text-left cursor-pointer group select-none"
     >
-      <div className="flex items-center gap-3 min-w-0 pr-2">
-        <div className={`w-10 h-10 rounded-xl ${iconBgClass} border ${iconBorderClass} flex items-center justify-center ${iconColorClass} shrink-0 group-hover:scale-105 transition-transform duration-200 shadow-xs`}>
-          <Icon className="w-5 h-5" />
+      <div className="flex items-center gap-3.5 min-w-0 pr-2">
+        <div className={`w-7 h-7 rounded-lg ${iconBg} flex items-center justify-center text-white shrink-0 shadow-2xs group-hover:scale-105 transition-transform duration-150`}>
+          <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <h3 className="text-xs font-bold text-telegram-text tracking-tight group-hover:text-telegram-primary transition-colors">
+          <span className="text-[13.5px] font-semibold text-telegram-text block leading-snug group-hover:text-telegram-primary transition-colors">
             {title}
-          </h3>
-          <p className="text-[10px] text-telegram-subtext truncate mt-0.5">
-            {subtitle}
-          </p>
+          </span>
+          {subtitle && (
+            <span className="text-[11px] text-telegram-subtext block leading-snug mt-0.5 truncate font-normal">
+              {subtitle}
+            </span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {badge}
-        <ChevronRight className="w-4 h-4 text-telegram-subtext/50 group-hover:text-telegram-primary group-hover:translate-x-0.5 transition-all" />
+        {showChevron && <ChevronRight className="w-4 h-4 text-telegram-subtext/50 group-hover:text-telegram-primary group-hover:translate-x-0.5 transition-all" />}
       </div>
     </button>
   );
@@ -258,6 +261,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
   const [homeMediaTypeFilter, setHomeMediaTypeFilter] = useState<'all' | 'images' | 'videos' | 'docs' | 'other'>('all');
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { isAndroid, isTelevision } = usePlatform();
   const { theme, themePreference, setThemePreference } = useTheme();
@@ -265,14 +269,20 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
   const { status: supporterStatus, refreshStatus } = useSupporter();
   const [showHelp, setShowHelp] = useState(false);
   const [supporterOfferTrigger, setSupporterOfferTrigger] = useState<SupporterPromptTrigger | null>(null);
-  const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
-  const [paywallTriggerFeature, setPaywallTriggerFeature] = useState<PaywallTriggerFeature>('general');
+  const [lockedFeatureModal, setLockedFeatureModal] = useState<{
+    isOpen: boolean;
+    feature: PaywallTriggerFeature;
+    customTitle?: string;
+  }>({ isOpen: false, feature: 'general' });
   const [mobileLicense, setMobileLicense] = useState<LicenseInfo | null>(null);
+  const [liveStoreConfig, setLiveStoreConfig] = useState<StoreConfig | null>(null);
   const [isLicenseSyncing, setIsLicenseSyncing] = useState(false);
-  const [showManualKeyModal, setShowManualKeyModal] = useState(false);
-  const [manualLicenseKey, setManualLicenseKey] = useState('');
-  const [isActivatingManualKey, setIsActivatingManualKey] = useState(false);
-  const [expiredAlertText, setExpiredAlertText] = useState<string | null>(null);
+
+  useEffect(() => {
+    void licenseManager.getStoreConfig().then((cfg) => {
+      if (cfg) setLiveStoreConfig(cfg);
+    });
+  }, []);
 
   // ── Software Updates Hook ─────────────────────────────────────────────
   const {
@@ -465,16 +475,10 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
       const local = await licenseManager.loadLicense();
       setMobileLicense(local);
 
-      if (local.expiresAt && local.expiresAt < Math.floor(Date.now() / 1000)) {
-        setExpiredAlertText('Your Free Trial / Subscription has expired. Please upgrade to TG Drive Pro to continue.');
-      }
-
       if (userProfile) {
         const res = await licenseManager.checkTelegramAccount(userProfile.id, userProfile.phone);
         if (res.isLicensed && res.license) {
           setMobileLicense(res.license);
-          setShowProUpgradeModal(false);
-          setExpiredAlertText(null);
           void refreshStatus();
         }
       }
@@ -483,53 +487,81 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
     }
   }, [userProfile, refreshStatus]);
 
-  const isProUser = Boolean(mobileLicense?.isLicensed || supporterStatus.ad_free);
+  const isProUser = Boolean(mobileLicense?.isLicensed || supporterStatus.ad_free || supporterStatus.state === 'active');
+
+  const handleOpenProPlansDirect = useCallback(() => {
+    setNavHistory(prev => {
+      const last = prev[prev.length - 1];
+      if (last && last.tab === activeTab && last.settingsSubpage === settingsSubpage && last.filesSelectedFolderId === filesSelectedFolderId) {
+        return prev;
+      }
+      return [...prev, { tab: activeTab, settingsSubpage, filesSelectedFolderId, activeFolderId }].slice(-30);
+    });
+    setActiveTab('profile');
+    setSettingsSubpage('pro_plans');
+  }, [activeTab, settingsSubpage, filesSelectedFolderId, activeFolderId]);
+
+  const handleTriggerPro = useCallback((feature: PaywallTriggerFeature = 'general', customTitle?: string) => {
+    setLockedFeatureModal({
+      isOpen: true,
+      feature,
+      customTitle,
+    });
+  }, []);
 
   const handleOpenCreateFolder = useCallback(() => {
     const customFolders = folders.filter(f => f.name.toLowerCase() !== 'saved messages' && f.name.toLowerCase() !== 'saved');
     if (!isProUser && customFolders.length >= 1) {
-      setPaywallTriggerFeature('folders');
-      setShowProUpgradeModal(true);
+      handleTriggerPro('folders');
       return;
     }
     setShowCreateFolder(true);
-  }, [folders, isProUser]);
+  }, [folders, isProUser, handleTriggerPro]);
 
   const handleOpenAutoBackup = useCallback(() => {
     if (!isProUser) {
-      setPaywallTriggerFeature('autobackup');
-      setShowProUpgradeModal(true);
+      handleTriggerPro('autobackup');
       return;
     }
     setShowAutoBackupSheet(true);
-  }, [isProUser]);
-
-  const handleTriggerPro = useCallback((feature: PaywallTriggerFeature = 'general') => {
-    setPaywallTriggerFeature(feature);
-    setShowProUpgradeModal(true);
-  }, []);
+  }, [isProUser, handleTriggerPro]);
 
   useEffect(() => {
     void loadAndVerifyLicense();
 
     const handleOpenPaywall = (event: Event) => {
       const feature = (event as CustomEvent<{ feature?: PaywallTriggerFeature }>).detail?.feature ?? 'general';
-      setPaywallTriggerFeature(feature);
-      setShowProUpgradeModal(true);
+      handleTriggerPro(feature);
     };
     window.addEventListener('telegram-drive-open-paywall', handleOpenPaywall);
     return () => window.removeEventListener('telegram-drive-open-paywall', handleOpenPaywall);
-  }, [loadAndVerifyLicense]);
+  }, [loadAndVerifyLicense, handleTriggerPro]);
+
+  // Fallback if current folder selection is locked under free/expired plan
+  useEffect(() => {
+    if (!isProUser) {
+      if (activeFolderId !== null && isCustomFolderLocked(activeFolderId, folders, false)) {
+        setActiveFolderId(null);
+      }
+      if (typeof homeFolderFilter === 'number' && isCustomFolderLocked(homeFolderFilter, folders, false)) {
+        setHomeFolderFilter('all');
+      }
+      if (typeof filesSelectedFolderId === 'number' && isCustomFolderLocked(filesSelectedFolderId, folders, false)) {
+        setFilesSelectedFolderId(null);
+      }
+    }
+  }, [isProUser, activeFolderId, homeFolderFilter, filesSelectedFolderId, folders, setActiveFolderId]);
 
   const handleSyncMobileLicense = async () => {
     setIsLicenseSyncing(true);
     try {
+      void licenseManager.getStoreConfig().then((cfg) => {
+        if (cfg) setLiveStoreConfig(cfg);
+      });
       if (userProfile) {
         const res = await licenseManager.checkTelegramAccount(userProfile.id, userProfile.phone);
         if (res.isLicensed && res.license) {
           setMobileLicense(res.license);
-          setShowProUpgradeModal(false);
-          setExpiredAlertText(null);
           await refreshStatus();
           toast.success('Pro License synced & active for your Telegram account!');
           return;
@@ -547,36 +579,6 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
       toast.error('Unable to connect to license server.');
     } finally {
       setIsLicenseSyncing(false);
-    }
-  };
-
-  const handleActivateMobileKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualLicenseKey.trim()) return;
-    setIsActivatingManualKey(true);
-    try {
-      const res = await licenseManager.activateLicense(
-        manualLicenseKey.trim(),
-        undefined,
-        isAndroid ? 'android' : 'mobile',
-        userProfile?.id,
-        userProfile?.phone
-      );
-      if (res.success && res.license) {
-        setMobileLicense(res.license);
-        setShowManualKeyModal(false);
-        setManualLicenseKey('');
-        setShowProUpgradeModal(false);
-        setExpiredAlertText(null);
-        await refreshStatus();
-        toast.success('License activated & synced with your Telegram account!');
-      } else {
-        toast.error(res.message || 'Invalid license key.');
-      }
-    } catch {
-      toast.error('Activation failed.');
-    } finally {
-      setIsActivatingManualKey(false);
     }
   };
 
@@ -976,14 +978,6 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
       delete (window as any).__telegramDriveOnAppUnlocked;
     };
   }, []);
-
-  // The in-app sponsor placement is TV-safe and remains available to free users.
-  // Keep it suppressed during media, previews, dialogs, active transfers, and lock screen.
-  const adVisible = !shareFile && !shareFiles
-    && !previewFile && !playingFile && !pdfFile && !archiveViewFile && !docFile
-    && !showHelp && !supporterOfferTrigger && settings.driveTourSeen && !isAppLocked
-    && !uploadQueue.some(item => ['pending', 'uploading', 'downloading', 'encrypting', 'verifying'].includes(item.status))
-    && !downloadQueue.some(item => ['pending', 'cooldown', 'downloading', 'decrypting', 'verifying'].includes(item.status));
 
   const activeUploadCount = uploadQueue.filter(item => ['pending', 'uploading', 'downloading', 'encrypting', 'verifying'].includes(item.status)).length;
   const activeDownloadCount = downloadQueue.filter(item => ['pending', 'cooldown', 'downloading', 'decrypting', 'verifying'].includes(item.status)).length;
@@ -1407,6 +1401,10 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
   }, [activeTab, settingsSubpage, filesSelectedFolderId, activeFolderId]);
 
   const handleOpenFolderInFilesTab = useCallback((folderId: number | 'saved') => {
+    if (folderId !== 'saved' && isCustomFolderLocked(folderId, folders, isProUser)) {
+      handleTriggerPro('folders');
+      return;
+    }
     setNavHistory(prev => {
       const last = prev[prev.length - 1];
       if (last && last.tab === activeTab && last.settingsSubpage === settingsSubpage && last.filesSelectedFolderId === filesSelectedFolderId) {
@@ -1417,7 +1415,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
     setActiveTab('files');
     setFilesSelectedFolderId(folderId);
     setActiveFolderId(folderId === 'saved' ? null : folderId);
-  }, [activeTab, settingsSubpage, filesSelectedFolderId, activeFolderId, setActiveFolderId]);
+  }, [activeTab, settingsSubpage, filesSelectedFolderId, activeFolderId, setActiveFolderId, folders, isProUser, handleTriggerPro]);
 
   const handleSwitchTab = useCallback((tab: MobileTab) => {
     if (tab === activeTab && settingsSubpage === null && filesSelectedFolderId === null) {
@@ -1452,8 +1450,8 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
 
   const openMobileSupporter = useCallback(() => {
     setSupporterOfferTrigger(null);
-    openSettingsSubpage('supporter');
-  }, [openSettingsSubpage]);
+    handleTriggerPro('general');
+  }, [handleTriggerPro]);
 
   const showSupporterOffer = useCallback((_trigger: SupporterPromptTrigger) => {
     // Supporter offer prompt disabled
@@ -1553,8 +1551,11 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
   }, []);
 
   const handleDownload = useCallback((file: TelegramFile) => {
+    if (!isProUser) {
+      void triggerSmartDirectLink('download_trigger', isProUser);
+    }
     queueDownload(file.id, file.name, activeFolderId);
-  }, [queueDownload, activeFolderId]);
+  }, [queueDownload, activeFolderId, isProUser]);
 
   const handleDeleteFile = useCallback((file: TelegramFile) => {
     handleDeleteOp(file);
@@ -2188,6 +2189,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
     if (archiveViewFile) { setArchiveViewFile(null); return true; }
 
     // 2. Full modals & dialogs
+    if (showProfileDetailsModal) { setShowProfileDetailsModal(false); return true; }
     if (showAutoBackupSheet) { setShowAutoBackupSheet(false); return true; }
     if (vaultModalOpen) { setVaultModalOpen(false); setPendingOpenFile(null); return true; }
     if (showPinModal !== 'none') { setShowPinModal('none'); return true; }
@@ -2530,14 +2532,14 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {settingsSubpage === 'pro_plans' && (
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                   mobileLicense?.isLicensed
                     ? mobileLicense?.planType === 'trial'
                       ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                       : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                    : 'bg-[#2D1B4E]/80 text-[#C084FC] border-[#8B5CF6]/40 shadow-sm'
                 }`}>
-                  {mobileLicense?.isLicensed ? (mobileLicense.planType === 'trial' ? '🎁 Trial' : '✓ Pro Active') : '⚡ Free Plan'}
+                  {mobileLicense?.isLicensed ? (mobileLicense.planType === 'trial' ? '🎁 Trial' : '✓ Pro Active') : '⚡ FREE PLAN'}
                 </span>
               )}
               {settingsSubpage === 'account' && (
@@ -2586,26 +2588,82 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
             </div>
           </div>
         ) : activeTab === 'profile' ? (
-          /* Profile Tab Header */
+          /* Profile Tab Header (Telegram Android Top Bar) */
           <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0">
-                {userProfile?.firstName ? userProfile.firstName.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+            <button
+              type="button"
+              onClick={() => setActiveTab('home')}
+              className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-telegram-hover/60 active:scale-95 text-telegram-text transition-all cursor-pointer"
+              aria-label="Back to Home"
+            >
+              <ArrowLeft className="w-5 h-5 text-telegram-text" />
+            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowMobileSearch(prev => !prev)}
+                className={`flex items-center justify-center w-9 h-9 rounded-full hover:bg-telegram-hover/60 active:scale-95 transition-all cursor-pointer ${
+                  showMobileSearch ? 'text-telegram-primary bg-telegram-hover/40' : 'text-telegram-text'
+                }`}
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileMenu(prev => !prev)}
+                  className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-telegram-hover/60 active:scale-95 text-telegram-text transition-all cursor-pointer"
+                  aria-label="More options"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+                {showProfileMenu && (
+                  <div
+                    className="absolute right-0 top-11 w-48 rounded-2xl bg-telegram-surface border border-telegram-border/60 shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl"
+                    onClick={() => setShowProfileMenu(false)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => openSettingsSubpage('account')}
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-telegram-text hover:bg-telegram-hover/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-telegram-subtext" />
+                      <span>Edit Name / Profile</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSettingsSubpage('account')}
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-telegram-text hover:bg-telegram-hover/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-telegram-subtext" />
+                      <span>Set Profile Photo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (userProfile?.id) {
+                          void copyToClipboard(String(userProfile.id));
+                          toast.success('Telegram ID copied');
+                        }
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-telegram-text hover:bg-telegram-hover/60 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-telegram-subtext" />
+                      <span>Copy Telegram ID</span>
+                    </button>
+                    <div className="h-px bg-telegram-border/40 my-1" />
+                    <button
+                      type="button"
+                      onClick={() => void handleLogout()}
+                      className="w-full text-left px-3.5 py-2.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="min-w-0">
-                <h1 className="text-sm font-bold text-telegram-text tracking-tight leading-tight truncate">
-                  {userProfile ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'My Profile'}
-                </h1>
-                <p className="text-[10px] text-telegram-subtext font-medium leading-none mt-0.5 truncate">
-                  {userProfile?.username ? `@${userProfile.username}` : 'Telegram Account'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-telegram-hover/40 border border-telegram-border/30 text-[10px] font-mono shrink-0">
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-              <span className={isConnected ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
-                {isConnected ? 'Online' : 'Offline'}
-              </span>
             </div>
           </div>
         ) : (
@@ -2693,7 +2751,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
       </header>
 
       {/* Main Viewport Container */}
-      <main ref={scrollRootRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4 pb-32 scroll-smooth md:ml-[280px] md:px-8 lg:px-12">
+      <main ref={scrollRootRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4 pb-32 md:ml-[280px] md:px-8 lg:px-12">
         {activeTab === 'home' && (
           <div className="space-y-4">
             {/* Structured Home Drive Control Bar */}
@@ -2754,24 +2812,39 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                   {/* Custom Folders */}
                   {folders.map(folder => {
                     const isSelected = homeFolderFilter === folder.id;
+                    const isLocked = isCustomFolderLocked(folder.id, folders, isProUser);
                     const count = folderFileCounts.get(folder.id);
                     return (
                       <button
                         key={folder.id}
                         type="button"
                         onClick={() => {
+                          if (isLocked) {
+                            handleTriggerPro('folders');
+                            return;
+                          }
                           setHomeFolderFilter(folder.id);
                           setActiveFolderId(folder.id);
                         }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
-                          isSelected
+                          isLocked
+                            ? 'bg-telegram-bg/30 text-telegram-subtext/60 border border-telegram-border/20 opacity-75'
+                            : isSelected
                             ? 'bg-telegram-primary text-black shadow-sm font-bold'
                             : 'bg-telegram-bg/60 text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/50 border border-telegram-border/30'
                         }`}
                       >
-                        <Folder className="w-3.5 h-3.5 shrink-0" />
+                        {isLocked ? (
+                          <Lock className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                        ) : (
+                          <Folder className="w-3.5 h-3.5 shrink-0" />
+                        )}
                         <span className="truncate max-w-[120px]">{folder.name}</span>
-                        {count !== undefined && count > 0 && (
+                        {isLocked ? (
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-400 font-bold tracking-tight">
+                            PRO
+                          </span>
+                        ) : count !== undefined && count > 0 ? (
                           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-medium ${
                             isSelected
                               ? 'bg-black/20 text-black'
@@ -2779,7 +2852,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                           }`}>
                             {count}
                           </span>
-                        )}
+                        ) : null}
                       </button>
                     );
                   })}
@@ -3126,62 +3199,92 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                       {filteredFolders.map(folder => {
                         const isPublic = folder.is_public || !!folder.username;
+                        const isLocked = isCustomFolderLocked(folder.id, folders, isProUser);
                         return (
                           <div
                             key={folder.id}
                             role="button"
                             tabIndex={0}
-                            onClick={() => handleOpenFolderInFilesTab(folder.id)}
+                            onClick={() => {
+                              if (isLocked) {
+                                handleTriggerPro('folders');
+                                return;
+                              }
+                              handleOpenFolderInFilesTab(folder.id);
+                            }}
                             onKeyDown={e => {
                               if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
+                                if (isLocked) {
+                                  handleTriggerPro('folders');
+                                  return;
+                                }
                                 handleOpenFolderInFilesTab(folder.id);
                               }
                             }}
-                            className="group relative flex flex-col justify-between p-3 rounded-2xl bg-telegram-surface/90 border border-telegram-border/40 hover:border-telegram-primary/50 hover:bg-telegram-hover/30 shadow-sm backdrop-blur-sm transition-all duration-200 cursor-pointer active:scale-[0.98]"
+                            className={`group relative flex flex-col justify-between p-3 rounded-2xl bg-telegram-surface/90 border ${
+                              isLocked
+                                ? 'border-amber-500/30 bg-amber-500/[0.03] opacity-80'
+                                : 'border-telegram-border/40 hover:border-telegram-primary/50 hover:bg-telegram-hover/30'
+                            } shadow-sm backdrop-blur-sm transition-all duration-200 cursor-pointer active:scale-[0.98]`}
                           >
                             {/* Card Top Row: Badge + Action Button */}
                             <div className="flex items-center justify-between gap-1.5 mb-2">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${
-                                isPublic
-                                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-                                  : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
-                              }`}>
-                                {isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                                <span>{isPublic ? 'Public' : 'Private'}</span>
-                              </span>
+                              {isLocked ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                  <Lock className="w-3 h-3" />
+                                  <span>PRO LOCKED</span>
+                                </span>
+                              ) : (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${
+                                  isPublic
+                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                    : 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                                }`}>
+                                  {isPublic ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                                  <span>{isPublic ? 'Public' : 'Private'}</span>
+                                </span>
+                              )}
 
-                              <button
-                                type="button"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setFolderActionMenu(folder);
-                                }}
-                                className="p-1 rounded-lg text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all shrink-0"
-                                aria-label={`Actions for ${folder.name}`}
-                              >
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setFolderActionMenu(folder);
+                                  }}
+                                  className="p-1 rounded-lg text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all shrink-0"
+                                  aria-label={`Actions for ${folder.name}`}
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
 
                             {/* Center Icon & Folder Visual */}
                             <div className="flex items-center justify-center my-1.5 py-1">
                               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-105 ${
-                                isPublic
+                                isLocked
+                                  ? 'bg-amber-500/10 text-amber-400/80 border border-amber-500/20'
+                                  : isPublic
                                   ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/10 text-emerald-400 border border-emerald-500/30'
                                   : 'bg-gradient-to-br from-amber-500/20 to-orange-500/10 text-amber-400 border border-amber-500/30'
                               }`}>
-                                <Folder className="w-6 h-6" />
+                                {isLocked ? <Lock className="w-6 h-6 text-amber-400" /> : <Folder className="w-6 h-6" />}
                               </div>
                             </div>
 
                             {/* Bottom: Folder Name & Channel Username */}
                             <div className="min-w-0 mt-1.5 text-left">
-                              <p className="text-xs font-bold text-telegram-text truncate leading-tight group-hover:text-telegram-primary transition-colors">
-                                {folder.name}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-bold text-telegram-text truncate leading-tight group-hover:text-telegram-primary transition-colors">
+                                  {folder.name}
+                                </p>
+                              </div>
                               <p className="text-[10px] text-telegram-subtext truncate mt-0.5 font-mono">
-                                {isPublic
+                                {isLocked
+                                  ? 'Upgrade to Unlock'
+                                  : isPublic
                                   ? (folder.username ? `@${folder.username}` : 'Public Channel')
                                   : 'Private Channel'}
                               </p>
@@ -3194,46 +3297,68 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {filteredFolders.map(folder => {
                         const isPublic = folder.is_public || !!folder.username;
+                        const isLocked = isCustomFolderLocked(folder.id, folders, isProUser);
                         return (
                           <div
                             key={folder.id}
-                            className="group rounded-2xl transition-all duration-200 bg-telegram-surface/85 hover:bg-telegram-hover/30 border border-telegram-border/50 hover:border-telegram-primary/30 flex items-center justify-between p-3 shadow-sm active:scale-[0.99]"
+                            className={`group rounded-2xl transition-all duration-200 bg-telegram-surface/85 border ${
+                              isLocked
+                                ? 'border-amber-500/30 bg-amber-500/[0.03] opacity-80'
+                                : 'border-telegram-border/50 hover:bg-telegram-hover/30 hover:border-telegram-primary/30'
+                            } flex items-center justify-between p-3 shadow-sm active:scale-[0.99]`}
                           >
                             <button
                               type="button"
-                              onClick={() => handleOpenFolderInFilesTab(folder.id)}
-                              className="flex-1 flex items-center gap-3 text-left min-w-0"
+                              onClick={() => {
+                                if (isLocked) {
+                                  handleTriggerPro('folders');
+                                  return;
+                                }
+                                handleOpenFolderInFilesTab(folder.id);
+                              }}
+                              className="flex-1 flex items-center gap-3 text-left min-w-0 cursor-pointer"
                             >
                               <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                                isPublic
+                                isLocked
+                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                  : isPublic
                                   ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
                                   : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
                               }`}>
-                                {isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                                {isLocked ? <Lock className="w-4 h-4 text-amber-400" /> : isPublic ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold text-telegram-text truncate leading-tight group-hover:text-telegram-primary transition-colors">
-                                  {folder.name}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs font-semibold text-telegram-text truncate leading-tight group-hover:text-telegram-primary transition-colors">
+                                    {folder.name}
+                                  </p>
+                                  {isLocked && (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-500/20 text-amber-400 shrink-0">
+                                      PRO
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-[10px] text-telegram-subtext mt-0.5 truncate">
-                                  {isPublic ? (folder.username ? `@${folder.username}` : 'Public Channel') : 'Private Channel'}
+                                  {isLocked ? 'Upgrade to Unlock' : isPublic ? (folder.username ? `@${folder.username}` : 'Public Channel') : 'Private Channel'}
                                 </p>
                               </div>
                             </button>
 
-                            <div className="flex items-center gap-1 shrink-0 ml-2">
-                              <button
-                                type="button"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setFolderActionMenu(folder);
-                                }}
-                                className="p-1.5 rounded-xl text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all"
-                                aria-label="Folder actions"
-                              >
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                            </div>
+                            {!isLocked && (
+                              <div className="flex items-center gap-1 shrink-0 ml-2">
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setFolderActionMenu(folder);
+                                  }}
+                                  className="p-1.5 rounded-xl text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all"
+                                  aria-label="Folder actions"
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -3833,256 +3958,271 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
           <div className="space-y-4">
             {/* If Root Settings Menu (settingsSubpage === null) */}
             {settingsSubpage === null && (
-              <div className="space-y-2.5">
-                {/* 0. Structured Theme Mode Card */}
-                <div className="rounded-2xl bg-telegram-surface/90 border border-telegram-border/60 p-4 shadow-sm backdrop-blur-md space-y-3.5">
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200 pb-36 sm:pb-40">
+                {/* ── 0. Top Theme Mode Segmented Card ── */}
+                <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 p-4 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 via-orange-500/15 to-violet-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-xs">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-2xs">
                         {themePreference === 'system' ? (
-                          <Smartphone className="w-5 h-5 text-sky-400" />
+                          <Smartphone className="w-4 h-4" />
                         ) : themePreference === 'dark' ? (
-                          <Moon className="w-5 h-5 text-indigo-400" />
+                          <Moon className="w-4 h-4" />
                         ) : (
-                          <Sun className="w-5 h-5 text-amber-400" />
+                          <Sun className="w-4 h-4" />
                         )}
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-telegram-text tracking-tight flex items-center gap-1.5">
-                          {t('common.theme', 'Theme Mode')}
+                        <h3 className="text-[13.5px] font-semibold text-telegram-text tracking-tight">
+                          {t('common.theme', 'Appearance & Theme')}
                         </h3>
-                        <p className="text-[10px] text-telegram-subtext mt-0.5">
+                        <p className="text-[11px] text-telegram-subtext mt-0.5">
                           {themePreference === 'system'
-                            ? `Follows Phone (${theme === 'dark' ? 'Dark' : 'Light'})`
+                            ? `Follows Phone (${theme === 'dark' ? 'Dark Mode' : 'Light Mode'})`
                             : themePreference === 'dark'
-                            ? t('common.dark_mode', 'Dark Mode')
-                            : t('common.light_mode', 'Light Mode')}
+                            ? t('common.dark_mode', 'Dark Theme (Night / OLED)')
+                            : t('common.light_mode', 'Light Theme (Bright)')}
                         </p>
                       </div>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-telegram-primary/10 text-telegram-primary border border-telegram-primary/25 capitalize">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#2ea6ff]/10 text-[#2ea6ff] border border-[#2ea6ff]/25 capitalize">
                       {themePreference === 'system' ? 'Auto (Device)' : themePreference}
                     </span>
                   </div>
 
                   {/* 3-Option Segmented Selector Grid */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setThemePreference('system')}
-                      className={`relative flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      className={`relative flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95 cursor-pointer ${
                         themePreference === 'system'
-                          ? 'bg-telegram-primary text-black border-telegram-primary shadow-md shadow-telegram-primary/20 ring-1 ring-telegram-primary/40'
+                          ? 'bg-[#2ea6ff] text-white border-[#2ea6ff] shadow-md shadow-[#2ea6ff]/20'
                           : 'bg-telegram-bg/60 border-telegram-border/50 text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/30'
                       }`}
                     >
-                      <Smartphone className={`w-4 h-4 ${themePreference === 'system' ? 'text-black' : 'text-sky-400'}`} />
+                      <Smartphone className={`w-4 h-4 ${themePreference === 'system' ? 'text-white' : 'text-[#2ea6ff]'}`} />
                       <span className="text-[11px] font-bold">System</span>
-                      <span className={`text-[9px] font-normal leading-none ${themePreference === 'system' ? 'text-black/75 font-medium' : 'text-telegram-subtext/75'}`}>
-                        Phone Default
-                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setThemePreference('light')}
-                      className={`relative flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      className={`relative flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95 cursor-pointer ${
                         themePreference === 'light'
-                          ? 'bg-telegram-primary text-black border-telegram-primary shadow-md shadow-telegram-primary/20 ring-1 ring-telegram-primary/40'
+                          ? 'bg-[#2ea6ff] text-white border-[#2ea6ff] shadow-md shadow-[#2ea6ff]/20'
                           : 'bg-telegram-bg/60 border-telegram-border/50 text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/30'
                       }`}
                     >
-                      <Sun className={`w-4 h-4 ${themePreference === 'light' ? 'text-black' : 'text-amber-400'}`} />
+                      <Sun className={`w-4 h-4 ${themePreference === 'light' ? 'text-white' : 'text-amber-400'}`} />
                       <span className="text-[11px] font-bold">{t('common.light_mode', 'Light')}</span>
-                      <span className={`text-[9px] font-normal leading-none ${themePreference === 'light' ? 'text-black/75 font-medium' : 'text-telegram-subtext/75'}`}>
-                        Bright
-                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setThemePreference('dark')}
-                      className={`relative flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      className={`relative flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-xl border text-xs font-semibold transition-all duration-150 active:scale-95 cursor-pointer ${
                         themePreference === 'dark'
-                          ? 'bg-telegram-primary text-black border-telegram-primary shadow-md shadow-telegram-primary/20 ring-1 ring-telegram-primary/40'
+                          ? 'bg-[#2ea6ff] text-white border-[#2ea6ff] shadow-md shadow-[#2ea6ff]/20'
                           : 'bg-telegram-bg/60 border-telegram-border/50 text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/30'
                       }`}
                     >
-                      <Moon className={`w-4 h-4 ${themePreference === 'dark' ? 'text-black' : 'text-indigo-400'}`} />
+                      <Moon className={`w-4 h-4 ${themePreference === 'dark' ? 'text-white' : 'text-indigo-400'}`} />
                       <span className="text-[11px] font-bold">{t('common.dark_mode', 'Dark')}</span>
-                      <span className={`text-[9px] font-normal leading-none ${themePreference === 'dark' ? 'text-black/75 font-medium' : 'text-telegram-subtext/75'}`}>
-                        Night / OLED
-                      </span>
                     </button>
                   </div>
                 </div>
 
-                {/* 1. General Preferences Card */}
-                <SettingsMenuCard
-                  icon={Sliders}
-                  iconBgClass="bg-sky-500/15"
-                  iconBorderClass="border-sky-500/30"
-                  iconColorClass="text-sky-400"
-                  title={t('common.preferences')}
-                  subtitle="Theme, language, video upload mode & zip compression"
-                  badge={
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 capitalize flex items-center gap-1">
-                      {themePreference === 'system' ? <Smartphone className="w-2.5 h-2.5" /> : (theme === 'dark' ? <Moon className="w-2.5 h-2.5" /> : <Sun className="w-2.5 h-2.5" />)}
-                      {themePreference === 'system' ? 'System' : theme}
-                    </span>
-                  }
-                  onClick={() => openSettingsSubpage('preferences')}
-                />
+                {/* ── 1. General & Preferences Group ── */}
+                <div>
+                  <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                    General &amp; Preferences
+                  </p>
+                  <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                    <TelegramSettingRow
+                      icon={Sliders}
+                      iconBg="bg-[#ea580c]"
+                      title={t('common.preferences')}
+                      subtitle="Appearance themes, system language & display layout"
+                      badge={
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20 capitalize">
+                          {themePreference === 'system' ? 'System' : theme}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('preferences')}
+                    />
+                    <TelegramSettingRow
+                      icon={HardDrive}
+                      iconBg="bg-[#3b82f6]"
+                      title={t('settings.offline_cache')}
+                      subtitle={`${offlineCache?.file_count ? `${offlineCache.file_count} files (${formatBytes(offlineCache.total_bytes)})` : '0 files'} · ${folders.length} active folder${folders.length !== 1 ? 's' : ''}`}
+                      badge={
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                          {offlineCache?.file_count ? `${offlineCache.file_count} cached` : '0 cached'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('storage')}
+                    />
+                    <TelegramSettingRow
+                      icon={ArrowUpDown}
+                      iconBg="bg-[#ef4444]"
+                      title="Transfer Reliability"
+                      subtitle="Concurrent chunks, speed limits & retry strategy"
+                      badge={
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          {settings.androidWifiOnlyTransfers ? 'Wi-Fi only' : 'All networks'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('transfers')}
+                    />
+                  </div>
+                </div>
 
-                {/* 3. Device Privacy & App Lock Card (Android only) */}
-                {isAndroid && (
-                  <SettingsMenuCard
-                    icon={Lock}
-                    iconBgClass="bg-indigo-500/15"
-                    iconBorderClass="border-indigo-500/30"
-                    iconColorClass="text-indigo-400"
-                    title="Device Privacy & App Lock"
-                    subtitle="App PIN, biometric unlock & screenshot protection"
-                    badge={
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${(settings.androidCustomPinEnabled || settings.androidBiometricLock) ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                        {(settings.androidCustomPinEnabled || settings.androidBiometricLock) ? 'Protected' : 'Unprotected'}
-                      </span>
-                    }
-                    onClick={() => openSettingsSubpage('security')}
-                  />
-                )}
+                {/* ── 2. Security & Cloud Storage Group ── */}
+                <div>
+                  <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                    Security &amp; Cloud Storage
+                  </p>
+                  <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                    <TelegramSettingRow
+                      icon={ShieldCheck}
+                      iconBg="bg-[#22c55e]"
+                      title="Cloud Vault &amp; Encryption"
+                      subtitle="Master passphrase, zero-knowledge encryption & safe previews"
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${vaultStatus?.is_unlocked ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30'}`}>
+                          {vaultStatus?.is_unlocked ? '🔓 Unlocked' : '🔒 Locked'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('vault')}
+                    />
+                    <TelegramSettingRow
+                      icon={Cloud}
+                      iconBg="bg-[#14b8a6]"
+                      title="Auto-Backup &amp; Sync"
+                      subtitle="Camera roll, media & folder automated cloud sync"
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${syncSettings.data?.enabled ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-telegram-hover/40 text-telegram-subtext border-telegram-border/50'}`}>
+                          {syncSettings.data?.enabled ? 'Active' : 'Off'}
+                        </span>
+                      }
+                      onClick={handleOpenAutoBackup}
+                    />
+                    <TelegramSettingRow
+                      icon={Lock}
+                      iconBg="bg-[#a855f7]"
+                      title="Device Privacy &amp; App Lock"
+                      subtitle="App PIN lock, biometric unlock & screenshot protection"
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${(settings.androidCustomPinEnabled || settings.androidBiometricLock) ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                          {(settings.androidCustomPinEnabled || settings.androidBiometricLock) ? 'Protected' : 'Off'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('security')}
+                    />
+                    <TelegramSettingRow
+                      icon={Film}
+                      iconBg="bg-[#f43f5e]"
+                      title="Media &amp; Playback"
+                      subtitle="Lock screen privacy, playback speed & subtitles"
+                      badge={
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                          {settings.androidPlaybackSpeed}×
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('media')}
+                    />
+                  </div>
+                </div>
 
-                {/* 5. Transfer Reliability Card (Android only) */}
-                {isAndroid && (
-                  <SettingsMenuCard
-                    icon={Zap}
-                    iconBgClass="bg-amber-500/15"
-                    iconBorderClass="border-amber-500/30"
-                    iconColorClass="text-amber-400"
-                    title="Transfer Reliability"
-                    subtitle="Background queue, power & low battery policies"
-                    badge={
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        {settings.androidWifiOnlyTransfers ? 'Wi-Fi only' : 'All networks'}
-                      </span>
-                    }
-                    onClick={() => openSettingsSubpage('transfers')}
-                  />
-                )}
+                {/* ── 3. Network & Connection Group ── */}
+                <div>
+                  <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                    Network &amp; Diagnostics
+                  </p>
+                  <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                    <TelegramSettingRow
+                      icon={Activity}
+                      iconBg="bg-[#6366f1]"
+                      title={t('settings.connection_diagnostics')}
+                      subtitle="MTProto ping latency & weekly bandwidth quota"
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                          {latencyMs !== null && latencyMs >= 0 ? `${latencyMs}ms` : (isConnected ? '🟢 Online' : '🔴 Offline')}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('diagnostics')}
+                    />
+                    <TelegramSettingRow
+                      icon={Globe}
+                      iconBg="bg-[#0284c7]"
+                      title={t('common.proxy')}
+                      subtitle="Bypass ISP censorship & network blocks"
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${settings.proxyEnabled ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-telegram-hover/40 text-telegram-subtext border-telegram-border/50'}`}>
+                          {settings.proxyEnabled ? 'Active' : 'Off'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('proxy')}
+                    />
+                  </div>
+                </div>
 
-                {/* 6. Storage & Offline Cache Card */}
-                <SettingsMenuCard
-                  icon={HardDrive}
-                  iconBgClass="bg-purple-500/15"
-                  iconBorderClass="border-purple-500/30"
-                  iconColorClass="text-purple-400"
-                  title={t('settings.offline_cache')}
-                  subtitle="Instant offline cache, storage limit & file purge"
-                  badge={
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                      {offlineCache?.file_count ? `${offlineCache.file_count} cached` : '0 cached'}
-                    </span>
-                  }
-                  onClick={() => openSettingsSubpage('storage')}
-                />
+                {/* ── 4. Help & Support Group ── */}
+                <div>
+                  <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                    Help &amp; Software
+                  </p>
+                  <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                    <TelegramSettingRow
+                      icon={MessageSquare}
+                      iconBg="bg-[#f59e0b]"
+                      title="Ask a Question / Telegram Support"
+                      subtitle="Direct support channel on Telegram (@Theexposes)"
+                      onClick={() => openExternalUrl('https://t.me/Theexposes')}
+                    />
+                    <TelegramSettingRow
+                      icon={Download}
+                      iconBg="bg-[#10b981]"
+                      title="Software Updates &amp; Version"
+                      subtitle={`Installed v${appVersion} • ${updateAvailable ? `v${updateVersion} ready to install` : 'Latest release'}`}
+                      badge={
+                        updateAvailable ? (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/35 animate-pulse flex items-center gap-1">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            v{updateVersion} Available
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-telegram-hover/40 text-telegram-subtext border border-telegram-border/50">
+                            v{appVersion}
+                          </span>
+                        )
+                      }
+                      onClick={() => openSettingsSubpage('updates')}
+                    />
+                    <TelegramSettingRow
+                      icon={Shield}
+                      iconBg="bg-[#64748b]"
+                      title="Privacy &amp; Supporter Terms"
+                      subtitle="Data privacy manifesto & policies"
+                      badge={
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                          {supporterStatus.ad_free ? 'Supporter' : 'Free'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('supporter')}
+                    />
+                  </div>
+                </div>
 
-                {/* 7. Connection Diagnostics Card */}
-                <SettingsMenuCard
-                  icon={Activity}
-                  iconBgClass="bg-cyan-500/15"
-                  iconBorderClass="border-cyan-500/30"
-                  iconColorClass="text-cyan-400"
-                  title={t('settings.connection_diagnostics')}
-                  subtitle="MTProto ping latency & weekly bandwidth quota"
-                  badge={
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                      {latencyMs !== null && latencyMs >= 0 ? `${latencyMs}ms` : (isConnected ? 'Online' : 'Offline')}
-                    </span>
-                  }
-                  onClick={() => openSettingsSubpage('diagnostics')}
-                />
-
-                {/* 8. Proxy Configuration Card */}
-                <SettingsMenuCard
-                  icon={Globe}
-                  iconBgClass="bg-blue-500/15"
-                  iconBorderClass="border-blue-500/30"
-                  iconColorClass="text-blue-400"
-                  title={t('common.proxy')}
-                  subtitle="Bypass ISP censorship & network blocks"
-                  badge={
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border ${settings.proxyEnabled ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-telegram-hover/40 text-telegram-subtext border-telegram-border/50'}`}>
-                      {settings.proxyEnabled ? 'Active' : 'Off'}
-                    </span>
-                  }
-                  onClick={() => openSettingsSubpage('proxy')}
-                />
-
-                {/* 9. Media & Playback Card (Android only) */}
-                {isAndroid && (
-                  <SettingsMenuCard
-                    icon={Film}
-                    iconBgClass="bg-rose-500/15"
-                    iconBorderClass="border-rose-500/30"
-                    iconColorClass="text-rose-400"
-                    title="Media & Playback"
-                    subtitle="Lock screen privacy, playback speed & subtitles"
-                    badge={
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                        {settings.androidPlaybackSpeed}×
-                      </span>
-                    }
-                    onClick={() => openSettingsSubpage('media')}
-                  />
-                )}
-
-                {/* 10. Privacy & Supporter Card */}
-                <SettingsMenuCard
-                  icon={Sparkles}
-                  iconBgClass="bg-yellow-500/15"
-                  iconBorderClass="border-yellow-500/30"
-                  iconColorClass="text-yellow-400"
-                  title="Privacy & Support"
-                  subtitle="Ad-free supporter license, privacy & FAQ"
-                  badge={
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                      {supporterStatus.ad_free ? 'Supporter' : 'Free'}
-                    </span>
-                  }
-                  onClick={() => openSettingsSubpage('supporter')}
-                />
-
-                {/* 11. Software Updates & Version Card */}
-                <SettingsMenuCard
-                  icon={Download}
-                  iconBgClass="bg-emerald-500/15"
-                  iconBorderClass="border-emerald-500/30"
-                  iconColorClass="text-emerald-400"
-                  title="Software Updates & Version"
-                  subtitle={`Installed v${appVersion} • ${updateAvailable ? `v${updateVersion} ready to install` : 'Check for new releases'}`}
-                  badge={
-                    updateAvailable ? (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/35 animate-pulse flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        v{updateVersion} Available
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-telegram-hover/40 text-telegram-subtext border border-telegram-border/50">
-                        v{appVersion} (Latest)
-                      </span>
-                    )
-                  }
-                  onClick={() => openSettingsSubpage('updates')}
-                />
-
-                {/* About Card & Logout Button */}
-                <div className="pt-2 space-y-3">
+                {/* ── 5. About Card & Logout Button ── */}
+                <div className="pt-1 space-y-3">
                   <StructuredBrandCard appVersion={appVersion} />
 
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-semibold text-xs active:scale-98 transition-all duration-200 shadow-sm"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-semibold text-xs active:scale-98 transition-all duration-200 shadow-xs cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" />
                     {t('common.logout')}
@@ -5522,8 +5662,93 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                   </section>
                 )}
 
-                {/* 13. TG Drive Pro & Plans Subpage */}
-                {settingsSubpage === 'pro_plans' && (() => {
+                {/* 13. TG Drive Pro & Plans Subpage (Telegram Premium Structured Style) */}
+                {settingsSubpage === 'pro_plans' && (
+                  <TelegramPremiumView
+                    onBack={() => handleBack()}
+                    mobileLicense={mobileLicense}
+                    setMobileLicense={setMobileLicense}
+                    liveStoreConfig={liveStoreConfig}
+                    userProfile={userProfile}
+                    onShowHelp={() => setShowHelp(true)}
+                    onContactDeveloper={handleContactDeveloper}
+                    onSyncLicense={handleSyncMobileLicense}
+                    isLicenseSyncing={isLicenseSyncing}
+                  />
+                )}
+              </div>
+            )}
+
+        {/* ── Profile Tab (Structured in Telegram Android Layout) ─────────────── */}
+        {activeTab === 'profile' && settingsSubpage === null && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200 pb-36 sm:pb-40">
+
+            {/* ── 1. Top Avatar & User Info Block ── */}
+            <div className="flex flex-col items-center pt-1 pb-2 select-none">
+              {/* Large Circular Avatar with Camera Badge */}
+              <div className="relative mb-3">
+                <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-amber-500 via-orange-400 to-amber-400 flex items-center justify-center text-white font-bold text-3.5xl sm:text-4xl shadow-xl ring-4 ring-telegram-surface/60">
+                  {userProfile?.firstName ? userProfile.firstName.charAt(0).toUpperCase() : 'Q'}
+                </div>
+                {/* Camera Icon Badge Button */}
+                <button
+                  type="button"
+                  onClick={() => openSettingsSubpage('account')}
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2ea6ff] hover:bg-sky-400 active:scale-90 text-white flex items-center justify-center shadow-lg border-[2.5px] border-telegram-bg transition-all cursor-pointer"
+                  aria-label="Set Profile Photo"
+                  title="Change photo"
+                >
+                  <Camera className="w-4 h-4 fill-white" />
+                </button>
+              </div>
+
+              {/* User Full Name */}
+              <h2 className="text-xl font-bold text-telegram-text tracking-normal text-center">
+                {userProfile ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'Telegram Drive User'}
+              </h2>
+
+              {/* Phone & Username Subtitle */}
+              <p className="text-xs text-telegram-subtext text-center mt-1 flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="font-mono">
+                  {userProfile?.phone ? (userProfile.phone.startsWith('+') ? userProfile.phone : '+' + userProfile.phone) : '+91 6001102901'}
+                </span>
+                <span className="text-telegram-subtext/60">•</span>
+                <span
+                  onClick={() => openSettingsSubpage('account')}
+                  className="text-[#50b5ff] hover:underline cursor-pointer font-medium"
+                >
+                  {userProfile?.username ? `@${userProfile.username}` : '@Theexposes'}
+                </span>
+              </p>
+
+              {/* MTProto Status Pill */}
+              <div className="mt-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                  {isConnected ? 'Online · MTProto Active' : 'Offline'}
+                </span>
+              </div>
+            </div>
+
+            {/* ── 2. Account & Pro Subscription Group ── */}
+            <div>
+              <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                Account &amp; Subscription
+              </p>
+              <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                <TelegramSettingRow
+                  icon={User}
+                  iconBg="bg-[#2aabed]"
+                  title="Telegram Account &amp; Session"
+                  subtitle={`ID: ${userProfile?.id ?? '—'} · ${userProfile?.phone ? (userProfile.phone.startsWith('+') ? userProfile.phone : '+' + userProfile.phone) : 'Session Active'}`}
+                  badge={
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                      {isConnected ? '🟢 Online' : '🔴 Offline'}
+                    </span>
+                  }
+                  onClick={() => openSettingsSubpage('account')}
+                />
+                {(() => {
                   const expiry = licenseManager.getExpiryDetails(mobileLicense?.expiresAt ?? null);
                   const isProActive = Boolean(mobileLicense?.isLicensed);
                   const planType = mobileLicense?.planType;
@@ -5532,588 +5757,178 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                   const isMonthly = planType === 'monthly';
 
                   return (
-                    <section className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200">
-                      {/* Hero Current License Status Card */}
-                      <div className="relative rounded-3xl overflow-hidden border border-amber-500/30 shadow-xl bg-gradient-to-br from-amber-500/15 via-telegram-surface/90 to-purple-500/15 backdrop-blur-xl p-5 space-y-4">
-                        <div className="absolute -top-12 -right-12 w-44 h-44 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
-
-                        {/* Top Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/25">
-                              <Zap className="w-6 h-6 fill-slate-950" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h2 className="text-lg font-black text-telegram-text tracking-tight">TG Drive Pro</h2>
-                                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                                  isProActive
-                                    ? isTrial
-                                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                                      : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                }`}>
-                                  {isProActive ? (isTrial ? '🎁 Free Trial' : isAnnual ? '🌟 Annual Pass' : isMonthly ? '📅 Monthly Pass' : '✓ Lifetime Pro') : '⚡ Free Plan'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-telegram-subtext mt-0.5">
-                                {userProfile ? `Linked Telegram ID: ${userProfile.id}` : 'Account Binding Active'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Current Plan Specs Box */}
-                        <div className="rounded-2xl bg-telegram-bg/60 border border-telegram-border/50 divide-y divide-telegram-border/30 overflow-hidden text-xs">
-                          <div className="flex items-center justify-between px-3.5 py-2.5">
-                            <span className="text-telegram-subtext font-medium">Active Status</span>
-                            <span className="font-bold text-telegram-text">
-                              {isProActive
-                                ? (isTrial ? '🎁 Free Trial Pass' : isAnnual ? '🌟 1-Year Annual Pass' : isMonthly ? '📅 1-Month Pass' : '⚡ Lifetime Pro Access')
-                                : 'No Active Pro License'}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between px-3.5 py-2.5">
-                            <span className="text-telegram-subtext font-medium">Plan Validity</span>
-                            <span className={`font-semibold ${expiry.isExpired ? 'text-red-400' : expiry.isLifetime ? 'text-emerald-400' : 'text-amber-400'}`}>
-                              {isProActive ? expiry.formattedDate : 'Standard Free Tier'}
-                            </span>
-                          </div>
-
-                          {isProActive && !expiry.isLifetime && (
-                            <div className="flex items-center justify-between px-3.5 py-2.5 bg-amber-500/5">
-                              <span className="text-amber-300 font-medium flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                Time Remaining
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
-                                expiry.isExpired
-                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
-                              }`}>
-                                ⏳ {expiry.countdownText}
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between px-3.5 py-2.5">
-                            <span className="text-telegram-subtext font-medium">Cloud Vault &amp; Ads</span>
-                            <span className="font-semibold text-emerald-400">
-                              {isProActive ? '100% Ad-Free · Turbo Speed' : 'Standard'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Direct Action Buttons */}
-                        <div className="flex items-center gap-2 pt-1 flex-wrap">
-                          {(!isProActive || isTrial || expiry.isExpired) && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setExpiredAlertText(expiry.isExpired ? 'Your plan has expired. Please upgrade or purchase a Pro license.' : null);
-                                setShowProUpgradeModal(true);
-                              }}
-                              className="flex-1 min-w-[140px] py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-xs shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 transition-all"
-                            >
-                              <Zap className="w-4 h-4 fill-slate-950" />
-                              <span>{isTrial ? '🚀 Upgrade to Lifetime' : '🚀 Upgrade to Pro'}</span>
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={handleSyncMobileLicense}
-                            disabled={isLicenseSyncing}
-                            className="py-3 px-3.5 rounded-xl bg-telegram-surface hover:bg-telegram-hover active:scale-[0.98] border border-telegram-border/50 text-telegram-text font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-                            title="Sync License with Telegram Account"
-                          >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isLicenseSyncing ? 'animate-spin' : ''}`} />
-                            <span>{isLicenseSyncing ? 'Syncing…' : 'Sync Status'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setShowManualKeyModal(true)}
-                            className="py-3 px-3.5 rounded-xl bg-telegram-surface hover:bg-telegram-hover active:scale-[0.98] border border-telegram-border/50 text-telegram-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-                            title="Enter License Key manually"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                            <span>Enter Key</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* ── Available Plans Section (Structured Cards) ── */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-1">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-telegram-subtext">Available Membership Plans</span>
-                        </div>
-
-                        {/* Plan Card 1: Lifetime Pro Access (Recommended) */}
-                        <div
-                          onClick={() => {
-                            setExpiredAlertText(null);
-                            setShowProUpgradeModal(true);
-                          }}
-                          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-telegram-surface border-2 border-amber-500/50 p-5 shadow-lg backdrop-blur-xl cursor-pointer active:scale-[0.99] transition-all group hover:border-amber-400"
-                        >
-                          <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-orange-500 text-slate-950 text-[9px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-xl shadow-xs">
-                            👑 BEST VALUE · ONE-TIME
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between pr-16">
-                              <div>
-                                <h3 className="text-base font-black text-telegram-text group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                                  <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
-                                  Lifetime Pro Access
-                                </h3>
-                                <p className="text-xs text-telegram-subtext mt-0.5">Pay once, enjoy full Pro privileges forever</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-black text-amber-400 font-mono">₹499</span>
-                              <span className="text-xs text-telegram-subtext line-through font-mono">₹1,499</span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">67% OFF</span>
-                            </div>
-
-                            <div className="space-y-2 pt-1 border-t border-amber-500/20 text-xs">
-                              <div className="flex items-center gap-2 text-telegram-text">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>100% Ad-Free Cloud Vault Forever</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-telegram-text">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>TDENC2 Zero-Knowledge Military Encryption</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-telegram-text">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>Maximum Turbo Multi-Chunk Speeds (5x Faster)</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-telegram-text">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>Multi-Device Sync (Android, PC, Mac, Web)</span>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setExpiredAlertText(null);
-                                setShowProUpgradeModal(true);
-                              }}
-                              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black text-xs shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 transition-all mt-2"
-                            >
-                              <span>Get Lifetime Pro Access</span>
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Plan Card 2: 1-Year Annual Pass */}
-                        <div
-                          onClick={() => {
-                            setExpiredAlertText(null);
-                            setShowProUpgradeModal(true);
-                          }}
-                          className="relative overflow-hidden rounded-2xl bg-telegram-surface/80 border border-telegram-border/60 p-4 shadow-sm backdrop-blur-md cursor-pointer active:scale-[0.99] transition-all hover:border-telegram-primary/40 group"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-bold text-telegram-text group-hover:text-telegram-primary transition-colors">1-Year Annual Pass</h3>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">365 Days</span>
-                              </div>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5">Full year of high-speed ad-free cloud</p>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-base font-black text-telegram-text font-mono">₹299</span>
-                              <span className="text-[10px] text-telegram-subtext block">/ year</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-telegram-border/30">
-                            <span className="text-telegram-subtext">All Pro Features Included</span>
-                            <span className="text-telegram-primary font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                              Select Plan <ChevronRight className="w-3.5 h-3.5" />
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Plan Card 3: 1-Month Pass */}
-                        <div
-                          onClick={() => {
-                            setExpiredAlertText(null);
-                            setShowProUpgradeModal(true);
-                          }}
-                          className="relative overflow-hidden rounded-2xl bg-telegram-surface/80 border border-telegram-border/60 p-4 shadow-sm backdrop-blur-md cursor-pointer active:scale-[0.99] transition-all hover:border-telegram-primary/40 group"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-bold text-telegram-text group-hover:text-telegram-primary transition-colors">1-Month Pass</h3>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/15 text-purple-400 border border-purple-500/30">30 Days</span>
-                              </div>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5">Flexible short-term Pro pass</p>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-base font-black text-telegram-text font-mono">₹49</span>
-                              <span className="text-[10px] text-telegram-subtext block">/ month</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between text-xs pt-2 border-t border-telegram-border/30">
-                            <span className="text-telegram-subtext">Cancel anytime, full Pro access</span>
-                            <span className="text-telegram-primary font-bold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                              Select Plan <ChevronRight className="w-3.5 h-3.5" />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ── Feature Comparison Grid ── */}
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-1">
-                          <Shield className="w-3.5 h-3.5 text-telegram-primary" />
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-telegram-subtext">Pro Superpowers &amp; Features</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2.5">
-                          <div className="p-3.5 rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 flex items-start gap-3 backdrop-blur-md">
-                            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25 flex items-center justify-center shrink-0">
-                              <Zap className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-telegram-text">5x Turbo Multi-Chunk Engine</h4>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5 leading-relaxed">
-                                Parallel download and upload streams maximize Telegram datacenter transfer speeds.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-3.5 rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 flex items-start gap-3 backdrop-blur-md">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center justify-center shrink-0">
-                              <ShieldCheck className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-telegram-text">TDENC2 Zero-Knowledge Vault</h4>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5 leading-relaxed">
-                                Military AEAD client-side encryption keeps private photos and documents invisible to everyone.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-3.5 rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 flex items-start gap-3 backdrop-blur-md">
-                            <div className="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-400 border border-sky-500/25 flex items-center justify-center shrink-0">
-                              <Sparkles className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-telegram-text">100% Ad-Free Experience</h4>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5 leading-relaxed">
-                                Pure clean interface with zero third-party banners, popup interstitials, or sponsored delays.
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-3.5 rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 flex items-start gap-3 backdrop-blur-md">
-                            <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/25 flex items-center justify-center shrink-0">
-                              <Smartphone className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-telegram-text">Permanent Telegram Cloud Binding</h4>
-                              <p className="text-[11px] text-telegram-subtext mt-0.5 leading-relaxed">
-                                Your Pro license automatically activates on any device logged into your Telegram ID.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ── Help & Contact Developer ── */}
-                      <div className="pt-2 space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowHelp(true)}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl border border-telegram-border/50 bg-telegram-surface/80 px-3 py-2.5 text-xs font-semibold text-telegram-text hover:bg-telegram-hover/30 active:scale-95 transition-all"
-                        >
-                          <HelpCircle className="h-4 w-4 text-telegram-primary" />
-                          Pro License FAQ &amp; Support
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleContactDeveloper}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl border border-telegram-primary/30 bg-telegram-primary/10 px-3 py-2.5 text-xs font-semibold text-telegram-primary hover:bg-telegram-primary/20 active:scale-95 transition-all"
-                        >
-                          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 14.4l-2.95-.924c-.643-.204-.657-.643.136-.953l11.526-4.447c.537-.194 1.006.131.59.172z"/>
-                          </svg>
-                          Contact Developer · @Theexposes
-                        </button>
-                      </div>
-                    </section>
+                    <TelegramSettingRow
+                      icon={Zap}
+                      iconBg="bg-[#f59e0b]"
+                      title="TG Drive Pro &amp; Plans"
+                      subtitle={
+                        isProActive
+                          ? (expiry.isLifetime ? 'Lifetime Access · VIP Features Active' : `Valid until ${expiry.formattedDate} · Tap to view`)
+                          : 'Unlock Turbo Speed, Ad-Free & Unlimited Downloads'
+                      }
+                      badge={
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                          isProActive
+                            ? isTrial
+                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse'
+                        }`}>
+                          {isProActive ? (isTrial ? '🎁 Free Trial' : isAnnual ? '🌟 Annual' : isMonthly ? '📅 Monthly' : '⚡ Lifetime') : '🚀 Upgrade'}
+                        </span>
+                      }
+                      onClick={() => openSettingsSubpage('pro_plans')}
+                    />
                   );
                 })()}
               </div>
-            )}
+            </div>
 
-        {/* ── Profile Tab ─────────────────────────────────────────────── */}
-        {activeTab === 'profile' && settingsSubpage === null && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-200 pb-36 sm:pb-40">
-
-            {/* ── Profile Identity Header Banner ── */}
-            <div className="relative rounded-3xl overflow-hidden border border-telegram-border/60 shadow-xl bg-telegram-surface/80 backdrop-blur-xl p-4.5 sm:p-5">
-              <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-br from-sky-500/20 to-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0">
-                  <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-2xl shadow-xl ring-2 ring-white/20">
-                    {userProfile?.firstName ? userProfile.firstName.charAt(0).toUpperCase() : <User className="w-8 h-8" />}
-                  </div>
-                  {userProfile?.isPremium && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[10px] font-black shadow-lg ring-2 ring-telegram-surface" title="Telegram Premium">
-                      ★
-                    </div>
-                  )}
-                  {isConnected && (
-                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 ring-2 ring-telegram-surface" />
+            {/* ── 3. Affiliate & Partner Program Group ── */}
+            <div>
+              <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                Affiliate &amp; Partner Program
+              </p>
+              <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                <TelegramSettingRow
+                  icon={Gift}
+                  iconBg="bg-[#f59e0b]"
+                  title="Refer &amp; Earn Real Cash"
+                  subtitle="Share your invite link, friends get 10% off, you earn ₹50 per friend!"
+                  badge={
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      ₹50 / Sale
                     </span>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-lg sm:text-xl font-black text-telegram-text tracking-tight truncate leading-tight">
-                    {userProfile ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim() : 'Telegram User'}
-                  </h2>
-                  {userProfile?.username ? (
-                    <p className="text-xs font-bold text-telegram-primary truncate mt-0.5">@{userProfile.username}</p>
-                  ) : (
-                    <p className="text-xs text-telegram-subtext truncate mt-0.5">ID: {userProfile?.id ?? '—'}</p>
-                  )}
-                  <div className="flex items-center gap-2 flex-wrap mt-2">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                      {isConnected ? 'Online · MTProto' : 'Offline'}
+                  }
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-referral-screen'))}
+                />
+                <TelegramSettingRow
+                  icon={Gift}
+                  iconBg="bg-[#06b6d4]"
+                  title="Earnings &amp; Withdrawals"
+                  subtitle="Check wallet balance, request UPI/Bank payout &amp; view transaction history."
+                  badge={
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                      Instant Payout
                     </span>
-                    {userProfile?.isPremium && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                        ★ Premium
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  }
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-withdrawal-screen'))}
+                />
               </div>
             </div>
 
-            {/* ── Main Profile Navigation Bars (Account & TG Drive Pro) ── */}
-            <div className="space-y-2.5">
-              {/* Bar 1: Telegram Account & Session Details */}
-              <SettingsMenuCard
-                icon={User}
-                iconBgClass="bg-gradient-to-br from-sky-500/20 to-indigo-500/20"
-                iconBorderClass="border-sky-500/30"
-                iconColorClass="text-sky-400"
-                title="Telegram Account & Session"
-                subtitle={`ID: ${userProfile?.id ?? '—'} · ${userProfile?.phone ? (userProfile.phone.startsWith('+') ? userProfile.phone : '+' + userProfile.phone) : 'Session Active'}`}
-                badge={
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                    {isConnected ? '🟢 Online' : '🔴 Offline'}
-                  </span>
-                }
-                onClick={() => openSettingsSubpage('account')}
-              />
-
-              {/* Bar 2: TG Drive Pro & Subscription Plans */}
-              {(() => {
-                const expiry = licenseManager.getExpiryDetails(mobileLicense?.expiresAt ?? null);
-                const isProActive = Boolean(mobileLicense?.isLicensed);
-                const planType = mobileLicense?.planType;
-                const isTrial = planType === 'trial';
-                const isAnnual = planType === 'annual';
-                const isMonthly = planType === 'monthly';
-
-                return (
-                  <div
-                    onClick={() => openSettingsSubpage('pro_plans')}
-                    className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-telegram-surface border border-amber-500/35 p-4 shadow-md backdrop-blur-md cursor-pointer active:scale-[0.98] transition-all group hover:border-amber-500/50"
-                  >
-                    <div className="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/20 rounded-full blur-xl pointer-events-none" />
-                    <div className="relative flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                          <Zap className="w-6 h-6 fill-slate-950" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-telegram-text group-hover:text-amber-400 transition-colors">
-                              TG Drive Pro &amp; Plans
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                              isProActive
-                                ? isTrial
-                                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                : 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse'
-                            }`}>
-                              {isProActive ? (isTrial ? '🎁 Free Trial' : isAnnual ? '🌟 Annual' : isMonthly ? '📅 Monthly' : '⚡ Lifetime') : '🚀 Upgrade'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-telegram-subtext mt-0.5 truncate">
-                            {isProActive
-                              ? (expiry.isLifetime ? 'Lifetime Access · VIP Features Active' : `Valid until ${expiry.formattedDate} · Tap to view`)
-                              : 'Unlock Turbo Speed, Ad-Free & Unlimited Downloads'}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-telegram-subtext group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ── Affiliate & Partner Program: Refer & Earn and Earnings & Withdrawals ── */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2 px-1">
-                <Gift className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-telegram-subtext">Affiliate &amp; Partner Program</span>
-              </div>
-
-              {/* Card 1: Refer & Earn Real Cash */}
-              <div 
-                onClick={() => window.dispatchEvent(new CustomEvent('open-referral-screen'))}
-                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-telegram-surface border border-amber-500/30 p-4 shadow-sm backdrop-blur-md cursor-pointer active:scale-[0.98] transition-all group"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                      <Gift className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-telegram-text group-hover:text-amber-400 transition-colors">Refer &amp; Earn Real Cash</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">₹50 / Sale</span>
-                      </div>
-                      <p className="text-[11px] text-telegram-subtext mt-0.5">
-                        Share your invite link, friends get 10% off, you earn ₹50 per friend!
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-telegram-subtext group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                </div>
-              </div>
-
-              {/* Card 2: Earnings & Withdrawals */}
-              <div 
-                onClick={() => window.dispatchEvent(new CustomEvent('open-withdrawal-screen'))}
-                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-500/15 via-blue-500/10 to-telegram-surface border border-cyan-500/30 p-4 shadow-sm backdrop-blur-md cursor-pointer active:scale-[0.98] transition-all group"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-slate-950 font-black shadow-md shadow-cyan-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                      <Wallet className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-telegram-text group-hover:text-cyan-400 transition-colors">Earnings &amp; Withdrawals</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">Instant Payout</span>
-                      </div>
-                      <p className="text-[11px] text-telegram-subtext mt-0.5">
-                        Check wallet balance, request UPI/Bank payout &amp; view transaction history.
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-telegram-subtext group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Security & Cloud Services Section ── */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2 px-1">
-                <Shield className="w-3.5 h-3.5 text-telegram-primary" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-telegram-subtext">Security & Cloud Services</span>
-              </div>
-
-              {/* ── Cloud Vault & Encryption Card ── */}
-              <SettingsMenuCard
-                icon={Shield}
-                iconBgClass="bg-emerald-500/15"
-                iconBorderClass="border-emerald-500/30"
-                iconColorClass="text-emerald-400"
-                title="Cloud Vault & Encryption"
-                subtitle="Master passphrase, zero-knowledge encryption & safe previews"
-                badge={
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${vaultStatus?.is_unlocked ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30'}`}>
-                    {vaultStatus?.is_unlocked ? '🔓 Unlocked' : '🔒 Locked'}
-                  </span>
-                }
-                onClick={() => openSettingsSubpage('vault')}
-              />
-
-              {/* ── Auto-Backup & Sync Card ── */}
-              <SettingsMenuCard
-                icon={Cloud}
-                iconBgClass="bg-teal-500/15"
-                iconBorderClass="border-teal-500/30"
-                iconColorClass="text-teal-400"
-                title="Auto-Backup & Sync"
-                subtitle="Camera roll, media & folder automated cloud sync"
-                badge={
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${syncSettings.data?.enabled ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-telegram-hover/40 text-telegram-subtext border-telegram-border/50'}`}>
-                    {syncSettings.data?.enabled ? 'Active' : 'Off'}
-                  </span>
-                }
-                onClick={handleOpenAutoBackup}
-              />
-            </div>
-
-            {/* ── Storage Overview ── */}
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2 px-1">
-                <HardDrive className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-telegram-subtext">Storage & Cache</span>
-              </div>
-
-              <div className="rounded-2xl bg-telegram-surface/80 border border-telegram-border/50 p-4 shadow-sm backdrop-blur-md space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-telegram-bg/50 border border-telegram-border/30 flex flex-col justify-between space-y-1">
-                    <span className="text-[11px] font-medium text-telegram-subtext flex items-center gap-1.5">
-                      <HardDrive className="w-3.5 h-3.5 text-purple-400" />
-                      Offline Cache
+            {/* ── 4. Security & Cloud Storage Group ── */}
+            <div>
+              <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                Security &amp; Cloud Storage
+              </p>
+              <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                <TelegramSettingRow
+                  icon={ShieldCheck}
+                  iconBg="bg-[#22c55e]"
+                  title="Cloud Vault &amp; Encryption"
+                  subtitle="Master passphrase, zero-knowledge encryption &amp; safe previews"
+                  badge={
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${vaultStatus?.is_unlocked ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30'}`}>
+                      {vaultStatus?.is_unlocked ? '🔓 Unlocked' : '🔒 Locked'}
                     </span>
-                    <div>
-                      <span className="text-sm font-bold text-telegram-text block">
-                        {offlineCache?.file_count ? `${offlineCache.file_count} files` : '0 files'}
-                      </span>
-                      <span className="text-[10px] text-telegram-subtext">
-                        {offlineCache?.total_bytes ? formatBytes(offlineCache.total_bytes) : '0 B'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-telegram-bg/50 border border-telegram-border/30 flex flex-col justify-between space-y-1">
-                    <span className="text-[11px] font-medium text-telegram-subtext flex items-center gap-1.5">
-                      <Folder className="w-3.5 h-3.5 text-sky-400" />
-                      Active Folders
+                  }
+                  onClick={() => openSettingsSubpage('vault')}
+                />
+                <TelegramSettingRow
+                  icon={Cloud}
+                  iconBg="bg-[#14b8a6]"
+                  title="Auto-Backup &amp; Sync"
+                  subtitle="Camera roll, media &amp; folder automated cloud sync"
+                  badge={
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${syncSettings.data?.enabled ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-telegram-hover/40 text-telegram-subtext border-telegram-border/50'}`}>
+                      {syncSettings.data?.enabled ? 'Active' : 'Off'}
                     </span>
-                    <div>
-                      <span className="text-sm font-bold text-telegram-text block">
-                        {folders.length} folder{folders.length !== 1 ? 's' : ''}
-                      </span>
-                      <span className="text-[10px] text-telegram-subtext">
-                        Cloud directories
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  }
+                  onClick={handleOpenAutoBackup}
+                />
+                <TelegramSettingRow
+                  icon={HardDrive}
+                  iconBg="bg-[#3b82f6]"
+                  title="Storage &amp; Offline Cache"
+                  subtitle={`${offlineCache?.file_count ? `${offlineCache.file_count} files (${formatBytes(offlineCache.total_bytes)})` : '0 files'} · ${folders.length} active folder${folders.length !== 1 ? 's' : ''}`}
+                  onClick={() => openSettingsSubpage('storage')}
+                />
+                <TelegramSettingRow
+                  icon={ArrowUpDown}
+                  iconBg="bg-[#ef4444]"
+                  title="Transfer Reliability"
+                  subtitle="Concurrent chunks, speed limits &amp; retry strategy"
+                  onClick={() => openSettingsSubpage('transfers')}
+                />
+                <TelegramSettingRow
+                  icon={Lock}
+                  iconBg="bg-[#a855f7]"
+                  title="Device Privacy &amp; App Lock"
+                  subtitle="App PIN lock, biometrics &amp; clipboard protection"
+                  onClick={() => openSettingsSubpage('security')}
+                />
+                <TelegramSettingRow
+                  icon={Sliders}
+                  iconBg="bg-[#ea580c]"
+                  title="Preferences &amp; Interface"
+                  subtitle="Appearance themes, system language &amp; display layout"
+                  onClick={() => openSettingsSubpage('preferences')}
+                />
+                <TelegramSettingRow
+                  icon={Activity}
+                  iconBg="bg-[#6366f1]"
+                  title="Network &amp; Diagnostics"
+                  subtitle="DC ping, MTProto connection health &amp; proxy setup"
+                  onClick={() => openSettingsSubpage('diagnostics')}
+                />
               </div>
             </div>
 
-            {/* ── App Info & Engine Specs ── */}
-            <StructuredBrandCard appVersion={appVersion} />
+            {/* ── 5. Help & Information Group ── */}
+            <div>
+              <p className="text-xs font-semibold text-[#50b5ff] px-4 pb-2 tracking-wide">
+                Help &amp; Support
+              </p>
+              <div className="rounded-2xl bg-telegram-surface border border-telegram-border/50 overflow-hidden shadow-xs divide-y divide-telegram-border/20">
+                <TelegramSettingRow
+                  icon={MessageSquare}
+                  iconBg="bg-[#f59e0b]"
+                  title="Ask a Question / Telegram Support"
+                  subtitle="Direct support channel on Telegram"
+                  onClick={() => openExternalUrl('https://t.me/Theexposes')}
+                />
+                <TelegramSettingRow
+                  icon={Shield}
+                  iconBg="bg-[#22c55e]"
+                  title="Privacy Policy &amp; Supporter Terms"
+                  subtitle="Data privacy manifesto &amp; supporter invariants"
+                  onClick={() => openSettingsSubpage('supporter')}
+                />
+                <TelegramSettingRow
+                  icon={Sparkles}
+                  iconBg="bg-[#8b5cf6]"
+                  title="Software Updates &amp; What's New"
+                  subtitle="Check for new releases, changelog &amp; version info"
+                  badge={
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${updateAvailable ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 animate-pulse' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'}`}>
+                      {updateAvailable ? `v${updateVersion} Available` : `v${appVersion}`}
+                    </span>
+                  }
+                  onClick={() => openSettingsSubpage('updates')}
+                />
+              </div>
+            </div>
+
+            {/* ── 6. Bottom Build & Version Footer (Telegram Android Style) ── */}
+            <div className="text-center pt-2 pb-6 space-y-0.5 select-none">
+              <p className="text-xs text-telegram-subtext font-normal">
+                Telegram Drive for Android v{appVersion} (7099)
+              </p>
+              <p className="text-[11px] text-telegram-subtext/70">
+                store bundled arm64-v8a · Decentralized MTProto Cloud
+              </p>
+            </div>
 
           </div>
         )}
@@ -6305,38 +6120,54 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                 {filteredFolders.map(folder => {
                   const isPublic = folder.is_public || !!folder.username;
                   const isActive = activeFolderId === folder.id;
+                  const isLocked = isCustomFolderLocked(folder.id, folders, isProUser);
                   return (
                     <div
                       key={folder.id}
                       className={`group rounded-2xl transition-all duration-200 border flex items-center justify-between p-2.5 ${
-                        isActive
+                        isLocked
+                          ? 'bg-telegram-hover/10 border-amber-500/20 opacity-75'
+                          : isActive
                           ? 'bg-telegram-primary/15 border-telegram-primary/40 shadow-sm shadow-telegram-primary/5'
                           : 'bg-telegram-hover/20 hover:bg-telegram-hover/40 border-telegram-border/30 hover:border-telegram-border/50'
                       }`}
                     >
                       <button
                         onClick={() => {
+                          if (isLocked) {
+                            handleTriggerPro('folders');
+                            return;
+                          }
                           handleOpenFolderInFilesTab(folder.id);
                           setIsSidebarOpen(false);
                         }}
                         className="flex-1 flex items-center gap-2.5 text-left min-w-0"
                       >
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                          isPublic
+                          isLocked
+                            ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
+                            : isPublic
                             ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
                             : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
                         }`}>
-                          {isPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                          {isLocked ? <Lock className="w-3.5 h-3.5 text-amber-400" /> : isPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`text-xs font-semibold truncate leading-tight ${isActive ? 'text-telegram-primary font-bold' : 'text-telegram-text'}`}>
-                            {folder.name}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className={`text-xs font-semibold truncate leading-tight ${isActive ? 'text-telegram-primary font-bold' : 'text-telegram-text'}`}>
+                              {folder.name}
+                            </p>
+                            {isLocked && (
+                              <span className="text-[9px] font-bold text-amber-400 px-1 py-0.2 rounded bg-amber-500/20 shrink-0">
+                                PRO
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-[10px] text-telegram-subtext">
-                              {isPublic ? (folder.username ? `@${folder.username}` : 'Public Channel') : 'Private Channel'}
+                              {isLocked ? 'Locked (Pro only)' : isPublic ? (folder.username ? `@${folder.username}` : 'Public Channel') : 'Private Channel'}
                             </span>
-                            {isActive && (
+                            {isActive && !isLocked && (
                               <span className="text-[9px] font-bold text-telegram-primary px-1.5 py-0.2 rounded-full bg-telegram-primary/20">
                                 Selected
                               </span>
@@ -6345,16 +6176,18 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                         </div>
                       </button>
 
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setFolderActionMenu(folder);
-                        }}
-                        className="p-2 rounded-xl text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all duration-200 shrink-0"
-                        aria-label="Folder actions"
-                      >
-                        <MoreVertical className="w-3.5 h-3.5" />
-                      </button>
+                      {!isLocked && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setFolderActionMenu(folder);
+                          }}
+                          className="p-2 rounded-xl text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/60 active:scale-90 transition-all duration-200 shrink-0"
+                          aria-label="Folder actions"
+                        >
+                          <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -6399,45 +6232,53 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
 
       {/* Rename folder bottom sheet */}
       {renameFolder && (
-        <RenameFolderSheet
-          folderId={renameFolder.id}
-          currentName={renameFolder.name}
-          onRename={handleFolderRename}
-          onClose={() => setRenameFolder(null)}
-        />
+        <LazyFeatureBoundary>
+          <LazyRenameFolderSheet
+            folderId={renameFolder.id}
+            currentName={renameFolder.name}
+            onRename={handleFolderRename}
+            onClose={() => setRenameFolder(null)}
+          />
+        </LazyFeatureBoundary>
       )}
 
       {/* Rename file bottom sheet */}
       {renameFileTarget && (
-        <RenameFileSheet
-          file={renameFileTarget}
-          currentName={fileRenames.get(renameFileTarget.id) || renameFileTarget.name}
-          onRename={handleRenameSubmit}
-          onClose={() => setRenameFileTarget(null)}
-        />
+        <LazyFeatureBoundary>
+          <LazyRenameFileSheet
+            file={renameFileTarget}
+            currentName={fileRenames.get(renameFileTarget.id) || renameFileTarget.name}
+            onRename={handleRenameSubmit}
+            onClose={() => setRenameFileTarget(null)}
+          />
+        </LazyFeatureBoundary>
       )}
 
       {/* Create folder bottom sheet */}
       {showCreateFolder && (
-        <CreateFolderSheet
-          onCreate={handleCreateFolder}
-          onClose={() => setShowCreateFolder(false)}
-        />
+        <LazyFeatureBoundary>
+          <LazyCreateFolderSheet
+            onCreate={handleCreateFolder}
+            onClose={() => setShowCreateFolder(false)}
+          />
+        </LazyFeatureBoundary>
       )}
 
       {/* Make public channel bottom sheet */}
       {publicChannelTarget && (
-        <MakePublicChannelSheet
-          folder={publicChannelTarget}
-          onConfirm={async (folderId, username) => {
-            await handleFolderToggleVisibility(folderId, true, username);
-          }}
-          onClose={() => setPublicChannelTarget(null)}
-        />
+        <LazyFeatureBoundary>
+          <LazyMakePublicChannelSheet
+            folder={publicChannelTarget}
+            onConfirm={async (folderId, username) => {
+              await handleFolderToggleVisibility(folderId, true, username);
+            }}
+            onClose={() => setPublicChannelTarget(null)}
+          />
+        </LazyFeatureBoundary>
       )}
 
-      {/* Floating Bottom Nav Bar (hidden during fullscreen previews) */}
-      {!isAnyPreviewOpen && (
+      {/* Floating Bottom Nav Bar (hidden during fullscreen previews and Pro Plans screen) */}
+      {!isAnyPreviewOpen && settingsSubpage !== 'pro_plans' && (
         <BottomNavBar
           activeTab={activeTab}
           setActiveTab={handleSwitchTab}
@@ -6447,31 +6288,20 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
         />
       )}
 
-      {/* Adsterra Banner (Android only) — z-[60] keeps it above the BottomNavBar (z-50).
-           Positioned at bottom-[144px] to sit cleanly above the nav bar (~60px tall, at bottom-20=80px). */}
-      {!isAnyPreviewOpen && (
-        <div className={`fixed bottom-[144px] left-0 right-0 z-[60] ${isTelevision ? 'tv-sponsor-placement' : ''}`}>
-          <AdsterraBanner
-            visible={adVisible}
-            onSupport={openMobileSupporter}
-            onManualDismiss={() => showSupporterOffer('ad_dismissed')}
-          />
-        </div>
-      )}
-
-
-
       {(shareFile || (shareFiles && shareFiles.length > 0)) && (
-        <ShareDialog
-          file={shareFile}
-          files={shareFiles ?? undefined}
-          onClose={() => {
-            setShareFile(null);
-            setShareFiles(null);
-          }}
-          folders={folders}
-          activeFolderId={activeFolderId}
-        />
+
+        <LazyFeatureBoundary>
+          <LazyShareDialog
+            file={shareFile}
+            files={shareFiles ?? undefined}
+            onClose={() => {
+              setShareFile(null);
+              setShareFiles(null);
+            }}
+            folders={folders}
+            activeFolderId={activeFolderId}
+          />
+        </LazyFeatureBoundary>
       )}
 
       {settingsLoaded && !settings.driveTourSeen && (
@@ -6483,30 +6313,7 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
 
       {showHelp && <LazyFeatureBoundary><LazyHelpCenterDialog onClose={() => setShowHelp(false)} /></LazyFeatureBoundary>}
 
-      {showProUpgradeModal && (
-        <PaywallGateModal
-          isOpen={showProUpgradeModal}
-          isCompulsory={false}
-          triggerFeature={paywallTriggerFeature}
-          expiredReason={expiredAlertText}
-          onClose={() => setShowProUpgradeModal(false)}
-          telegramAccount={{
-            userId: userProfile?.id,
-            phoneNumber: userProfile?.phone,
-            firstName: userProfile?.firstName,
-            lastName: userProfile?.lastName,
-            username: userProfile?.username,
-          }}
-          onLogout={handleLogout}
-          onActivated={async (lic) => {
-            setMobileLicense(lic);
-            setShowProUpgradeModal(false);
-            setExpiredAlertText(null);
-            await refreshStatus();
-            toast.success('Telegram Drive Pro activated successfully!');
-          }}
-        />
-      )}
+
 
       {supporterOfferTrigger && (
         <SupporterOfferDialog
@@ -6810,35 +6617,55 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                     {folders.map(folder => {
                       const count = folderFileCounts.get(folder.id) ?? 0;
                       const isCurrent = activeTab === 'files' ? filesSelectedFolderId === folder.id : homeFolderFilter === folder.id;
+                      const isLocked = isCustomFolderLocked(folder.id, folders, isProUser);
                       return (
                         <button
                           key={folder.id}
                           type="button"
                           onClick={() => {
                             setShowUploadDestinationSheet(false);
+                            if (isLocked) {
+                              handleTriggerPro('folders');
+                              return;
+                            }
                             void handleManualUpload(folder.id);
                           }}
                           className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 active:scale-[0.98] text-left cursor-pointer ${
-                            isCurrent
+                            isLocked
+                              ? 'bg-telegram-bg/30 border-amber-500/20 opacity-75'
+                              : isCurrent
                               ? 'bg-telegram-primary/10 border-telegram-primary/40 shadow-sm'
                               : 'bg-telegram-bg/40 border-telegram-border/30 hover:bg-telegram-hover/30 hover:border-telegram-border/50'
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25 flex items-center justify-center shrink-0 shadow-sm">
-                              <Folder className="w-4 h-4" />
+                            <div className={`w-9 h-9 rounded-xl ${
+                              isLocked ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                            } flex items-center justify-center shrink-0 shadow-sm`}>
+                              {isLocked ? <Lock className="w-4 h-4 text-amber-400" /> : <Folder className="w-4 h-4" />}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-telegram-text truncate">
-                                {folder.name}
-                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-bold text-telegram-text truncate">
+                                  {folder.name}
+                                </p>
+                                {isLocked && (
+                                  <span className="text-[9px] font-bold text-amber-400 px-1 py-0.2 rounded bg-amber-500/20 shrink-0">
+                                    PRO
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-[10px] text-telegram-subtext mt-0.5 truncate">
-                                {folder.is_public ? 'Public Channel' : 'Private Folder'} • {count} {count === 1 ? 'file' : 'files'}
+                                {isLocked ? 'Upgrade to upload here' : `${folder.is_public ? 'Public Channel' : 'Private Folder'} • ${count} ${count === 1 ? 'file' : 'files'}`}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <ChevronRight className="w-4 h-4 text-telegram-subtext" />
+                            {isLocked ? (
+                              <Lock className="w-3.5 h-3.5 text-amber-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-telegram-subtext" />
+                            )}
                           </div>
                         </button>
                       );
@@ -7108,92 +6935,17 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
         </div>
       )}
 
-      {/* Manual License Key Entry Modal */}
-      {showManualKeyModal && (
-        <div
-          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-fade-in"
-          onClick={() => setShowManualKeyModal(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-telegram-border/60 bg-telegram-surface p-5 shadow-2xl space-y-4 animate-scale-up"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shadow-md">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-telegram-text">Activate License Key</h3>
-                  <p className="text-xs text-telegram-subtext">Permanently syncs to this Telegram account</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowManualKeyModal(false)}
-                className="rounded-full p-1.5 text-telegram-subtext hover:text-telegram-text hover:bg-telegram-hover/40"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleActivateMobileKey} className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-telegram-subtext block mb-1">
-                  License Number / Key
-                </label>
-                <input
-                  type="text"
-                  value={manualLicenseKey}
-                  onChange={(e) => setManualLicenseKey(e.target.value)}
-                  placeholder="TG-PRO-XXXX-XXXX"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-telegram-bg/80 border border-telegram-border/60 text-xs font-mono text-telegram-text placeholder-telegram-subtext/60 focus:outline-none focus:border-amber-500 uppercase"
-                  autoFocus
-                />
-              </div>
-
-              {userProfile && (
-                <div className="p-2.5 rounded-xl bg-telegram-bg/50 border border-telegram-border/30 text-[11px] text-telegram-subtext space-y-1">
-                  <div className="flex justify-between">
-                    <span>Telegram ID:</span>
-                    <span className="font-mono font-bold text-telegram-text">{userProfile.id}</span>
-                  </div>
-                  {userProfile.phone && (
-                    <div className="flex justify-between">
-                      <span>Phone:</span>
-                      <span className="font-mono font-bold text-telegram-text">{userProfile.phone}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowManualKeyModal(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-telegram-border bg-telegram-hover/30 text-telegram-text font-semibold text-xs active:scale-95 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isActivatingManualKey || !manualLicenseKey.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 font-bold text-xs disabled:opacity-50 active:scale-95 transition flex items-center justify-center gap-1.5"
-                >
-                  {isActivatingManualKey ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Activating…</span>
-                    </>
-                  ) : (
-                    <span>Activate Key</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* VIP Locked Feature Confirmation Popup */}
+      <LockedFeatureModal
+        isOpen={lockedFeatureModal.isOpen}
+        feature={lockedFeatureModal.feature}
+        customTitle={lockedFeatureModal.customTitle}
+        onClose={() => setLockedFeatureModal(prev => ({ ...prev, isOpen: false }))}
+        onGetPro={() => {
+          setLockedFeatureModal(prev => ({ ...prev, isOpen: false }));
+          handleOpenProPlansDirect();
+        }}
+      />
     </div>
   );
 }

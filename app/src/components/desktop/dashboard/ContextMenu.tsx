@@ -23,12 +23,23 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ x, y, file, onClose, onDownload, onDelete, onPreview, onShare, onRename, onMove, folders, activeFolderId, onToggleFavorite, onTogglePinned }: ContextMenuProps) {
-    const [adjustedPos, setAdjustedPos] = useState({ x, y });
     const menuRef = useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
     const actions = describeFileActions(file);
 
-    // Adjust position to stay in bounds
+    // Clamp coordinates instantly on initial state so it renders at correct place on frame 0
+    const [adjustedPos, setAdjustedPos] = useState(() => {
+        const menuWidth = 240;
+        const menuHeight = 320;
+        const winW = typeof window !== 'undefined' ? window.innerWidth : 1024;
+        const winH = typeof window !== 'undefined' ? window.innerHeight : 768;
+        return {
+            x: Math.max(8, Math.min(x, winW - menuWidth - 8)),
+            y: Math.max(8, Math.min(y, winH - menuHeight - 8)),
+        };
+    });
+
+    // Refine position if measured element differs
     useLayoutEffect(() => {
         if (menuRef.current) {
             const rect = menuRef.current.getBoundingClientRect();
@@ -36,37 +47,36 @@ export function ContextMenu({ x, y, file, onClose, onDownload, onDelete, onPrevi
             let newY = y;
 
             if (x + rect.width > window.innerWidth) {
-                newX = x - rect.width;
+                newX = Math.max(8, window.innerWidth - rect.width - 8);
             }
             if (y + rect.height > window.innerHeight) {
-                newY = y - rect.height;
+                newY = Math.max(8, window.innerHeight - rect.height - 8);
             }
-            setAdjustedPos({ x: newX, y: newY });
+            if (newX !== adjustedPos.x || newY !== adjustedPos.y) {
+                setAdjustedPos({ x: newX, y: newY });
+            }
         }
-    }, [x, y]);
+    }, [x, y, adjustedPos.x, adjustedPos.y]);
 
-    // Close on outside click — ignore clicks inside the menu so button handlers can fire
+    // Close on outside click/pointerdown or escape without blocking click dispatch
     useEffect(() => {
-        const handleClick = (e: MouseEvent) => {
+        const handlePointerDown = (e: MouseEvent | PointerEvent | TouchEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 onClose();
             }
         };
-        const handleResize = () => onClose();
-        const handleContextMenu = (e: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                onClose();
-            }
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
         };
 
-        window.addEventListener('click', handleClick, true);
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('contextmenu', handleContextMenu, true);
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', onClose);
 
         return () => {
-            window.removeEventListener('click', handleClick, true);
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('contextmenu', handleContextMenu, true);
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', onClose);
         };
     }, [onClose]);
 

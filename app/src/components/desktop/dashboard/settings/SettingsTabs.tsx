@@ -187,9 +187,6 @@ export function SupporterSettingsSection() {
   const [license, setLicense] = useState<LicenseInfo | null>(null);
   const [telegramUser, setTelegramUser] = useState<{ id: number; firstName: string; phone?: string | null } | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [manualKey, setManualKey] = useState('');
-  const [showManual, setShowManual] = useState(false);
-  const [activating, setActivating] = useState(false);
 
   const loadData = async () => {
     try {
@@ -240,33 +237,6 @@ export function SupporterSettingsSection() {
       toast.error('Unable to connect to license server.');
     } finally {
       setSyncing(false);
-    }
-  };
-
-  const handleManualActivate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualKey.trim()) return;
-    setActivating(true);
-    try {
-      const m = await import('../../../../services/licenseManager');
-      const res = await m.licenseManager.activateLicense(
-        manualKey.trim(),
-        undefined,
-        undefined,
-        telegramUser?.id,
-        telegramUser?.phone
-      );
-      if (res.success && res.license) {
-        setLicense(res.license);
-        toast.success('License activated & synced with your Telegram account!');
-        setShowManual(false);
-      } else {
-        toast.error(res.message || 'Invalid license key.');
-      }
-    } catch {
-      toast.error('Activation failed.');
-    } finally {
-      setActivating(false);
     }
   };
 
@@ -336,6 +306,18 @@ export function SupporterSettingsSection() {
             <span>Ad-Free Cloud Storage:</span>
             <span className="font-semibold text-emerald-400">Active (All Ads Blocked)</span>
           </div>
+          <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between">
+            <span className="text-[11px] text-app-text-secondary">Sync your account status across devices:</span>
+            <button
+              type="button"
+              onClick={handleSyncStatus}
+              disabled={syncing}
+              className="px-3 py-1.5 rounded-lg bg-app-surface border border-app-border hover:bg-app-surface-raised text-app-text text-xs font-semibold flex items-center gap-1.5 transition-all"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Syncing…' : 'Sync Status'}</span>
+            </button>
+          </div>
           {license?.planType === 'trial' && (
             <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between">
               <span className="text-[11px] text-amber-300">Enjoying the trial? Get Lifetime Pro:</span>
@@ -375,47 +357,6 @@ export function SupporterSettingsSection() {
             </button>
           </div>
         </div>
-      )}
-
-      <div className="pt-2 border-t border-app-border-subtle flex items-center justify-between text-xs">
-        <button
-          type="button"
-          onClick={() => setShowManual(!showManual)}
-          className="text-[11px] text-cyan-400 hover:underline"
-        >
-          {showManual ? 'Hide manual key entry' : 'Have a license key or trial voucher?'}
-        </button>
-
-        {isPro && (
-          <button
-            type="button"
-            onClick={handleSyncStatus}
-            disabled={syncing}
-            className="text-[11px] text-app-text-secondary hover:text-app-text flex items-center gap-1"
-          >
-            <RefreshCw className={`h-3 w-3 ${syncing ? 'animate-spin' : ''}`} />
-            <span>Sync Status</span>
-          </button>
-        )}
-      </div>
-
-      {showManual && (
-        <form onSubmit={handleManualActivate} className="pt-2 flex items-center gap-2">
-          <input
-            type="text"
-            value={manualKey}
-            onChange={(e) => setManualKey(e.target.value)}
-            placeholder="TGD-XXXX-XXXX-XXXX"
-            className="flex-1 px-3 py-1.5 rounded-lg bg-app-surface border border-app-border text-xs font-mono text-app-text placeholder-app-text-secondary focus:outline-none focus:border-cyan-500"
-          />
-          <button
-            type="submit"
-            disabled={activating || !manualKey.trim()}
-            className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold disabled:opacity-50"
-          >
-            {activating ? 'Activating…' : 'Activate'}
-          </button>
-        </form>
       )}
     </section>
   );

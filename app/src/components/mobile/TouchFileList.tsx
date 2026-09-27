@@ -154,7 +154,7 @@ const GridFileCard = memo(function GridFileCard({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       onClick={() => onClick(thumb)}
-      className={`file-card-optimized group relative flex flex-col rounded-2xl bg-telegram-surface/90 border p-2 transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-sm backdrop-blur-sm ${
+      className={`file-card-optimized group relative flex flex-col rounded-2xl bg-telegram-surface border p-2 transition-all duration-200 cursor-pointer active:scale-[0.98] shadow-sm ${
         isSelected
           ? 'border-telegram-primary/80 bg-telegram-primary/10 shadow-md shadow-telegram-primary/10 ring-2 ring-telegram-primary/50'
           : 'border-telegram-border/40 hover:border-telegram-border/60 hover:bg-telegram-hover/30'
@@ -568,15 +568,17 @@ export function TouchFileList({
       if (!list || !scrollElement) return;
       const listRect = list.getBoundingClientRect();
       const scrollRect = scrollElement.getBoundingClientRect();
-      setScrollMargin(listRect.top - scrollRect.top + scrollElement.scrollTop);
+      const newMargin = Math.max(0, Math.round(listRect.top - scrollRect.top + scrollElement.scrollTop));
+      setScrollMargin(prev => (Math.abs(prev - newMargin) > 1 ? newMargin : prev));
     };
     updateScrollMargin();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(updateScrollMargin);
-    if (listRef.current) {
-      observer?.observe(listRef.current);
-      if (listRef.current.parentElement) observer?.observe(listRef.current.parentElement);
-    }
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      updateScrollMargin();
+    });
     if (scrollElementRef.current) observer?.observe(scrollElementRef.current);
+    if (listRef.current?.parentElement && listRef.current.parentElement !== scrollElementRef.current) {
+      observer?.observe(listRef.current.parentElement);
+    }
     window.addEventListener('resize', updateScrollMargin);
     return () => {
       observer?.disconnect();
@@ -584,17 +586,41 @@ export function TouchFileList({
     };
   }, [files.length, isSelectionActive, scrollElementRef]);
 
+  const estimateRowSize = useCallback(() => 82, []);
+
   const rowVirtualizer = useVirtualizer({
-    enabled: !disableVirtualization,
+    enabled: !disableVirtualization && viewMode === 'list',
     count: files.length,
     getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => 82,
-    overscan: 10,
+    estimateSize: estimateRowSize,
+    overscan: 12,
     gap: 10,
     paddingEnd: 80,
     getItemKey: index => files[index]?.id ?? index,
     scrollMargin,
   });
+
+  // Grid virtualization: group files into rows of 2 for grid cols
+  const gridRows = useMemo(() => {
+    const rows: TelegramFile[][] = [];
+    for (let i = 0; i < files.length; i += 2) {
+      rows.push(files.slice(i, i + 2));
+    }
+    return rows;
+  }, [files]);
+
+  const gridVirtualizer = useVirtualizer({
+    enabled: !disableVirtualization && viewMode === 'grid',
+    count: gridRows.length,
+    getScrollElement: () => scrollElementRef.current,
+    estimateSize: useCallback(() => 210, []),
+    overscan: 10,
+    gap: 10,
+    paddingEnd: 80,
+    getItemKey: index => gridRows[index]?.[0]?.id ?? index,
+    scrollMargin,
+  });
+
 
   // Long-press handlers — defined BEFORE any early returns to satisfy Rules of Hooks.
   // On Android, long-press opens the action popover (file options menu).
@@ -732,7 +758,7 @@ export function TouchFileList({
           width: '100%',
           transform: `translateY(${virtualRow.start - scrollMargin}px)`,
         } : undefined}
-        className={`file-row-optimized flex items-center justify-between p-3 rounded-2xl bg-telegram-surface/90 border transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-sm backdrop-blur-sm ${
+        className={`file-row-optimized flex items-center justify-between p-3 rounded-2xl bg-telegram-surface border transition-all duration-200 cursor-pointer active:scale-[0.99] shadow-sm ${
           isSelected
             ? 'border-telegram-primary/60 bg-telegram-primary/10 shadow-telegram-primary/5'
             : 'border-telegram-border/40 hover:border-telegram-border/60 hover:bg-telegram-hover/30'
@@ -775,6 +801,50 @@ export function TouchFileList({
       </div>
     );
   };
+
+  const renderGridRow = (rowFiles: TelegramFile[], index: number, virtualRow?: VirtualItem) => (
+    <div
+      key={virtualRow ? virtualRow.key : (rowFiles[0]?.id ?? index)}
+      data-index={virtualRow ? index : undefined}
+      ref={virtualRow ? gridVirtualizer.measureElement : undefined}
+      style={virtualRow ? {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+      } : undefined}
+      className="grid grid-cols-2 gap-2.5"
+    >
+      {rowFiles.map((file) => {
+        const isSelected = selectedIdSet.has(file.id);
+        return (
+          <GridFileCard
+            key={file.id}
+            file={file}
+            activeFolderId={activeFolderId}
+            isSelected={isSelected}
+            isSelectionActive={isSelectionActive}
+            onPointerDown={(e) => handlePointerDown(e, file)}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onClick={(thumb) => {
+              if (longPressFiredRef.current) {
+                longPressFiredRef.current = false;
+                return;
+              }
+              if (isSelectionActive) onToggleSelection(file.id);
+              else onPreview(file, thumb);
+            }}
+            onActionClick={(e) => {
+              e.stopPropagation();
+              setActionMenuFile(file);
+            }}
+          />
+        );
+      })}
+    </div>
+  );
 
   return (
     <>
@@ -919,36 +989,18 @@ export function TouchFileList({
 
           {/* File list: Grid or List */}
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-2 gap-2.5 pb-28">
-              {files.map((file) => {
-                const isSelected = selectedIdSet.has(file.id);
-                return (
-                  <GridFileCard
-                    key={file.id}
-                    file={file}
-                    activeFolderId={activeFolderId}
-                    isSelected={isSelected}
-                    isSelectionActive={isSelectionActive}
-                    onPointerDown={(e) => handlePointerDown(e, file)}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
-                    onClick={(thumb) => {
-                      if (longPressFiredRef.current) {
-                        longPressFiredRef.current = false;
-                        return;
-                      }
-                      if (isSelectionActive) onToggleSelection(file.id);
-                      else onPreview(file, thumb);
-                    }}
-                    onActionClick={(e) => {
-                      e.stopPropagation();
-                      setActionMenuFile(file);
-                    }}
-                  />
-                );
-              })}
+            <div
+              ref={listRef}
+              className={disableVirtualization ? 'space-y-2.5 pb-28' : 'relative pb-28'}
+              style={disableVirtualization ? undefined : { height: `${gridVirtualizer.getTotalSize()}px` }}
+            >
+              {disableVirtualization
+                ? gridRows.map((rowFiles, index) => renderGridRow(rowFiles, index))
+                : gridVirtualizer.getVirtualItems().map((virtualRow) =>
+                    renderGridRow(gridRows[virtualRow.index], virtualRow.index, virtualRow))}
             </div>
           ) : (
+
             <div
               ref={listRef}
               className={disableVirtualization ? 'space-y-2.5 pb-28' : 'relative pb-28'}

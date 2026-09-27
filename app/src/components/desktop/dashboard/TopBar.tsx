@@ -1,31 +1,36 @@
 import {
+    ArrowLeft,
     ArrowUpDown,
+    Check,
+    ChevronDown,
     Download,
+    Filter,
+    Folder,
     FolderInput,
     FolderPlus,
-    Filter,
     Globe,
     HardDrive,
     HelpCircle,
+    Keyboard,
     LayoutGrid,
     List,
     Moon,
     MoreHorizontal,
+    Search,
     Settings,
     Share2,
-    Keyboard,
     Sun,
     Trash2,
     UploadCloud,
     X,
     ZoomIn,
     ZoomOut,
-    Check,
 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../context/ThemeContext';
 import { useSettings } from '../../../context/SettingsContext';
-import { Button, IconButton, MenuItem, MenuPanel, SearchField } from '../../ui';
+import { Button, IconButton, MenuItem, MenuPanel } from '../../ui';
 import type { SortDirection, SortField } from './FileExplorer';
 import { SORT_OPTIONS, getActiveSortDescriptor } from '../../../utils/fileSorting';
 import type { FileSearchFilters } from '../../../services/fileSearch';
@@ -58,6 +63,8 @@ interface TopBarProps {
     onShowHelp: () => void;
     searchFilters: FileSearchFilters;
     onSearchFiltersChange: (filters: FileSearchFilters) => void;
+    isSearchExpanded?: boolean;
+    onToggleSearchExpanded?: (expanded: boolean) => void;
 }
 
 export function TopBar({
@@ -86,10 +93,47 @@ export function TopBar({
     onShowHelp,
     searchFilters,
     onSearchFiltersChange,
+    isSearchExpanded: externalIsSearchExpanded,
+    onToggleSearchExpanded,
 }: TopBarProps) {
     const { theme, toggleTheme } = useTheme();
     const { t } = useTranslation();
     const { settings } = useSettings();
+    const [localIsSearchExpanded, setLocalIsSearchExpanded] = useState(false);
+    const [showScopeMenu, setShowScopeMenu] = useState(false);
+    const scopeMenuRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const isSearchExpanded = externalIsSearchExpanded ?? (localIsSearchExpanded || searchTerm.trim().length > 0);
+
+    const setSearchExpandedState = useCallback((expanded: boolean) => {
+        setLocalIsSearchExpanded(expanded);
+        onToggleSearchExpanded?.(expanded);
+        if (expanded) {
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+                searchInputRef.current?.select();
+            }, 30);
+        }
+    }, [onToggleSearchExpanded]);
+
+    const handleExitSearch = useCallback(() => {
+        setSearchExpandedState(false);
+        onSearchChange('');
+        setShowScopeMenu(false);
+    }, [setSearchExpandedState, onSearchChange]);
+
+    useEffect(() => {
+        if (!showScopeMenu) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (scopeMenuRef.current && !scopeMenuRef.current.contains(event.target as Node)) {
+                setShowScopeMenu(false);
+            }
+        };
+        window.addEventListener('mousedown', handleClickOutside);
+        return () => window.removeEventListener('mousedown', handleClickOutside);
+    }, [showScopeMenu]);
+
     const {
         proxyStatus,
         showMore,
@@ -107,7 +151,7 @@ export function TopBar({
 
     return (
         <header
-            className="quiet-toolbar sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2.5 border-b border-app-border-subtle px-3"
+            className="quiet-toolbar sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2.5 border-b border-app-border-subtle px-3 transition-colors"
             onClick={(event) => event.stopPropagation()}
         >
             {hasSelection ? (
@@ -131,22 +175,123 @@ export function TopBar({
                         {t('files.delete')}
                     </Button>
                 </div>
-            ) : (
-                <>
-                    <div className="min-w-[8rem] flex-1">
-                        <h1 className="truncate text-app-title font-semibold tracking-[-0.01em] text-app-text" title={currentFolderName}>
-                            {currentFolderName}
-                        </h1>
+            ) : isSearchExpanded ? (
+                /* Full Header Search Mode */
+                <div className="flex min-w-0 flex-1 items-center gap-2 animate-in fade-in duration-150">
+                    <IconButton
+                        label="Back / Close search (Esc)"
+                        onClick={handleExitSearch}
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </IconButton>
+
+                    {/* Scope Selector Dropdown Pill */}
+                    <div className="relative" ref={scopeMenuRef}>
+                        <button
+                            type="button"
+                            onClick={() => setShowScopeMenu((prev) => !prev)}
+                            className="quiet-control flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-app-border bg-app-surface px-2.5 text-xs font-medium text-app-text shadow-xs hover:border-app-border-strong hover:bg-app-hover transition-colors"
+                            title="Switch search scope"
+                        >
+                            {searchFilters.scope === 'all' ? (
+                                <>
+                                    <Globe className="h-3.5 w-3.5 shrink-0 text-app-accent" />
+                                    <span className="max-w-[120px] truncate font-semibold">All Folders</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Folder className="h-3.5 w-3.5 shrink-0 text-app-accent" />
+                                    <span className="max-w-[120px] truncate font-semibold">{currentFolderName}</span>
+                                </>
+                            )}
+                            <ChevronDown className="h-3 w-3 shrink-0 text-app-text-tertiary" />
+                        </button>
+
+                        {showScopeMenu && (
+                            <MenuPanel className="absolute start-0 top-9.5 z-50 w-60 space-y-1 p-1 shadow-lg">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onSearchFiltersChange({ ...searchFilters, scope: 'folder' });
+                                        setShowScopeMenu(false);
+                                    }}
+                                    className={`quiet-control flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                        searchFilters.scope === 'folder'
+                                            ? 'bg-app-selected text-app-accent font-semibold'
+                                            : 'text-app-text-secondary hover:bg-app-surface-sunken hover:text-app-text'
+                                    }`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <Folder className="h-3.5 w-3.5 shrink-0 text-app-accent" />
+                                        <span className="truncate">This Folder ({currentFolderName})</span>
+                                    </div>
+                                    {searchFilters.scope === 'folder' && <Check className="h-3.5 w-3.5 shrink-0 text-app-accent" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onSearchFiltersChange({ ...searchFilters, scope: 'all' });
+                                        setShowScopeMenu(false);
+                                    }}
+                                    className={`quiet-control flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                                        searchFilters.scope === 'all'
+                                            ? 'bg-app-selected text-app-accent font-semibold'
+                                            : 'text-app-text-secondary hover:bg-app-surface-sunken hover:text-app-text'
+                                    }`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <Globe className="h-3.5 w-3.5 shrink-0 text-app-accent" />
+                                        <span className="truncate">All Folders (Everywhere)</span>
+                                    </div>
+                                    {searchFilters.scope === 'all' && <Check className="h-3.5 w-3.5 shrink-0 text-app-accent" />}
+                                </button>
+                            </MenuPanel>
+                        )}
                     </div>
 
-                    <div ref={filterRef} className="relative flex w-full max-w-[25rem] items-center gap-1">
-                        <SearchField
+                    {/* Full-width Search Input */}
+                    <div className="relative flex min-w-0 flex-1 items-center">
+                        <Search className="pointer-events-none absolute start-3 h-3.5 w-3.5 text-app-text-tertiary" />
+                        <input
+                            ref={searchInputRef}
                             data-file-search
-                            containerClassName="min-w-0 flex-1"
-                            placeholder={t('common.search_placeholder')}
+                            type="text"
                             value={searchTerm}
                             onChange={(event) => onSearchChange(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Escape') {
+                                    if (searchTerm) {
+                                        onSearchChange('');
+                                    } else {
+                                        handleExitSearch();
+                                    }
+                                }
+                            }}
+                            placeholder={
+                                searchFilters.scope === 'all'
+                                    ? t('common.search_all_placeholder', 'Search across all files & folders…')
+                                    : t('common.search_in_folder', `Search in "${currentFolderName}"…`)
+                            }
+                            className="quiet-control h-8.5 w-full rounded-lg border border-app-border bg-app-surface-sunken/60 ps-9 pe-8 text-ui text-app-text placeholder:text-app-text-tertiary focus:border-app-accent focus:bg-app-surface focus:outline-hidden focus:ring-1 focus:ring-app-accent transition-all"
+                            autoFocus
                         />
+                        {searchTerm && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onSearchChange('');
+                                    searchInputRef.current?.focus();
+                                }}
+                                className="absolute end-2 rounded p-1 text-app-text-tertiary hover:bg-app-hover hover:text-app-text"
+                                title="Clear text"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Search Filters Dropdown */}
+                    <div ref={filterRef} className="relative">
                         <IconButton
                             label="Search filters"
                             onClick={toggleSearchFilters}
@@ -156,10 +301,10 @@ export function TopBar({
                             <Filter className="h-3.5 w-3.5" />
                         </IconButton>
                         {showSearchFilters && (
-                            <MenuPanel className="absolute end-0 top-9 z-50 w-72 space-y-3 p-3">
+                            <MenuPanel className="absolute end-0 top-9.5 z-50 w-72 space-y-3 p-3 shadow-xl">
                                 <label className="block text-xs font-medium text-app-text-secondary">Search scope
                                     <select value={searchFilters.scope} onChange={(event) => onSearchFiltersChange({ ...searchFilters, scope: event.target.value as FileSearchFilters['scope'] })} className="quiet-control mt-1 h-8 w-full border border-app-border bg-app-surface-sunken px-2 text-sm text-app-text">
-                                        <option value="folder">Current folder / view</option>
+                                        <option value="folder">This folder ({currentFolderName})</option>
                                         <option value="all">All Telegram Drive folders</option>
                                     </select>
                                 </label>
@@ -180,10 +325,47 @@ export function TopBar({
                                         </select>
                                     </label>
                                 </div>
-                                <button type="button" onClick={() => onSearchFiltersChange({ scope: 'folder', type: 'all', size: 'any', date: 'any' })} className="quiet-control w-full px-3 py-2 text-xs font-medium text-app-text-secondary hover:text-app-text">Reset filters</button>
+                                <button type="button" onClick={() => onSearchFiltersChange({ scope: searchFilters.scope, type: 'all', size: 'any', date: 'any' })} className="quiet-control w-full px-3 py-2 text-xs font-medium text-app-text-secondary hover:text-app-text">Reset filters</button>
                             </MenuPanel>
                         )}
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={handleExitSearch}
+                        className="quiet-control shrink-0 rounded-md px-2.5 py-1.5 text-xs font-medium text-app-text-secondary hover:bg-app-hover hover:text-app-text transition-colors"
+                    >
+                        {t('common.cancel', 'Cancel')}
+                    </button>
+                </div>
+            ) : (
+                <>
+                    <div className="min-w-[8rem] flex-1">
+                        <h1 className="truncate text-app-title font-semibold tracking-[-0.01em] text-app-text" title={currentFolderName}>
+                            {currentFolderName}
+                        </h1>
+                    </div>
+
+                    {/* Compact Search Trigger Button */}
+                    <button
+                        type="button"
+                        data-search-trigger
+                        onClick={() => setSearchExpandedState(true)}
+                        className="quiet-control flex h-8 w-full max-w-[20rem] items-center justify-between rounded-lg border border-app-border bg-app-surface-sunken/45 px-2.5 text-xs text-app-text-secondary shadow-2xs hover:border-app-border-strong hover:bg-app-surface hover:text-app-text transition-all cursor-text"
+                        title="Click to search"
+                    >
+                        <div className="flex min-w-0 items-center gap-2 truncate">
+                            <Search className="h-3.5 w-3.5 shrink-0 text-app-text-tertiary" />
+                            <span className="truncate">
+                                {searchFilters.scope === 'all'
+                                    ? t('common.search_all_placeholder', 'Search all folders…')
+                                    : t('common.search_in_folder', `Search in "${currentFolderName}"…`)}
+                            </span>
+                        </div>
+                        <kbd className="hidden sm:inline-flex items-center rounded border border-app-border bg-app-surface px-1.5 py-0.5 text-[10px] font-mono text-app-text-tertiary">
+                            Ctrl+F
+                        </kbd>
+                    </button>
 
                     <div className="flex flex-1 items-center justify-end gap-1.5">
                         {settings.proxyEnabled && settings.proxyLiveStateEnabled && (

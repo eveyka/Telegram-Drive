@@ -30,7 +30,7 @@ static PREVIEW_CACHE_LIMIT_BYTES: AtomicU64 = AtomicU64::new(PREVIEW_CACHE_MAX_T
 const THUMBNAIL_CACHE_MAX_FILES: usize = 500;
 const THUMBNAIL_CACHE_MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 const THUMBNAIL_MAX_DIMENSION: u32 = 640;
-const MIN_VALID_THUMBNAIL_DIMENSION: u32 = 48;
+const MIN_VALID_THUMBNAIL_DIMENSION: u32 = 80;
 
 type DownloadLock = tokio::sync::Mutex<()>;
 static DOWNLOAD_LOCKS: LazyLock<Mutex<HashMap<String, Weak<DownloadLock>>>> =
@@ -1149,6 +1149,7 @@ async fn download_and_decrypt_preview(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn cmd_get_preview(
     message_id: i32,
     folder_id: Option<i64>,
@@ -1407,6 +1408,7 @@ pub async fn cmd_check_cached_thumbnails(
 /// Get a small thumbnail for inline display in file cards.
 /// Returns a local asset path for images, empty string for non-image files.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn cmd_get_thumbnail(
     message_id: i32,
     folder_id: Option<i64>,
@@ -1583,27 +1585,40 @@ pub async fn cmd_get_thumbnail(
         }
         _ => false,
     };
-    let is_video = match &media {
-        Media::Document(document) => {
-            let mime = document.mime_type().unwrap_or("");
-            mime.starts_with("video/") || {
-                let name = document.name().to_ascii_lowercase();
-                name.ends_with(".mp4")
-                    || name.ends_with(".mkv")
-                    || name.ends_with(".mov")
-                    || name.ends_with(".webm")
-                    || name.ends_with(".avi")
-                    || name.ends_with(".flv")
-                    || name.ends_with(".wmv")
-                    || name.ends_with(".m4v")
-                    || name.ends_with(".3gp")
-                    || name.ends_with(".ts")
-                    || name.ends_with(".mpeg")
-                    || name.ends_with(".mpg")
+    let has_video_attr = match &media {
+        Media::Document(doc) => {
+            if let Some(tl::enums::Document::Document(d)) = &doc.raw.document {
+                d.attributes
+                    .iter()
+                    .any(|a| matches!(a, tl::enums::DocumentAttribute::Video(_)))
+            } else {
+                false
             }
         }
         _ => false,
     };
+    let is_video = has_video_attr
+        || match &media {
+            Media::Document(document) => {
+                let mime = document.mime_type().unwrap_or("");
+                mime.starts_with("video/") || {
+                    let name = document.name().to_ascii_lowercase();
+                    name.ends_with(".mp4")
+                        || name.ends_with(".mkv")
+                        || name.ends_with(".mov")
+                        || name.ends_with(".webm")
+                        || name.ends_with(".avi")
+                        || name.ends_with(".flv")
+                        || name.ends_with(".wmv")
+                        || name.ends_with(".m4v")
+                        || name.ends_with(".3gp")
+                        || name.ends_with(".ts")
+                        || name.ends_with(".mpeg")
+                        || name.ends_with(".mpg")
+                }
+            }
+            _ => false,
+        };
 
     let thumbnails = match &media {
         Media::Photo(photo) => photo.thumbs(),
@@ -1628,15 +1643,16 @@ pub async fn cmd_get_thumbnail(
         return Ok("".to_string());
     }
 
-    // Filter candidate thumbnails. Stripped placeholders (blurhashes <= 40px), empty sizes,
-    // and vector paths are excluded so they are never saved as blurry permanent thumbnails.
+    // Filter candidate thumbnails. We keep all valid thumbnails (Size, Progressive, Cached)
+    // while filtering out Stripped (which lacks standard JPEG headers and fails image decoding).
     let mut candidates: Vec<PhotoSize> = thumbnails
         .into_iter()
         .filter(|thumbnail| match thumbnail {
-            PhotoSize::Empty(_) | PhotoSize::Stripped(_) | PhotoSize::Path(_) => false,
+            PhotoSize::Empty(_) | PhotoSize::Path(_) | PhotoSize::Stripped(_) => false,
             PhotoSize::Cached(c) => {
                 c.width >= MIN_VALID_THUMBNAIL_DIMENSION as i32
                     || c.height >= MIN_VALID_THUMBNAIL_DIMENSION as i32
+                    || (!c.bytes.is_empty())
             }
             PhotoSize::Size(s) => {
                 s.width == 0
@@ -1647,8 +1663,11 @@ pub async fn cmd_get_thumbnail(
         })
         .collect();
 
-    // Prioritize high-clarity yet lightweight candidates in the 100KB-200KB / 340px-800px sweet spot
-    // (e.g. Telegram 'x' or large 'm' / Progressive), avoiding both heavily pixelated <200px icons and oversized full HD downloads.
+    // Prioritize high-clarity yet lightweight candidates:
+    // Tier 0: 300px to 800px (Telegram 'x' or high-res 'm') -> sharp and clean
+    // Tier 1: 100px to 299px (Standard Telegram video thumbnail 'm' / 320x180)
+    // Tier 2: > 800px (Large HD sizes, e.g. 'y' 1280px)
+    // Tier 3: 16px to 100px (Small sizes, e.g. 's')
     candidates.sort_by_key(|t| {
         let max_dim = match t {
             PhotoSize::Size(s) => s.width.max(s.height),
@@ -1658,17 +1677,13 @@ pub async fn cmd_get_thumbnail(
         };
         let byte_size = t.size() as u64;
 
-        if max_dim >= 340 && max_dim <= 800 {
-            // Tier 0: Sweet spot (340px to 800px, e.g. Telegram 'x' or large 'm') -> ~80KB-200KB, clean and sharp
-            (0, byte_size, (max_dim - 640).abs() as u64)
-        } else if max_dim > 200 && max_dim < 340 {
-            // Tier 1: Next best (201px to 339px, e.g. Telegram 'm') -> ~30KB-70KB
+        if (300..=800).contains(&max_dim) {
+            (0, byte_size, (max_dim - 640).unsigned_abs() as u64)
+        } else if (100..300).contains(&max_dim) {
             (1, byte_size, max_dim as u64)
         } else if max_dim > 800 {
-            // Tier 2: Larger HD sizes (e.g. 'y' 1280px) -> fallback if 'x' isn't provided, prefer smaller byte size
             (2, byte_size, max_dim as u64)
-        } else if max_dim >= 48 && max_dim <= 200 {
-            // Tier 3: Very small sizes (48px to 200px, e.g. 's') -> last resort only
+        } else if (16..100).contains(&max_dim) {
             (3, byte_size, 0)
         } else {
             (4, byte_size, 0)
@@ -1687,14 +1702,27 @@ pub async fn cmd_get_thumbnail(
                 false
             }
         } else {
-            // Download thumbnail over network
-            let thumbnail_size = (thumbnail.size() as u64).max(64 * 1024);
-            if bw_state.try_reserve_down(thumbnail_size).is_ok() {
-                let dl_res = download_to_file(
+            // Download thumbnail over network:
+            // 1. First attempt: standard MTProto download_media which safely handles chunking for PhotoSize
+            let temp_str = part_path.to_string_lossy().to_string();
+            let direct_dl = client.download_media(thumbnail, &temp_str).await;
+            if direct_dl.is_ok()
+                && part_path.exists()
+                && tokio::fs::metadata(&part_path)
+                    .await
+                    .map(|m| m.len() > 0)
+                    .unwrap_or(false)
+            {
+                true
+            } else {
+                // 2. Fallback attempt: download_to_file with safe 32KB chunk size
+                let thumbnail_size = (thumbnail.size() as u64).max(32 * 1024);
+                let _ = bw_state.try_reserve_down(thumbnail_size);
+                let fallback_dl = download_to_file(
                     &client,
                     thumbnail,
                     &part_path,
-                    net_config.chunk_size_bytes(),
+                    32 * 1024,
                     net_config.download_limit_bytes_per_sec(),
                     None,
                     0,
@@ -1702,9 +1730,12 @@ pub async fn cmd_get_thumbnail(
                 )
                 .await;
                 bw_state.release_down(thumbnail_size);
-                dl_res.is_ok()
-            } else {
-                false
+                fallback_dl.is_ok()
+                    && part_path.exists()
+                    && tokio::fs::metadata(&part_path)
+                        .await
+                        .map(|m| m.len() > 0)
+                        .unwrap_or(false)
             }
         };
 

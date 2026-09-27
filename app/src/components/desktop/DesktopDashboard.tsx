@@ -32,13 +32,11 @@ import type { SettingsTab } from './dashboard/SettingsModal';
 import { ShareDialog } from './dashboard/ShareDialog';
 import { RenameFolderModal } from './dashboard/RenameFolderModal';
 import { RenameFileModal } from './dashboard/RenameFileModal';
-import { DesktopAdBanner } from './dashboard/DesktopAdBanner';
 import { RemoteUploadModal } from './dashboard/RemoteUploadModal';
 import { KeyboardShortcutsDialog } from './dashboard/KeyboardShortcutsDialog';
 import { DriveConceptTour } from './dashboard/DriveConceptTour';
 import { LazyFeatureBoundary } from '../shared/LazyFeatureBoundary';
 import { SupporterOfferDialog } from '../shared/SupporterOfferDialog';
-import { PaywallGateModal, type PaywallTriggerFeature } from '../shared/PaywallGateModal';
 import { licenseManager, type LicenseInfo } from '../../services/licenseManager';
 import { SyncDashboard } from './sync/SyncDashboard';
 import { Files } from 'lucide-react';
@@ -55,10 +53,12 @@ import { useSupporter } from '../../context/SupporterContext';
 import { useEncryption } from '../../hooks/useEncryption';
 import { getCachedPreview, setCachedPreview, notifyThumbnailInvalidation } from '../../services/imagePreviewCache';
 import { resetStreamInfoCache, clearAllThumbnailFailures } from '../../services/videoThumbnailService';
-import { DEFAULT_SEARCH_FILTERS, filterAndRankFiles, type FileSearchFilters } from '../../services/fileSearch';
-import { SUPPORTER_VALUE_MOMENT_EVENT, type SupporterPromptTrigger } from '../../services/supporterVisibility';
+import { SUPPORTER_VALUE_MOMENT_EVENT, type SupporterPromptTrigger, isCustomFolderLocked } from '../../services/supporterVisibility';
+import { LockedFeatureModal } from '../shared/LockedFeatureModal';
+import type { PaywallTriggerFeature } from '../shared/PaywallGateModal';
 import { markDesktopFrontendReady, markDesktopFrontendUnready, type DesktopNavigationRequest } from '../../services/desktopLifecycle';
 import { isCurrentFolderLoadChunk, mergeFileChunk, normalizeListedFile, updateFileQueryData, type FolderLoadChunk } from '../../services/fileListRefresh';
+import { filterAndRankFiles, type FileSearchFilters, DEFAULT_SEARCH_FILTERS } from '../../services/fileSearch';
 
 const LazyPreviewModal = lazy(() => import('./dashboard/PreviewModal').then((module) => ({ default: module.PreviewModal })));
 const LazyMediaPlayer = lazy(() => import('./dashboard/MediaPlayer').then((module) => ({ default: module.MediaPlayer })));
@@ -91,26 +91,17 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const { confirm } = useConfirm();
     const { status: supporterStatus, refreshStatus } = useSupporter();
     const { vaultStatus } = useEncryption();
-    const [showProUpgradeModal, setShowProUpgradeModal] = useState(false);
-    const [paywallTriggerFeature, setPaywallTriggerFeature] = useState<PaywallTriggerFeature>('general');
     const [desktopLicense, setDesktopLicense] = useState<LicenseInfo | null>(null);
-    const [desktopExpiredAlert, setDesktopExpiredAlert] = useState<string | null>(null);
 
     const loadAndVerifyDesktopLicense = useCallback(async () => {
         try {
             const local = await licenseManager.loadLicense();
             setDesktopLicense(local);
 
-            if (local.expiresAt && local.expiresAt < Math.floor(Date.now() / 1000)) {
-                setDesktopExpiredAlert('Your Free Trial / Subscription has expired. Please upgrade to TG Drive Pro to continue enjoying full perks.');
-            }
-
             if (userProfile) {
                 const res = await licenseManager.checkTelegramAccount(userProfile.id, userProfile.phone);
                 if (res.isLicensed && res.license) {
                     setDesktopLicense(res.license);
-                    setShowProUpgradeModal(false);
-                    setDesktopExpiredAlert(null);
                     void refreshStatus();
                 }
             }
@@ -146,9 +137,15 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [supporterOfferTrigger, setSupporterOfferTrigger] = useState<SupporterPromptTrigger | null>(null);
+    const [lockedFeatureModal, setLockedFeatureModal] = useState<{
+        isOpen: boolean;
+        feature: PaywallTriggerFeature;
+        customTitle?: string;
+    }>({ isOpen: false, feature: 'general' });
     const [createFolderRequest, setCreateFolderRequest] = useState(0);
     const [activeSmartView, setActiveSmartView] = useState<SmartView | null>('recents');
     const [searchTerm, setSearchTerm] = useState("");
+    const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [searchResults, setSearchResults] = useState<TelegramFile[]>([]);
     const [searchFilters, setSearchFilters] = useState<FileSearchFilters>(DEFAULT_SEARCH_FILTERS);
     const [isSearching, setIsSearching] = useState(false);
@@ -159,6 +156,14 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     activeFolderIdRef.current = activeFolderId;
     const activeSmartViewRef = useRef(activeSmartView);
     activeSmartViewRef.current = activeSmartView;
+    const isDesktopPro = Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free || supporterStatus.state === 'active');
+
+    useEffect(() => {
+        if (activeFolderId !== null && isCustomFolderLocked(activeFolderId, folders, isDesktopPro)) {
+            setActiveFolderId(null);
+            toast.info('This extra folder is locked on the free plan. Upgrade to Pro to unlock.');
+        }
+    }, [activeFolderId, folders, isDesktopPro, setActiveFolderId]);
 
     useEffect(() => {
         let cancelled = false;
@@ -313,10 +318,9 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             setSettingsInitialTab(tab);
             setShowSettings(true);
         };
-        const openPaywall = (event: Event) => {
-            const feature = (event as CustomEvent<{ feature?: PaywallTriggerFeature }>).detail?.feature ?? 'general';
-            setPaywallTriggerFeature(feature);
-            setShowProUpgradeModal(true);
+        const openPaywall = () => {
+            setSettingsInitialTab('privacy');
+            setShowSettings(true);
         };
         window.addEventListener('telegram-drive-open-settings', openSettings);
         window.addEventListener('telegram-drive-open-paywall', openPaywall);
@@ -328,6 +332,10 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
     const { data: allFiles = [], isLoading, error } = useQuery({
         queryKey: ['files', activeSmartView ?? 'folder', activeFolderId],
+        placeholderData: (previousData) => {
+            const cached = queryClient.getQueryData<TelegramFile[]>(['files', activeSmartView ?? 'folder', activeFolderId]);
+            return cached ?? previousData ?? [];
+        },
         queryFn: async () => {
             if (activeSmartView) {
                 if (activeSmartView === 'offline') {
@@ -399,10 +407,27 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         refetchOnReconnect: false,
     });
 
-    const displayedFiles = useMemo(() => {
-        const source = searchTerm.trim().length >= 2 && searchFilters.scope === 'all'
-            ? [...allFiles, ...searchResults].filter((file, index, values) => values.findIndex((candidate) => candidate.id === file.id && candidate.folder_id === file.folder_id) === index)
-            : allFiles;
+    const displayedFiles: TelegramFile[] = useMemo(() => {
+        let source: TelegramFile[] = allFiles;
+        if (searchTerm.trim().length >= 2 && searchFilters.scope === 'all') {
+            const seen = new Set<string>();
+            const combined: TelegramFile[] = [];
+            for (const file of allFiles) {
+                const key = `${file.folder_id ?? 'home'}:${file.id}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    combined.push(file);
+                }
+            }
+            for (const file of searchResults) {
+                const key = `${file.folder_id ?? 'home'}:${file.id}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    combined.push(file);
+                }
+            }
+            source = combined;
+        }
         return filterAndRankFiles(source, searchTerm, searchFilters);
     }, [allFiles, searchResults, searchTerm, searchFilters]);
     const isCrossFolderView = activeSmartView !== null
@@ -437,7 +462,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
     // Bulk share: open ShareDialog for all selected non-folder files
     const handleBulkShare = useCallback(() => {
-        const shareFilesList = displayedFiles.filter(f => selectedIds.includes(f.id) && f.type !== 'folder');
+        const shareFilesList = displayedFiles.filter((f: TelegramFile) => selectedIds.includes(f.id) && f.type !== 'folder');
         if (shareFilesList.length === 0) {
             toast.info('No shareable files selected (folders cannot be shared)');
             return;
@@ -451,7 +476,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             toast.info('Open a folder to select multiple files safely.');
             return;
         }
-        setSelectedIds(displayedFiles.map(f => f.id));
+        setSelectedIds(displayedFiles.map((f: TelegramFile) => f.id));
     }, [displayedFiles, isCrossFolderView]);
 
     const handleKeyboardDelete = useCallback(() => {
@@ -464,6 +489,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         lastClickedIndexRef.current = -1;
         setSelectedIds([]);
         setSearchTerm("");
+        setIsSearchExpanded(false);
         setPreviewFile(null);
         setPlayingFile(null);
         setPdfFile(null);
@@ -472,16 +498,19 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     }, []);
 
     const handleFocusSearch = useCallback(() => {
-        const searchInput = document.querySelector('input[data-file-search]') as HTMLInputElement;
-        if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-        }
+        setIsSearchExpanded(true);
+        setTimeout(() => {
+            const searchInput = document.querySelector('input[data-file-search]') as HTMLInputElement;
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }, 50);
     }, []);
 
     const handleEnter = useCallback(() => {
         if (selectedIds.length === 1) {
-            const selected = displayedFiles.find(f => f.id === selectedIds[0]);
+            const selected = displayedFiles.find((f: TelegramFile) => f.id === selectedIds[0]);
             if (selected) {
                 if (selected.type === 'folder') {
                     setActiveFolderId(selected.id);
@@ -499,6 +528,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         setShowMoveModal(false);
         setSearchTerm("");
         setSearchResults([]);
+        setIsSearchExpanded(false);
         setPreviewFile(null);
         setPlayingFile(null);
         setPdfFile(null);
@@ -506,6 +536,11 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         setPreviewContextFiles([]);
         setPreviewContextIndex(-1);
         setArchiveViewFile(null);
+        // Automatically default search scope to 'all' for root/all files and 'folder' for specific folders
+        setSearchFilters((prev) => ({
+            ...prev,
+            scope: activeFolderId === null && activeSmartView === null ? 'all' : 'folder',
+        }));
     }, [activeFolderId, activeSmartView]);
 
 
@@ -535,7 +570,173 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         setSelectedIds([]);
     }, []);
 
-    const handleFileClick = (e: React.MouseEvent, file: TelegramFile, orderedFiles: TelegramFile[] = []) => {
+    const openDecryptedFileInApp = useCallback((file: TelegramFile, decryptedPath: string, orderedFiles?: TelegramFile[], initialThumbnail?: string | null) => {
+        const pathExt = decryptedPath.split('.').pop()?.toLowerCase() ?? '';
+        const cleanName = file.name.replace(/\.tdenc$/i, '');
+        const effectiveName = pathExt && pathExt !== 'bin' && pathExt !== 'tdenc'
+            ? (cleanName.includes('.') ? cleanName : `${cleanName}.${pathExt}`)
+            : cleanName;
+        const resolvedFile: TelegramFile = {
+            ...file,
+            name: effectiveName,
+            file_ext: pathExt || file.file_ext,
+            encryption_state: 'encrypted_unlocked',
+        };
+
+        queryClient.setQueriesData<TelegramFile[]>({ queryKey: ['files'] }, (old) => {
+            if (!old) return old;
+            return old.map((f) => f.id === file.id ? { ...f, name: effectiveName, file_ext: pathExt || f.file_ext, encryption_state: 'encrypted_unlocked' } : f);
+        });
+
+        setPreviewInitialThumbnail(initialThumbnail ?? null);
+        const sourceFolderId = file.folder_id ?? activeFolderId;
+        void invoke('cmd_record_file_opened', {
+            folderId: sourceFolderId,
+            messageId: file.id,
+            fileName: resolvedFile.name,
+            fileSize: file.size,
+            mimeType: file.mime_type ?? null,
+            fileExt: resolvedFile.file_ext ?? null,
+            createdAt: file.created_at ?? null,
+            encryptionState: 'encrypted_unlocked',
+        }).then(() => queryClient.invalidateQueries({ queryKey: ['files', 'recents'] })).catch(() => {});
+
+        const contextFiles = (orderedFiles || displayedFiles).filter((f: TelegramFile) => f.type !== 'folder');
+        const contextIndex = contextFiles.findIndex((candidate: TelegramFile) => sameFile(candidate, file));
+        setPreviewContextFiles(contextFiles);
+        setPreviewContextIndex(contextIndex);
+
+        const isMedia = isMediaFile(effectiveName) || ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi', 'mp3', 'wav', 'aac', 'flac', 'm4a'].includes(pathExt);
+        const isPdf = isPdfFile(effectiveName) || pathExt === 'pdf';
+        const isArchive = isArchiveFile(effectiveName) || ['zip', 'rar', '7z', 'tar', 'gz'].includes(pathExt);
+        const isDoc = isTextOrDocFile(effectiveName) || ['txt', 'md', 'json', 'log', 'csv', 'xml', 'js', 'ts', 'py', 'rs'].includes(pathExt);
+
+        if (isArchive) {
+            setArchiveViewFile(resolvedFile);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setDocFile(null);
+        } else if (isMedia) {
+            setPlayingFile(resolvedFile);
+            setPreviewFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        } else if (isPdf) {
+            setPdfFile(resolvedFile);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        } else if (isDoc) {
+            setDocFile(resolvedFile);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+        } else {
+            setPreviewFile(resolvedFile);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        }
+    }, [activeFolderId, displayedFiles, queryClient]);
+
+    const handlePreview = useCallback((file: TelegramFile, orderedFiles?: TelegramFile[], initialThumbnail?: string | null) => {
+        const isEncrypted = Boolean(
+            file.name === 'Encrypted file' ||
+            file.name.toLowerCase().endsWith('.tdenc') ||
+            file.encryption_state === 'encrypted_key_missing' ||
+            file.encryption_state === 'encrypted_locked' ||
+            (file as any).is_encrypted
+        );
+
+        if (isEncrypted && vaultStatus?.is_unlocked) {
+            const sourceFolderId = file.folder_id ?? activeFolderId;
+            const cached = getCachedPreview(file.id, sourceFolderId);
+            if (cached) {
+                openDecryptedFileInApp(file, cached, orderedFiles, initialThumbnail);
+                return;
+            }
+
+            const toastId = toast.loading(`Preparing preview…`);
+            invoke<string>('cmd_get_preview', {
+                messageId: file.id,
+                folderId: sourceFolderId,
+            }).then((decryptedPath) => {
+                toast.dismiss(toastId);
+                if (decryptedPath) {
+                    setCachedPreview(file.id, sourceFolderId, decryptedPath);
+                    openDecryptedFileInApp(file, decryptedPath, orderedFiles, initialThumbnail);
+                } else {
+                    setPreviewFile(file);
+                }
+            }).catch((_err) => {
+                toast.dismiss(toastId);
+                setPreviewFile(file);
+            });
+            return;
+        }
+
+        setPreviewInitialThumbnail(initialThumbnail ?? null);
+        const sourceFolderId = file.folder_id ?? activeFolderId;
+        void invoke('cmd_record_file_opened', {
+            folderId: sourceFolderId,
+            messageId: file.id,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.mime_type ?? null,
+            fileExt: file.file_ext ?? null,
+            createdAt: file.created_at ?? null,
+            encryptionState: file.encryption_state ?? 'plain',
+        }).then(() => queryClient.invalidateQueries({ queryKey: ['files', 'recents'] })).catch(() => {});
+        const contextFiles = (orderedFiles || displayedFiles).filter((f: TelegramFile) => f.type !== 'folder');
+        const contextIndex = contextFiles.findIndex((candidate: TelegramFile) => sameFile(candidate, file));
+
+        setPreviewContextFiles(contextFiles);
+        setPreviewContextIndex(contextIndex);
+
+        const isMedia = isMediaFile(file.name);
+        const isPdf = isPdfFile(file.name);
+        const isArchive = isArchiveFile(file.name);
+        const isDoc = isTextOrDocFile(file.name);
+
+        if (isArchive) {
+            setArchiveViewFile(file);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setDocFile(null);
+        } else if (isMedia) {
+            setPlayingFile(file);
+            setPreviewFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        } else if (isPdf) {
+            setPdfFile(file);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        } else if (isDoc) {
+            setDocFile(file);
+            setPreviewFile(null);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+        } else {
+            setPreviewFile(file);
+            setPlayingFile(null);
+            setPdfFile(null);
+            setArchiveViewFile(null);
+            setDocFile(null);
+        }
+    }, [vaultStatus?.is_unlocked, activeFolderId, openDecryptedFileInApp, queryClient, displayedFiles]);
+
+    const handleFileClick = useCallback((e: React.MouseEvent, file: TelegramFile, orderedFiles: TelegramFile[] = []) => {
         e.stopPropagation();
         const filesSource = orderedFiles.length > 0 ? orderedFiles : displayedFiles;
         if (isCrossFolderView) {
@@ -550,13 +751,13 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
         }
 
         const id = file.id;
-        const currentIndex = filesSource.findIndex(candidate => sameFile(candidate, file));
+        const currentIndex = filesSource.findIndex((candidate: TelegramFile) => sameFile(candidate, file));
 
         if (e.shiftKey && lastClickedIndexRef.current >= 0) {
             // Shift+Click: range select from last clicked to current
             const start = Math.min(lastClickedIndexRef.current, currentIndex);
             const end = Math.max(lastClickedIndexRef.current, currentIndex);
-            const rangeIds = filesSource.slice(start, end + 1).map(f => f.id);
+            const rangeIds = filesSource.slice(start, end + 1).map((f: TelegramFile) => f.id);
             setSelectedIds(rangeIds);
         } else if (e.metaKey || e.ctrlKey) {
             // Ctrl/Cmd+Click: toggle individual file
@@ -567,7 +768,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             lastClickedIndexRef.current = currentIndex;
             setSelectedIds([id]);
         }
-    }
+    }, [isCrossFolderView, clearSelection, handlePreview, displayedFiles, setActiveSmartView, setActiveFolderId]);
 
     const handleToggleSelection = useCallback((id: number) => {
         setSelectedIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
@@ -618,7 +819,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
     const handleKeyboardRename = useCallback(() => {
         if (selectedIds.length === 1) {
-            const selected = displayedFiles.find(f => f.id === selectedIds[0]);
+            const selected = displayedFiles.find((f: TelegramFile) => f.id === selectedIds[0]);
             if (selected && selected.type !== 'folder') {
                 handleRename(selected);
             }
@@ -641,171 +842,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             && settings.driveTourSeen
     });
 
-    const openDecryptedFileInApp = useCallback((file: TelegramFile, decryptedPath: string, orderedFiles?: TelegramFile[], initialThumbnail?: string | null) => {
-        const pathExt = decryptedPath.split('.').pop()?.toLowerCase() ?? '';
-        const cleanName = file.name.replace(/\.tdenc$/i, '');
-        const effectiveName = pathExt && pathExt !== 'bin' && pathExt !== 'tdenc'
-            ? (cleanName.includes('.') ? cleanName : `${cleanName}.${pathExt}`)
-            : cleanName;
-        const resolvedFile: TelegramFile = {
-            ...file,
-            name: effectiveName,
-            file_ext: pathExt || file.file_ext,
-            encryption_state: 'encrypted_unlocked',
-        };
 
-        queryClient.setQueriesData<TelegramFile[]>({ queryKey: ['files'] }, (old) => {
-            if (!old) return old;
-            return old.map((f) => f.id === file.id ? { ...f, name: effectiveName, file_ext: pathExt || f.file_ext, encryption_state: 'encrypted_unlocked' } : f);
-        });
-
-        setPreviewInitialThumbnail(initialThumbnail ?? null);
-        const sourceFolderId = file.folder_id ?? activeFolderId;
-        void invoke('cmd_record_file_opened', {
-            folderId: sourceFolderId,
-            messageId: file.id,
-            fileName: resolvedFile.name,
-            fileSize: file.size,
-            mimeType: file.mime_type ?? null,
-            fileExt: resolvedFile.file_ext ?? null,
-            createdAt: file.created_at ?? null,
-            encryptionState: 'encrypted_unlocked',
-        }).then(() => queryClient.invalidateQueries({ queryKey: ['files', 'recents'] })).catch(() => {});
-
-        const contextFiles = (orderedFiles || displayedFiles).filter((f) => f.type !== 'folder');
-        const contextIndex = contextFiles.findIndex((candidate) => sameFile(candidate, file));
-        setPreviewContextFiles(contextFiles);
-        setPreviewContextIndex(contextIndex);
-
-        const isMedia = isMediaFile(effectiveName) || ['mp4', 'webm', 'ogg', 'mov', 'mkv', 'avi', 'mp3', 'wav', 'aac', 'flac', 'm4a'].includes(pathExt);
-        const isPdf = isPdfFile(effectiveName) || pathExt === 'pdf';
-        const isArchive = isArchiveFile(effectiveName) || ['zip', 'rar', '7z', 'tar', 'gz'].includes(pathExt);
-        const isDoc = isTextOrDocFile(effectiveName) || ['txt', 'md', 'json', 'log', 'csv', 'xml', 'js', 'ts', 'py', 'rs'].includes(pathExt);
-
-        if (isArchive) {
-            setArchiveViewFile(resolvedFile);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setDocFile(null);
-        } else if (isMedia) {
-            setPlayingFile(resolvedFile);
-            setPreviewFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        } else if (isPdf) {
-            setPdfFile(resolvedFile);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        } else if (isDoc) {
-            setDocFile(resolvedFile);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-        } else {
-            setPreviewFile(resolvedFile);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        }
-    }, [activeFolderId, displayedFiles, queryClient]);
-
-    const handlePreview = (file: TelegramFile, orderedFiles?: TelegramFile[], initialThumbnail?: string | null) => {
-        const isEncrypted = Boolean(
-            file.name === 'Encrypted file' ||
-            file.name.toLowerCase().endsWith('.tdenc') ||
-            file.encryption_state === 'encrypted_key_missing' ||
-            file.encryption_state === 'encrypted_locked' ||
-            (file as any).is_encrypted
-        );
-
-        if (isEncrypted && vaultStatus?.is_unlocked) {
-            const sourceFolderId = file.folder_id ?? activeFolderId;
-            const cached = getCachedPreview(file.id, sourceFolderId);
-            if (cached) {
-                openDecryptedFileInApp(file, cached, orderedFiles, initialThumbnail);
-                return;
-            }
-
-            const toastId = toast.loading(`Preparing preview…`);
-            invoke<string>('cmd_get_preview', {
-                messageId: file.id,
-                folderId: sourceFolderId,
-            }).then((decryptedPath) => {
-                toast.dismiss(toastId);
-                if (decryptedPath) {
-                    setCachedPreview(file.id, sourceFolderId, decryptedPath);
-                    openDecryptedFileInApp(file, decryptedPath, orderedFiles, initialThumbnail);
-                } else {
-                    setPreviewFile(file);
-                }
-            }).catch((_err) => {
-                toast.dismiss(toastId);
-                setPreviewFile(file);
-            });
-            return;
-        }
-
-        setPreviewInitialThumbnail(initialThumbnail ?? null);
-        const sourceFolderId = file.folder_id ?? activeFolderId;
-        void invoke('cmd_record_file_opened', {
-            folderId: sourceFolderId,
-            messageId: file.id,
-            fileName: file.name,
-            fileSize: file.size,
-            mimeType: file.mime_type ?? null,
-            fileExt: file.file_ext ?? null,
-            createdAt: file.created_at ?? null,
-            encryptionState: file.encryption_state ?? 'plain',
-        }).then(() => queryClient.invalidateQueries({ queryKey: ['files', 'recents'] })).catch(() => {});
-        const contextFiles = (orderedFiles || displayedFiles).filter((f) => f.type !== 'folder');
-        const contextIndex = contextFiles.findIndex((candidate) => sameFile(candidate, file));
-
-        setPreviewContextFiles(contextFiles);
-        setPreviewContextIndex(contextIndex);
-
-        const isMedia = isMediaFile(file.name);
-        const isPdf = isPdfFile(file.name);
-        const isArchive = isArchiveFile(file.name);
-        const isDoc = isTextOrDocFile(file.name);
-
-        if (isArchive) {
-            setArchiveViewFile(file);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setDocFile(null);
-        } else if (isMedia) {
-            setPlayingFile(file);
-            setPreviewFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        } else if (isPdf) {
-            setPdfFile(file);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        } else if (isDoc) {
-            setDocFile(file);
-            setPreviewFile(null);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-        } else {
-            setPreviewFile(file);
-            setPlayingFile(null);
-            setPdfFile(null);
-            setArchiveViewFile(null);
-            setDocFile(null);
-        }
-    };
 
     const navigatePreview = useCallback((step: 1 | -1) => {
         if (previewContextFiles.length === 0) return;
@@ -894,12 +931,12 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
     const handleMoveFilesToFolder = async (idsToMove: number[], targetFolderId: number | null) => {
         if (idsToMove.length === 0) return;
-        const sourceFolders = new Set(displayedFiles.filter(file => idsToMove.includes(file.id)).map(file => file.folder_id ?? activeFolderId));
+        const sourceFolders = new Set<number | null>(displayedFiles.filter((file: TelegramFile) => idsToMove.includes(file.id)).map((file: TelegramFile) => file.folder_id ?? activeFolderId));
         if (sourceFolders.size > 1) {
             toast.info('Move files from one source folder at a time.');
             return;
         }
-        const sourceFolderId = sourceFolders.values().next().value ?? activeFolderId;
+        const sourceFolderId: number | null = sourceFolders.size > 0 ? (Array.from(sourceFolders)[0] ?? activeFolderId) : activeFolderId;
         if (sourceFolderId === targetFolderId) {
             toast.info('File is already in this folder');
             return;
@@ -1048,6 +1085,18 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     }, [activeFolderId, queryClient]);
 
 
+    const handleDownloadFile = useCallback((file: TelegramFile) => {
+        queueDownload(file.id, file.name, file.folder_id ?? activeFolderId, file.size);
+    }, [queueDownload, activeFolderId]);
+
+    const handleToggleFavorite = useCallback((file: TelegramFile) => {
+        void updateActivityFlag(file, 'favorite');
+    }, [updateActivityFlag]);
+
+    const handleTogglePinned = useCallback((file: TelegramFile) => {
+        void updateActivityFlag(file, 'pinned');
+    }, [updateActivityFlag]);
+
     const previewNeighbors = previewNeighborFiles();
 
     return (
@@ -1180,9 +1229,11 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 activeSmartView={activeSmartView}
                 onSmartViewChange={setActiveSmartView}
                 isPro={Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free)}
-                onRequirePro={(feat) => {
-                    setPaywallTriggerFeature(feat || 'general');
-                    setShowProUpgradeModal(true);
+                onRequirePro={(feature) => {
+                    setLockedFeatureModal({
+                        isOpen: true,
+                        feature: feature || 'folders',
+                    });
                 }}
             />
 
@@ -1208,14 +1259,18 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                     onSearchChange={setSearchTerm}
                     searchFilters={searchFilters}
                     onSearchFiltersChange={setSearchFilters}
+                    isSearchExpanded={isSearchExpanded}
+                    onToggleSearchExpanded={setIsSearchExpanded}
                     onSettingsClick={() => setShowSettings(true)}
                     onRemoteUploadClick={() => setShowRemoteUpload(true)}
                     onNewFolderClick={() => {
                         const isPro = Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free);
                         const customFolders = folders.filter(f => f.name.toLowerCase() !== 'saved messages' && f.name.toLowerCase() !== 'saved');
                         if (!isPro && customFolders.length >= 1) {
-                            setPaywallTriggerFeature('folders');
-                            setShowProUpgradeModal(true);
+                            setLockedFeatureModal({
+                                isOpen: true,
+                                feature: 'folders',
+                            });
                             return;
                         }
                         setCreateFolderRequest((value) => value + 1);
@@ -1240,7 +1295,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                     activeFolderId={activeFolderId}
                     onFileClick={handleFileClick}
                     onDelete={handleDelete}
-                    onDownload={(file) => queueDownload(file.id, file.name, file.folder_id ?? activeFolderId, file.size)}
+                    onDownload={handleDownloadFile}
                     onPreview={handlePreview}
                     onManualUpload={handleManualUpload}
                     onFolderUpload={handleFolderUpload}
@@ -1253,8 +1308,8 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                     sortField={sortField}
                     sortDirection={sortDirection}
                     onSortChange={handleSortChange}
-                    onToggleFavorite={(file) => void updateActivityFlag(file, 'favorite')}
-                    onTogglePinned={(file) => void updateActivityFlag(file, 'pinned')}
+                    onToggleFavorite={handleToggleFavorite}
+                    onTogglePinned={handleTogglePinned}
                     syncProgress={folderSyncProgress}
                     selectionDisabled={isCrossFolderView}
                 />
@@ -1328,9 +1383,11 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 onCancelDownload={cancelDownloadItem}
                 onRetryDownload={retryDownloadItem}
                 isPro={Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free)}
-                onRequirePro={(feat) => {
-                    setPaywallTriggerFeature(feat || 'general');
-                    setShowProUpgradeModal(true);
+                onRequirePro={(feature) => {
+                    setLockedFeatureModal({
+                        isOpen: true,
+                        feature: (feature as PaywallTriggerFeature) || 'speed',
+                    });
                 }}
             />
 
@@ -1355,31 +1412,6 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
 
             {showHelp && <LazyFeatureBoundary><LazyHelpCenterDialog onClose={() => setShowHelp(false)} /></LazyFeatureBoundary>}
 
-            {showProUpgradeModal && (
-                <PaywallGateModal
-                    isOpen={showProUpgradeModal}
-                    isCompulsory={false}
-                    triggerFeature={paywallTriggerFeature}
-                    expiredReason={desktopExpiredAlert}
-                    onClose={() => setShowProUpgradeModal(false)}
-                    telegramAccount={{
-                        userId: userProfile?.id,
-                        phoneNumber: userProfile?.phone,
-                        firstName: userProfile?.firstName,
-                        lastName: userProfile?.lastName,
-                        username: userProfile?.username,
-                    }}
-                    onLogout={onLogout}
-                    onActivated={async (lic) => {
-                        setDesktopLicense(lic);
-                        setShowProUpgradeModal(false);
-                        setDesktopExpiredAlert(null);
-                        await refreshStatus();
-                        toast.success('Telegram Drive Pro activated successfully!');
-                    }}
-                />
-            )}
-
             {supporterOfferTrigger && (
                 <SupporterOfferDialog
                     trigger={supporterOfferTrigger}
@@ -1388,17 +1420,20 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 />
             )}
 
-            <DesktopAdBanner
-                suppressed={
-                    uploadQueue.some(item => ['pending', 'uploading', 'downloading', 'encrypting', 'verifying'].includes(item.status))
-                    || downloadQueue.some(item => ['pending', 'cooldown', 'downloading', 'decrypting', 'verifying'].includes(item.status))
-                    || Boolean(previewFile || playingFile || pdfFile || archiveViewFile || docFile || showSettings || showMoveModal || shareFile || shareFiles || showRemoteUpload || showHelp || supporterOfferTrigger || !settings.driveTourSeen)
-                }
-                onSupport={() => { setSettingsInitialTab('privacy'); setShowSettings(true); }}
-                onManualDismiss={() => showSupporterOffer('ad_dismissed')}
+            <LockedFeatureModal
+                isOpen={lockedFeatureModal.isOpen}
+                feature={lockedFeatureModal.feature}
+                customTitle={lockedFeatureModal.customTitle}
+                onClose={() => setLockedFeatureModal(prev => ({ ...prev, isOpen: false }))}
+                onGetPro={() => {
+                    setLockedFeatureModal(prev => ({ ...prev, isOpen: false }));
+                    setSettingsInitialTab('privacy');
+                    setShowSettings(true);
+                }}
             />
 
             {(shareFile || (shareFiles && shareFiles.length > 0)) && (
+
                 <ShareDialog
                     file={shareFile}
                     files={shareFiles ?? undefined}

@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { MoreVertical, Globe, Pencil, Trash2, EyeOff, Eye, Link } from 'lucide-react';
+import { MoreVertical, Globe, Pencil, Trash2, EyeOff, Eye, Link, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -15,6 +15,7 @@ interface SidebarItemProps {
     onDelete?: () => void;
     folderId: number | null;
     isPublic?: boolean;
+    isLocked?: boolean;
     onRename?: () => void;
     onToggleVisibility?: () => void;
     onExportInvite?: () => void;
@@ -27,7 +28,7 @@ interface SidebarItemProps {
  * Sortable sidebar folder and drop target for pointer/keyboard file moves.
  */
 export function SidebarItem({
-    icon: Icon, label, active = false, onClick, onDelete, folderId, isPublic, onRename, onToggleVisibility, onExportInvite, collapsed = false,
+    icon: Icon, label, active = false, onClick, onDelete, folderId, isPublic, isLocked = false, onRename, onToggleVisibility, onExportInvite, collapsed = false,
     groups = [], onAssignFolderToGroup
 }: SidebarItemProps) {
     const { t } = useTranslation();
@@ -44,7 +45,7 @@ export function SidebarItem({
     } = useSortable({
         id: folderId !== null ? `folder-${folderId}` : 'saved-messages',
         data: { kind: 'sidebar-folder', folderId },
-        disabled: folderId === null ? { draggable: true, droppable: false } : false,
+        disabled: folderId === null || isLocked ? { draggable: true, droppable: false } : false,
     });
 
     const style = folderId !== null ? {
@@ -53,7 +54,7 @@ export function SidebarItem({
         opacity: isDragging ? 0.4 : undefined,
     } : undefined;
 
-    const hasFolderActions = onDelete && folderId !== null;
+    const hasFolderActions = onDelete && folderId !== null && !isLocked;
     const {
         menuPosition,
         menuRef,
@@ -62,7 +63,7 @@ export function SidebarItem({
         openFromContextMenu,
         runAndClose,
     } = useSidebarFolderMenu(Boolean(hasFolderActions));
-    const isFileDragOver = isOver && dragActive?.data.current?.kind === 'telegram-files';
+    const isFileDragOver = !isLocked && isOver && dragActive?.data.current?.kind === 'telegram-files';
     const dragCount = Array.isArray(dragActive?.data.current?.fileIds)
         ? dragActive.data.current.fileIds.length
         : 0;
@@ -74,26 +75,38 @@ export function SidebarItem({
             {...attributes}
             {...listeners}
             onClick={onClick}
-            title={collapsed ? label : undefined}
-            onContextMenu={openFromContextMenu}
+            title={collapsed ? (isLocked ? `${label} (Locked - Pro Required)` : label) : undefined}
+            onContextMenu={isLocked ? undefined : openFromContextMenu}
             className={`quiet-control group flex h-8 w-full cursor-pointer select-none items-center text-ui ${collapsed ? 'justify-center px-0' : 'gap-2.5 px-2.5'} ${active
                 ? 'bg-app-selected font-medium text-app-text'
                 : isFileDragOver
                     ? 'bg-app-selected text-app-text ring-2 ring-app-accent'
-                    : 'text-app-text-secondary hover:text-app-text'
+                    : isLocked
+                        ? 'text-app-text-tertiary hover:text-amber-400 opacity-75'
+                        : 'text-app-text-secondary hover:text-app-text'
                 }`}
         >
-            <Icon className={`h-4 w-4 flex-shrink-0 ${active || isFileDragOver ? 'text-app-accent' : ''}`} />
-            {!collapsed && <span className="flex-1 truncate text-start">{label}</span>}
+            <Icon className={`h-4 w-4 flex-shrink-0 ${active || isFileDragOver ? 'text-app-accent' : isLocked ? 'text-amber-400' : ''}`} />
+            {!collapsed && (
+                <span className={`flex-1 truncate text-start ${isLocked ? 'text-app-text-tertiary' : ''}`}>
+                    {label}
+                </span>
+            )}
+            {isLocked && !collapsed && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/25 shrink-0">
+                    <Lock className="w-2.5 h-2.5" />
+                    <span>PRO</span>
+                </span>
+            )}
             {isFileDragOver && dragCount > 1 && (
                 <span className="flex-shrink-0 px-1.5 py-0.5 bg-telegram-primary text-white text-[10px] font-bold rounded-full leading-none min-w-[18px] text-center">
                     {dragCount}
                 </span>
             )}
-            {isPublic && !collapsed && (
+            {isPublic && !collapsed && !isLocked && (
                 <Globe className="w-3 h-3 text-emerald-400 flex-shrink-0" />
             )}
-            {onDelete && !collapsed && (
+            {onDelete && !collapsed && !isLocked && (
                 <button
                     type="button"
                     ref={triggerRef}

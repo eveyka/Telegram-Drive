@@ -48,10 +48,10 @@ describe('supporter visibility', () => {
     )).toBe(true);
   });
 
-  it('uses a 15-minute sponsor cooldown and recovers from invalid clocks', () => {
+  it('uses a 60-second sponsor cooldown and recovers from invalid clocks', () => {
     const now = 2_000_000_000_000;
 
-    expect(SPONSOR_AD_INTERVAL_MS).toBe(15 * 60 * 1_000);
+    expect(SPONSOR_AD_INTERVAL_MS).toBe(60 * 1_000);
     expect(sponsorAdCooldownRemaining(null, now)).toBe(0);
     expect(sponsorAdCooldownRemaining(now - SPONSOR_AD_INTERVAL_MS + 1, now)).toBe(1);
     expect(sponsorAdCooldownRemaining(now - SPONSOR_AD_INTERVAL_MS, now)).toBe(0);

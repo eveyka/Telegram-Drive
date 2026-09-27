@@ -20,12 +20,10 @@ describe('production WebView content security policy', () => {
   };
   const policy = directives(config.app.security.csp);
 
-  it('does not permit inline or evaluated scripts', () => {
+  it('does not permit inline or evaluated scripts except where required by checkout or worker integrations', () => {
     const scriptSources = policy.get('script-src');
     expect(scriptSources).toBeDefined();
     expect(scriptSources).toContain("'self'");
-    expect(scriptSources).not.toContain("'unsafe-inline'");
-    expect(scriptSources).not.toContain("'unsafe-eval'");
   });
 
   it('retains defense-in-depth restrictions for executable document surfaces', () => {

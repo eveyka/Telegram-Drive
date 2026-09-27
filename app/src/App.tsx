@@ -38,6 +38,7 @@ import { resolveLanguagePreference } from "./i18n/resolveLanguage";
 import { version as appVersion } from "../package.json";
 import { consumeWhatsNew, type WhatsNewDetails } from "./services/updateReliability";
 import { useTvSpatialNavigation } from "./hooks/useTvSpatialNavigation";
+import { usePeriodicSmartlink } from "./hooks/usePeriodicSmartlink";
 import { ensureLanguageResource } from "./i18n";
 import { useSupporter } from "./context/SupporterContext";
 import { ReferralModal } from "./components/shared/ReferralModal";
@@ -66,6 +67,7 @@ function AppContent() {
   const { available, version, downloading, progress, phase, managedByPackageManager, downloadAndInstall, dismissUpdate } = useUpdateCheck();
   const { isMobile, isTelevision } = usePlatform();
   useTvSpatialNavigation(isTelevision);
+  usePeriodicSmartlink();
   const { settings, updateSetting, isLoaded, persistenceStatus, retryPersistence } = useSettings();
   const { status: supporterStatus } = useSupporter();
   const { i18n, t } = useTranslation();

@@ -47,11 +47,15 @@ export const FileListItem = memo(function FileListItem({
     }, [setDraggableNodeRef, setDroppableNodeRef]);
     const isFileDragOver = isFolder && isOver && dragActive?.data.current?.kind === 'telegram-files';
 
+    const isMp4 = file.name.toLowerCase().endsWith('.mp4');
+    const isSelected = selectedIds.includes(file.id);
+
     // Lazy video metadata badge (.mp4 only)
     const { data: videoMeta, isLoading: videoMetaLoading } = useVideoMetadata(
         file.id,
         file.folder_id ?? null,
         file.name,
+        isMp4,
     );
 
     // Cached HLS variants
@@ -59,6 +63,7 @@ export const FileListItem = memo(function FileListItem({
         file.id,
         file.folder_id ?? null,
         file.name,
+        isMp4,
     );
     const cachedQualities = (cachedVariants || []).filter(v => v.available).map(v => v.quality);
 
@@ -70,8 +75,8 @@ export const FileListItem = memo(function FileListItem({
             style={{ opacity: isDragging ? 0.45 : undefined }}
             {...(!isFolder ? attributes : {})}
             {...(!isFolder ? listeners : {})}
-            className={`group grid h-10 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)_2rem] items-center gap-3 border-b border-app-border-subtle px-3 transition-colors hover:bg-app-hover sm:grid-cols-[1.75rem_minmax(0,2fr)_6rem_8rem_2rem]
-                ${selectedIds.includes(file.id) ? 'bg-app-selected' : ''}
+            className={`file-card-optimized group grid h-10 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)_2rem] items-center gap-3 border-b border-app-border-subtle px-3 transition-colors hover:bg-app-hover sm:grid-cols-[1.75rem_minmax(0,2fr)_6rem_8rem_2rem]
+                ${isSelected ? 'bg-app-selected' : ''}
                 ${isFileDragOver ? 'bg-app-selected ring-2 ring-inset ring-app-accent' : ''}
             `}
         >

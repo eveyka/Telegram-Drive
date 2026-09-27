@@ -18,6 +18,7 @@ import { CreateFolderDialog } from './CreateFolderDialog';
 import { SyncStatusBadge } from '../sync/SyncStatusBadge';
 import { SmartAdBanner } from '../../shared/SmartAdBanner';
 import type { PaywallTriggerFeature } from '../../shared/PaywallGateModal';
+import { isCustomFolderLocked } from '../../../services/supporterVisibility';
 
 const PRESET_COLORS = [
     '#3B82F6', // Blue
@@ -414,24 +415,35 @@ export function Sidebar({
                         items={filteredFolders.map(folder => `folder-${folder.id}`)}
                         strategy={verticalListSortingStrategy}
                     >
-                        {filteredFolders.map(folder => (
-                            <SidebarItem
-                                key={folder.id}
-                                icon={Folder}
-                                label={folder.name}
-                                active={activeFolderId === folder.id && !activeSmartView}
-                                onClick={() => { onSmartViewChange?.(null); setActiveFolderId(folder.id); }}
-                                onDelete={() => onDelete(folder.id, folder.name)}
-                                onRename={() => onRename(folder.id, folder.name)}
-                                onToggleVisibility={() => onToggleVisibility(folder.id, folder.name, !!(folder.is_public || folder.username))}
-                                onExportInvite={() => onExportInvite(folder.id, folder.name)}
-                                folderId={folder.id}
-                                isPublic={!!(folder.is_public || folder.username)}
-                                collapsed={settings.sidebarCollapsed}
-                                groups={groups}
-                                onAssignFolderToGroup={onAssignFolderToGroup}
-                            />
-                        ))}
+                        {filteredFolders.map(folder => {
+                            const isLocked = isCustomFolderLocked(folder.id, folders, isPro);
+                            return (
+                                <SidebarItem
+                                    key={folder.id}
+                                    icon={Folder}
+                                    label={folder.name}
+                                    active={activeFolderId === folder.id && !activeSmartView}
+                                    isLocked={isLocked}
+                                    onClick={() => {
+                                        if (isLocked) {
+                                            onRequirePro?.('folders');
+                                            return;
+                                        }
+                                        onSmartViewChange?.(null);
+                                        setActiveFolderId(folder.id);
+                                    }}
+                                    onDelete={() => onDelete(folder.id, folder.name)}
+                                    onRename={() => onRename(folder.id, folder.name)}
+                                    onToggleVisibility={() => onToggleVisibility(folder.id, folder.name, !!(folder.is_public || folder.username))}
+                                    onExportInvite={() => onExportInvite(folder.id, folder.name)}
+                                    folderId={folder.id}
+                                    isPublic={!!(folder.is_public || folder.username)}
+                                    collapsed={settings.sidebarCollapsed}
+                                    groups={groups}
+                                    onAssignFolderToGroup={onAssignFolderToGroup}
+                                />
+                            );
+                        })}
                     </SortableContext>
                 </nav>
             {/* Sticky Create Folder section — always visible above the footer */}

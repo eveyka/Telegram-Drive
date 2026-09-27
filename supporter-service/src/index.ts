@@ -4,6 +4,21 @@ import {
   countActiveDevices,
   createCoupon,
   createLicense,
+  createPaymentTransaction,
+  directUpgradeProUser,
+  getPaymentTransactionByOrderId,
+  listPaymentTransactions,
+  updatePaymentTransactionSuccess,
+  upsertBotSubscriber,
+  listBotSubscribers,
+  countBotSubscribers,
+  upsertProUser,
+  getProUserByTelegramId,
+  listProUsers,
+  searchProUsers,
+  banProUser,
+  unbanProUser,
+  deleteProUser,
   deactivateDevice,
   deleteCoupon,
   deleteLicense,
@@ -54,6 +69,11 @@ import {
   verifyLicenseToken,
   verifyTelegramAuth,
 } from './crypto';
+import {
+  sendTelegramMessage,
+  sendProWelcomeMessage,
+  handleTelegramBotUpdate,
+} from './telegramBot';
 import { renderAdminDashboardHtml } from './adminHtml';
 import { renderRecoveryHtml } from './recoveryHtml';
 import { renderEveykaHtml } from './eveykaHtml';
@@ -74,7 +94,14 @@ import type {
   DevicePlatform,
   Env,
   LicenseClaims,
+  LicensePlan,
   LicenseRow,
+  ProUserRow,
+  PaymentTransactionRow,
+  BotSubscriberRow,
+  CreateRazorpayOrderRequest,
+  VerifyRazorpayPaymentRequest,
+  BroadcastMessageRequest,
   RequestOtpRequest,
   SelfResetDeviceRequest,
   VerifyOtpRequest,
@@ -401,6 +428,88 @@ export default {
             price: body.price,
             payment_link: paymentLink || env.STORE_URL,
             message: `Live price successfully updated to ₹${body.price.toFixed(2)}! Apps will sync immediately.`,
+          });
+        }
+
+        // POST /api/admin/plans - Update membership plans pricing, original prices, and checkout URLs
+        if (url.pathname === '/api/admin/plans' && request.method === 'POST') {
+          const body = (await request.json()) as {
+            lifetime_price?: number;
+            lifetime_orig?: number;
+            lifetime_url?: string;
+            annual_price?: number;
+            annual_orig?: number;
+            annual_url?: string;
+            monthly_price?: number;
+            monthly_orig?: number;
+            monthly_url?: string;
+          };
+
+          if (body.lifetime_price !== undefined) {
+            await setStoreSetting(env.DB, 'plan_lifetime_price', String(body.lifetime_price));
+            await setStoreSetting(env.DB, 'live_price', String(body.lifetime_price));
+          }
+          if (body.lifetime_orig !== undefined) {
+            await setStoreSetting(env.DB, 'plan_lifetime_orig', String(body.lifetime_orig));
+          }
+          if (body.lifetime_url) {
+            await setStoreSetting(env.DB, 'plan_lifetime_url', body.lifetime_url);
+            await setStoreSetting(env.DB, 'store_url', body.lifetime_url);
+          }
+
+          if (body.annual_price !== undefined) {
+            await setStoreSetting(env.DB, 'plan_annual_price', String(body.annual_price));
+          }
+          if (body.annual_orig !== undefined) {
+            await setStoreSetting(env.DB, 'plan_annual_orig', String(body.annual_orig));
+          }
+          if (body.annual_url) {
+            await setStoreSetting(env.DB, 'plan_annual_url', body.annual_url);
+          }
+
+          if (body.monthly_price !== undefined) {
+            await setStoreSetting(env.DB, 'plan_monthly_price', String(body.monthly_price));
+          }
+          if (body.monthly_orig !== undefined) {
+            await setStoreSetting(env.DB, 'plan_monthly_orig', String(body.monthly_orig));
+          }
+          if (body.monthly_url) {
+            await setStoreSetting(env.DB, 'plan_monthly_url', body.monthly_url);
+          }
+
+          await recordAdminLog(env.DB, 'UPDATE_PLANS', null, `Updated membership plans pricing and URLs`);
+
+          return jsonResponse({
+            success: true,
+            message: 'Membership plans successfully updated! Apps and store will sync immediately.',
+          });
+        }
+
+        // GET /api/admin/plans - Fetch current configured plans
+        if (url.pathname === '/api/admin/plans' && request.method === 'GET') {
+          const defaultUrl = env.STORE_URL || 'https://rzp.io/rzp/eBLEV0w';
+          const lifetimePrice = parseFloat(await getStoreSetting(env.DB, 'plan_lifetime_price', await getStoreSetting(env.DB, 'live_price', '499'))) || 499;
+          const lifetimeOrig = parseFloat(await getStoreSetting(env.DB, 'plan_lifetime_orig', '1499')) || 1499;
+          const lifetimeUrl = await getStoreSetting(env.DB, 'plan_lifetime_url', await getStoreSetting(env.DB, 'store_url', defaultUrl));
+
+          const annualPrice = parseFloat(await getStoreSetting(env.DB, 'plan_annual_price', '299')) || 299;
+          const annualOrig = parseFloat(await getStoreSetting(env.DB, 'plan_annual_orig', '599')) || 599;
+          const annualUrl = await getStoreSetting(env.DB, 'plan_annual_url', defaultUrl);
+
+          const monthlyPrice = parseFloat(await getStoreSetting(env.DB, 'plan_monthly_price', '49')) || 49;
+          const monthlyOrig = parseFloat(await getStoreSetting(env.DB, 'plan_monthly_orig', '99')) || 99;
+          const monthlyUrl = await getStoreSetting(env.DB, 'plan_monthly_url', defaultUrl);
+
+          return jsonResponse({
+            lifetime_price: Math.round(lifetimePrice),
+            lifetime_orig: Math.round(lifetimeOrig),
+            lifetime_url: lifetimeUrl,
+            annual_price: Math.round(annualPrice),
+            annual_orig: Math.round(annualOrig),
+            annual_url: annualUrl,
+            monthly_price: Math.round(monthlyPrice),
+            monthly_orig: Math.round(monthlyOrig),
+            monthly_url: monthlyUrl,
           });
         }
 
@@ -754,12 +863,447 @@ export default {
           return jsonResponse({ success: true, message: 'All crash reports have been cleared.' });
         }
 
-        // DELETE /api/admin/crash-reports/:id
-        if (url.pathname.startsWith('/api/admin/crash-reports/') && request.method === 'DELETE') {
-          const id = url.pathname.replace('/api/admin/crash-reports/', '').trim();
-          if (!id) return jsonResponse({ error: 'Missing crash report id' }, 400);
-          await deleteCrashReport(env.DB, id);
+        // GET /api/admin/pro-users
+        if (url.pathname === '/api/admin/pro-users' && request.method === 'GET') {
+          const q = url.searchParams.get('q') || '';
+          const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '100', 10)));
+          const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10));
+          const users = q ? await searchProUsers(env.DB, q) : await listProUsers(env.DB, limit, offset);
+          return jsonResponse({ users });
+        }
+
+        // POST /api/admin/pro-users/upgrade
+        if (url.pathname === '/api/admin/pro-users/upgrade' && request.method === 'POST') {
+          const body = (await request.json()) as {
+            telegram_user_id: string;
+            phone_number?: string;
+            first_name?: string;
+            username?: string;
+            plan_type?: LicensePlan;
+            duration_days?: number;
+            notes?: string;
+          };
+          if (!body.telegram_user_id) {
+            return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          }
+          const now = Math.floor(Date.now() / 1000);
+          const expiresAt = body.duration_days && body.duration_days > 0 ? now + body.duration_days * 86400 : null;
+          const user = await directUpgradeProUser(env.DB, {
+            telegram_user_id: body.telegram_user_id,
+            phone_number: body.phone_number || null,
+            customer_name: body.first_name || null,
+            username: body.username || null,
+            plan_type: body.plan_type || 'lifetime',
+            expires_at: expiresAt,
+            notes: body.notes || 'Admin manual upgrade',
+          });
+          await recordAdminLog(env.DB, 'ADMIN_UPGRADE_USER', body.telegram_user_id, `Manually granted Pro to user ${body.telegram_user_id} (${body.plan_type || 'lifetime'})`);
+          return jsonResponse({ success: true, user });
+        }
+
+        // POST /api/admin/pro-users/ban
+        if (url.pathname === '/api/admin/pro-users/ban' && request.method === 'POST') {
+          const body = (await request.json()) as { telegram_user_id: string; reason?: string };
+          if (!body.telegram_user_id) return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          await banProUser(env.DB, body.telegram_user_id, body.reason);
+          await recordAdminLog(env.DB, 'BAN_PRO_USER', body.telegram_user_id, `Banned Pro user ${body.telegram_user_id}: ${body.reason || 'No reason'}`);
           return jsonResponse({ success: true });
+        }
+
+        // POST /api/admin/pro-users/unban
+        if (url.pathname === '/api/admin/pro-users/unban' && request.method === 'POST') {
+          const body = (await request.json()) as { telegram_user_id: string };
+          if (!body.telegram_user_id) return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          await unbanProUser(env.DB, body.telegram_user_id);
+          await recordAdminLog(env.DB, 'UNBAN_PRO_USER', body.telegram_user_id, `Unbanned Pro user ${body.telegram_user_id}`);
+          return jsonResponse({ success: true });
+        }
+
+        // POST /api/admin/pro-users/delete
+        if (url.pathname === '/api/admin/pro-users/delete' && request.method === 'POST') {
+          const body = (await request.json()) as { telegram_user_id: string };
+          if (!body.telegram_user_id) return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          await deleteProUser(env.DB, body.telegram_user_id);
+          await recordAdminLog(env.DB, 'DELETE_PRO_USER', body.telegram_user_id, `Deleted Pro user ${body.telegram_user_id}`);
+          return jsonResponse({ success: true });
+        }
+
+        // GET /api/admin/payment-transactions
+        if (url.pathname === '/api/admin/payment-transactions' && request.method === 'GET') {
+          const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '100', 10)));
+          const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10));
+          const transactions = await listPaymentTransactions(env.DB, limit, offset);
+          return jsonResponse({ transactions });
+        }
+
+        // GET /api/admin/bot-subscribers
+        if (url.pathname === '/api/admin/bot-subscribers' && request.method === 'GET') {
+          const subscribers = await listBotSubscribers(env.DB, false);
+          const activeCount = await countBotSubscribers(env.DB);
+          return jsonResponse({ subscribers, active_count: activeCount });
+        }
+
+        // POST /api/admin/broadcast
+        if (url.pathname === '/api/admin/broadcast' && request.method === 'POST') {
+          const body = (await request.json()) as BroadcastMessageRequest;
+          if (!body.message || !body.message.trim()) {
+            return jsonResponse({ error: 'Broadcast message content cannot be empty' }, 400);
+          }
+
+          const botToken = env.TELEGRAM_BOT_TOKEN;
+          if (!botToken) {
+            return jsonResponse({ error: 'TELEGRAM_BOT_TOKEN is not configured on server' }, 400);
+          }
+
+          let subscribers = await listBotSubscribers(env.DB, true);
+          if (body.target_user_id) {
+            subscribers = subscribers.filter(s => s.telegram_user_id === body.target_user_id || s.chat_id === body.target_user_id);
+            if (subscribers.length === 0) {
+              subscribers = [{ telegram_user_id: body.target_user_id, chat_id: body.target_user_id, username: null, first_name: null, subscribed_at: Date.now(), is_active: 1 }];
+            }
+          }
+
+          let sentCount = 0;
+          let failedCount = 0;
+
+          const replyMarkup = (body.button_text && body.button_url) ? {
+            inline_keyboard: [[{ text: body.button_text.trim(), url: body.button_url.trim() }]]
+          } : undefined;
+
+          for (const sub of subscribers) {
+            try {
+              const res = await sendTelegramMessage(botToken, sub.chat_id, body.message, {
+                parse_mode: body.parse_mode || 'Markdown',
+                reply_markup: replyMarkup,
+              });
+              if (res.ok) {
+                sentCount++;
+              } else {
+                failedCount++;
+              }
+            } catch {
+              failedCount++;
+            }
+          }
+
+        }
+      }
+
+      // -------------------------------------------------------------
+      // 2.1 Direct Razorpay Payment APIs (Account-Linked Entitlement)
+      // -------------------------------------------------------------
+
+      // POST /api/payment/razorpay/create-order
+      if (url.pathname === '/api/payment/razorpay/create-order' && request.method === 'POST') {
+        try {
+          await ensureStoreTables(env.DB);
+          const body = (await request.json()) as CreateRazorpayOrderRequest;
+          const tgUserId = body.telegram_user_id ? String(body.telegram_user_id).trim() : '';
+          if (!tgUserId) {
+            return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          }
+
+          const planType = body.plan_type || 'lifetime';
+          let amountInPaise = 39900; // default ₹399 in paise
+
+          if (typeof body.amount === 'number' && body.amount > 0) {
+            amountInPaise = body.amount >= 1000 ? Math.round(body.amount) : Math.round(body.amount * 100);
+          } else {
+            const livePriceStr = await getStoreSetting(env.DB, 'live_price', '399');
+            const livePrice = parseFloat(livePriceStr) || 399;
+            amountInPaise = Math.round(livePrice * 100);
+          }
+
+          const keyId = env.RAZORPAY_KEY_ID;
+          const keySecret = env.RAZORPAY_KEY_SECRET;
+
+          if (!keyId || !keySecret) {
+            // Mock order ID if Razorpay keys not yet set in environment
+            const mockOrderId = `order_mock_${Date.now()}`;
+            await createPaymentTransaction(env.DB, {
+              id: crypto.randomUUID(),
+              order_id: mockOrderId,
+              telegram_user_id: tgUserId,
+              phone_number: body.phone_number || null,
+              customer_name: body.customer_name || null,
+              customer_email: body.customer_email || null,
+              plan_type: planType,
+              amount: amountInPaise,
+              currency: 'INR',
+              status: 'created',
+            });
+
+            return jsonResponse({
+              success: true,
+              order_id: mockOrderId,
+              key_id: 'rzp_test_placeholder',
+              amount: amountInPaise,
+              currency: 'INR',
+              plan_type: planType,
+              telegram_user_id: tgUserId,
+            });
+          }
+
+          // Call official Razorpay Orders API
+          const authHeader = 'Basic ' + btoa(`${keyId}:${keySecret}`);
+          const receiptId = `rcpt_${tgUserId}_${Date.now()}`.slice(0, 40);
+
+          const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              amount: amountInPaise,
+              currency: 'INR',
+              receipt: receiptId,
+              notes: {
+                telegram_user_id: tgUserId,
+                phone_number: body.phone_number || '',
+                customer_name: body.customer_name || '',
+                customer_email: body.customer_email || '',
+                plan_type: planType,
+              },
+            }),
+          });
+
+          const rzpData = (await rzpRes.json()) as { id?: string; amount?: number; currency?: string; error?: { description?: string } };
+
+          if (!rzpRes.ok || !rzpData.id) {
+            return jsonResponse({
+              error: rzpData.error?.description || 'Failed to create Razorpay order',
+            }, 500);
+          }
+
+          // Record created order in payment_transactions table
+          await createPaymentTransaction(env.DB, {
+            id: crypto.randomUUID(),
+            order_id: rzpData.id,
+            telegram_user_id: tgUserId,
+            phone_number: body.phone_number || null,
+            customer_name: body.customer_name || null,
+            customer_email: body.customer_email || null,
+            plan_type: planType,
+            amount: rzpData.amount || amountInPaise,
+            currency: rzpData.currency || 'INR',
+            status: 'created',
+          });
+
+          return jsonResponse({
+            success: true,
+            order_id: rzpData.id,
+            key_id: keyId,
+            amount: rzpData.amount || amountInPaise,
+            currency: rzpData.currency || 'INR',
+            plan_type: planType,
+            telegram_user_id: tgUserId,
+          });
+        } catch (err) {
+          console.error('Error in create-order:', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Error creating order' }, 500);
+        }
+      }
+
+      // POST /api/payment/razorpay/verify
+      if (url.pathname === '/api/payment/razorpay/verify' && request.method === 'POST') {
+        try {
+          await ensureStoreTables(env.DB);
+          const body = (await request.json()) as VerifyRazorpayPaymentRequest;
+          const { order_id, payment_id, signature } = body;
+          const tgUserId = body.telegram_user_id ? String(body.telegram_user_id).trim() : '';
+
+          if (!order_id || !payment_id || !signature || !tgUserId) {
+            return jsonResponse({ error: 'order_id, payment_id, signature, and telegram_user_id are required' }, 400);
+          }
+
+          const keySecret = env.RAZORPAY_KEY_SECRET;
+          if (keySecret) {
+            const dataToSign = `${order_id}|${payment_id}`;
+            const isValid = await verifyHmacSha256(dataToSign, signature, keySecret);
+            if (!isValid) {
+              return jsonResponse({ error: 'Invalid payment signature. Verification failed.' }, 400);
+            }
+          }
+
+          const planType = body.plan_type || 'lifetime';
+          const now = Math.floor(Date.now() / 1000);
+          let expiresAt: number | null = null;
+          if (planType === 'annual') {
+            expiresAt = now + 365 * 86400;
+          } else if (planType === 'monthly') {
+            expiresAt = now + 30 * 86400;
+          }
+
+          // Update payment transaction record
+          await updatePaymentTransactionSuccess(env.DB, order_id, payment_id, signature, 'razorpay');
+
+          // Upgrade Pro account directly in pro_users & licenses table
+          await directUpgradeProUser(env.DB, {
+            telegram_user_id: tgUserId,
+            phone_number: body.phone_number || null,
+            customer_name: body.customer_name || null,
+            customer_email: body.customer_email || null,
+            plan_type: planType,
+            expires_at: expiresAt,
+            notes: `Razorpay Order ${order_id} (Payment: ${payment_id})`,
+          });
+
+          // Issue cryptographic Ed25519 token for offline grace & client validation
+          const claims: LicenseClaims = {
+            sub: tgUserId,
+            tg_id: tgUserId,
+            phone: body.phone_number || undefined,
+            plan: planType,
+            exp: expiresAt,
+            iat: now,
+            iss: 'tg-drive-pro',
+            name: body.customer_name || undefined,
+          };
+          const token = await issueLicenseToken(claims, env);
+
+          // Send instant Telegram Welcome / Confirmation receipt message if bot token configured
+          if (env.TELEGRAM_BOT_TOKEN) {
+            try {
+              await sendProWelcomeMessage(
+                env.TELEGRAM_BOT_TOKEN,
+                tgUserId,
+                body.customer_name || 'Friend',
+                planType === 'lifetime' ? 'Lifetime Pro' : `${planType} Pro`
+              );
+            } catch (botErr) {
+              console.error('Failed to send Telegram bot pro welcome message:', botErr);
+            }
+          }
+
+          await recordAdminLog(env.DB, 'RAZORPAY_VERIFY_SUCCESS', tgUserId, `Pro unlocked for Telegram User ${tgUserId} (Order: ${order_id})`);
+
+          return jsonResponse({
+            success: true,
+            is_pro: true,
+            plan_type: planType,
+            telegram_user_id: tgUserId,
+            expires_at: expiresAt,
+            token,
+            message: '🎉 Congratulations! Your TG Drive PRO is now active.',
+          });
+        } catch (err) {
+          console.error('Error in verify payment:', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Error verifying payment' }, 500);
+        }
+      }
+
+      // -------------------------------------------------------------
+      // 2.2 Direct User Entitlement & Status API (/api/user/status)
+      // -------------------------------------------------------------
+      if ((url.pathname === '/api/user/status' || url.pathname.startsWith('/api/user/')) && (request.method === 'GET' || request.method === 'POST')) {
+        let tgUserId = url.searchParams.get('telegram_user_id') || url.searchParams.get('tg_id') || '';
+        if (!tgUserId && url.pathname.startsWith('/api/user/') && url.pathname.endsWith('/status')) {
+          tgUserId = url.pathname.replace('/api/user/', '').replace('/status', '').trim();
+        }
+
+        let phone = url.searchParams.get('phone_number') || url.searchParams.get('phone') || '';
+
+        if (request.method === 'POST') {
+          try {
+            const body = (await request.json()) as Record<string, string>;
+            tgUserId = body.telegram_user_id || body.tg_id || tgUserId;
+            phone = body.phone_number || body.phone || phone;
+          } catch {}
+        }
+
+        tgUserId = tgUserId.trim();
+        phone = phone.trim();
+
+        if (!tgUserId && !phone) {
+          return jsonResponse({ active: false, is_pro: false, error: 'telegram_user_id is required' }, 400);
+        }
+
+        // 1. Check pro_users table
+        if (tgUserId) {
+          const proUser = await getProUserByTelegramId(env.DB, tgUserId);
+          if (proUser && proUser.is_banned === 0 && proUser.is_pro === 1) {
+            const now = Math.floor(Date.now() / 1000);
+            if (!proUser.expires_at || proUser.expires_at > now) {
+              const claims: LicenseClaims = {
+                sub: proUser.telegram_user_id,
+                tg_id: proUser.telegram_user_id,
+                phone: proUser.phone_number || undefined,
+                plan: proUser.plan_type,
+                exp: proUser.expires_at ?? null,
+                iat: now,
+                iss: 'tg-drive-pro',
+                name: proUser.first_name || undefined,
+              };
+              const token = await issueLicenseToken(claims, env);
+
+              return jsonResponse({
+                active: true,
+                is_pro: true,
+                plan_type: proUser.plan_type,
+                telegram_user_id: proUser.telegram_user_id,
+                phone_number: proUser.phone_number,
+                first_name: proUser.first_name,
+                username: proUser.username,
+                expires_at: proUser.expires_at,
+                ad_free: true,
+                token,
+                message: 'TG Drive Pro is active on your Telegram account.',
+              });
+            }
+          }
+        }
+
+        // 2. Fallback check licenses table (legacy)
+        const license = await getLicenseByTelegramAccount(env.DB, tgUserId || null, phone || null);
+        if (license && license.is_banned === 0) {
+          const now = Math.floor(Date.now() / 1000);
+          if (!license.expires_at || license.expires_at > now) {
+            const claims: LicenseClaims = {
+              sub: license.telegram_user_id || license.license_key,
+              tg_id: license.telegram_user_id || tgUserId || undefined,
+              phone: license.phone_number || phone || undefined,
+              plan: license.plan_type,
+              exp: license.expires_at,
+              iat: now,
+              iss: 'tg-drive-pro',
+              name: license.customer_name || undefined,
+            };
+            const token = await issueLicenseToken(claims, env);
+
+            return jsonResponse({
+              active: true,
+              is_pro: true,
+              plan_type: license.plan_type,
+              telegram_user_id: license.telegram_user_id,
+              phone_number: license.phone_number,
+              customer_name: license.customer_name,
+              expires_at: license.expires_at,
+              ad_free: true,
+              token,
+              message: 'TG Drive Pro is active on your Telegram account.',
+            });
+          }
+        }
+
+        return jsonResponse({
+          active: false,
+          is_pro: false,
+          ad_free: false,
+          message: 'No active Pro entitlement found for this Telegram account.',
+        });
+      }
+
+      // -------------------------------------------------------------
+      // 2.3 Telegram Bot Webhook API (/api/telegram/webhook)
+      // -------------------------------------------------------------
+      if ((url.pathname === '/api/telegram/webhook' || url.pathname === '/api/webhooks/telegram' || url.pathname === '/telegram/webhook') && request.method === 'POST') {
+        try {
+          const update = await request.json();
+          return await handleTelegramBotUpdate(update, env);
+        } catch (err) {
+          console.error('Telegram bot webhook error:', err);
+          return jsonResponse({ ok: false, error: 'Failed to process Telegram update' }, 500);
         }
       }
 
@@ -1230,35 +1774,138 @@ export default {
       if (url.pathname === '/api/store/config' && request.method === 'GET') {
         try {
           await ensureStoreTables(env.DB);
-          const livePriceStr = await getStoreSetting(env.DB, 'live_price', '399');
-          const storeUrl = await getStoreSetting(env.DB, 'store_url', env.STORE_URL || 'https://rzp.io/rzp/eBLEV0w');
+          const defaultUrl = env.STORE_URL || 'https://rzp.io/rzp/eBLEV0w';
+          const storeUrl = await getStoreSetting(env.DB, 'store_url', defaultUrl);
           const trialEnabled = (await getStoreSetting(env.DB, 'trial_enabled', '1')) === '1';
           const trialDays = parseInt(await getStoreSetting(env.DB, 'trial_days', '30'), 10) || 30;
-          const price = parseFloat(livePriceStr) || 399;
 
-          const trialLabel = `${trialDays}-Day Free Trial`;
+          const lifetimePrice = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_lifetime_price', await getStoreSetting(env.DB, 'live_price', '499'))) || 499);
+          const lifetimeOrig = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_lifetime_orig', '1499')) || 1499);
+          const lifetimeUrl = await getStoreSetting(env.DB, 'plan_lifetime_url', storeUrl);
+
+          const annualPrice = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_annual_price', '299')) || 299);
+          const annualOrig = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_annual_orig', '599')) || 599);
+          const annualUrl = await getStoreSetting(env.DB, 'plan_annual_url', storeUrl);
+
+          const monthlyPrice = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_monthly_price', '49')) || 49);
+          const monthlyOrig = Math.round(parseFloat(await getStoreSetting(env.DB, 'plan_monthly_orig', '99')) || 99);
+          const monthlyUrl = await getStoreSetting(env.DB, 'plan_monthly_url', storeUrl);
+
+          const plans = [
+            {
+              id: 'lifetime',
+              name: 'Lifetime Pro Access',
+              badge: '👑 BEST VALUE · ONE-TIME',
+              price: lifetimePrice,
+              originalPrice: lifetimeOrig,
+              discountPercent: Math.max(1, Math.round(((lifetimeOrig - lifetimePrice) / lifetimeOrig) * 100)),
+              period: 'one-time',
+              periodLabel: 'forever',
+              description: 'Pay once, enjoy full Pro privileges forever',
+              buy_url: lifetimeUrl,
+              features: [
+                '100% Ad-Free Cloud Vault Forever',
+                'TDENC2 Zero-Knowledge Military Encryption',
+                'Maximum Turbo Multi-Chunk Speeds (5x Faster)',
+                'Multi-Device Sync (Android, PC, Mac, Web)',
+              ],
+            },
+            {
+              id: 'annual',
+              name: '1-Year Annual Pass',
+              badge: '365 Days',
+              price: annualPrice,
+              originalPrice: annualOrig,
+              discountPercent: Math.max(1, Math.round(((annualOrig - annualPrice) / annualOrig) * 100)),
+              period: 'year',
+              periodLabel: '/ year',
+              description: 'Full year of high-speed ad-free cloud',
+              buy_url: annualUrl,
+              features: ['All Pro Features Included', '365 Days Full Pro Validity'],
+            },
+            {
+              id: 'monthly',
+              name: '1-Month Pass',
+              badge: '30 Days',
+              price: monthlyPrice,
+              originalPrice: monthlyOrig,
+              discountPercent: Math.max(1, Math.round(((monthlyOrig - monthlyPrice) / monthlyOrig) * 100)),
+              period: 'month',
+              periodLabel: '/ month',
+              description: 'Flexible short-term Pro pass',
+              buy_url: monthlyUrl,
+              features: ['Cancel anytime, full Pro access', '30 Days Full Pro Validity'],
+            },
+          ];
 
           return jsonResponse({
             product_name: 'TG Drive: Lifetime Pro License',
-            price: Math.round(price),
-            formatted_price: '₹' + Math.round(price),
+            price: lifetimePrice,
+            formatted_price: '₹' + lifetimePrice,
             currency: 'INR',
-            buy_url: storeUrl,
+            buy_url: lifetimeUrl,
             trial_enabled: trialEnabled,
             trial_days: trialDays,
-            trial_label: trialLabel,
+            trial_label: `${trialDays}-Day Free Trial`,
+            plans,
           });
         } catch (err) {
           console.error('Error fetching store config:', err);
           return jsonResponse({
             product_name: 'TG Drive: Lifetime Pro License',
-            price: 399,
-            formatted_price: '₹399',
+            price: 499,
+            formatted_price: '₹499',
             currency: 'INR',
             buy_url: 'https://rzp.io/rzp/eBLEV0w',
             trial_enabled: true,
             trial_days: 30,
             trial_label: '30-Day Free Trial',
+            plans: [
+              {
+                id: 'lifetime',
+                name: 'Lifetime Pro Access',
+                badge: '👑 BEST VALUE · ONE-TIME',
+                price: 499,
+                originalPrice: 1499,
+                discountPercent: 67,
+                period: 'one-time',
+                periodLabel: 'forever',
+                description: 'Pay once, enjoy full Pro privileges forever',
+                buy_url: 'https://rzp.io/rzp/eBLEV0w',
+                features: [
+                  '100% Ad-Free Cloud Vault Forever',
+                  'TDENC2 Zero-Knowledge Military Encryption',
+                  'Maximum Turbo Multi-Chunk Speeds (5x Faster)',
+                  'Multi-Device Sync (Android, PC, Mac, Web)',
+                ],
+              },
+              {
+                id: 'annual',
+                name: '1-Year Annual Pass',
+                badge: '365 Days',
+                price: 299,
+                originalPrice: 599,
+                discountPercent: 50,
+                period: 'year',
+                periodLabel: '/ year',
+                description: 'Full year of high-speed ad-free cloud',
+                buy_url: 'https://rzp.io/rzp/eBLEV0w',
+                features: ['All Pro Features Included', '365 Days Full Pro Validity'],
+              },
+              {
+                id: 'monthly',
+                name: '1-Month Pass',
+                badge: '30 Days',
+                price: 49,
+                originalPrice: 99,
+                discountPercent: 50,
+                period: 'month',
+                periodLabel: '/ month',
+                description: 'Flexible short-term Pro pass',
+                buy_url: 'https://rzp.io/rzp/eBLEV0w',
+                features: ['Cancel anytime, full Pro access', '30 Days Full Pro Validity'],
+              },
+            ],
           });
         }
       }
@@ -2011,8 +2658,17 @@ export default {
       // -------------------------------------------------------------
       // 4.5 Razorpay Automated Webhook (/api/webhooks/razorpay or /api/webhook)
       // -------------------------------------------------------------
-      if ((url.pathname === '/api/webhooks/razorpay' || url.pathname === '/api/webhook' || url.pathname === '/webhook') && request.method === 'POST') {
-        const rawBody = await request.text();
+      if (url.pathname === '/api/webhooks/razorpay' || url.pathname === '/api/webhook' || url.pathname === '/webhook') {
+        if (request.method === 'GET') {
+          return jsonResponse({
+            status: 'active',
+            message: 'Razorpay webhook receiver is live and waiting for POST notifications',
+            endpoint: url.pathname,
+            supported_events: ['payment.captured', 'order.paid', 'payment_link.paid'],
+          });
+        }
+        if (request.method === 'POST') {
+          const rawBody = await request.text();
 
         // Verify Razorpay Webhook HMAC Signature if secret is configured
         if (env.RAZORPAY_WEBHOOK_SECRET) {
@@ -2203,6 +2859,7 @@ export default {
         }
 
         return jsonResponse({ received: true });
+        }
       }
 
       // Root ping

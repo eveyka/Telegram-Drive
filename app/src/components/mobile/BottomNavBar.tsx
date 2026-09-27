@@ -26,7 +26,7 @@ export function BottomNavBar({ activeTab, setActiveTab, isAndroid, isTelevision,
   return (
     <nav
       aria-label={i18n.t("settings.color_primary")}
-      className={`fixed left-1/2 -translate-x-1/2 bg-telegram-surface/95 backdrop-blur-2xl border border-telegram-border/50 rounded-full p-2 shadow-2xl shadow-black/25 flex items-center gap-1.5 z-50 transition-all duration-300 ${
+      className={`mobile-nav-bar fixed left-1/2 -translate-x-1/2 bg-telegram-surface/95 backdrop-blur-2xl border border-telegram-border/50 rounded-full p-2 shadow-2xl shadow-black/25 flex items-center gap-1.5 z-50 transition-all duration-300 ${
         isTelevision
           ? 'tv-primary-nav'
           : isAndroid
