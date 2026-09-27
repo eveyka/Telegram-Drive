@@ -55,33 +55,9 @@ jobs:
         working-directory: app
         env:
           CI: "true"
-          TAURI_ENV_PLATFORM: "ios"
         run: |
-          npm run tauri ios build -- --ci --target aarch64 || true
-          
-          cd src-tauri/gen/apple
-          if [ -d "app_iOS.xcworkspace" ]; then
-            PROJECT_ARG="-workspace app_iOS.xcworkspace"
-          elif [ -d "app.xcodeproj" ]; then
-            PROJECT_ARG="-project app.xcodeproj"
-          else
-            XCODEPROJ=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
-            PROJECT_ARG="-project $XCODEPROJ"
-          fi
-          
-          echo "Building with Xcode: $PROJECT_ARG"
-          xcodebuild $PROJECT_ARG \
-            -scheme "app_iOS" \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            -derivedDataPath derivedData-device \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            CI=true \
-            build || true
+          npx tauri ios init
+          npm run tauri ios build -- --ci --target aarch64
 
       - name: Package iOS IPA & Simulator Artifacts
         working-directory: app
@@ -92,19 +68,19 @@ jobs:
           TAG="${TAG_NAME}"
           
           echo "=== Locating built .app bundles ==="
+          find src-tauri -name "*.app" -type d
+          
           REAL_APP=""
           while IFS= read -r -d '' candidate; do
-            echo "Found candidate: '$candidate'"
-            REAL_APP="$candidate"
-            break
-          done < <(find src-tauri/gen/apple -name "*.app" -type d -print0)
-          
-          if [ -z "$REAL_APP" ]; then
-            while IFS= read -r -d '' candidate; do
-              echo "Found fallback candidate: '$candidate'"
+            if [ -f "$candidate/Info.plist" ] || [ -f "$candidate/TG Drive" ] || [ -f "$candidate/app" ] || [ -f "$candidate/main" ]; then
+              echo "Found valid candidate: '$candidate'"
               REAL_APP="$candidate"
               break
-            done < <(find src-tauri -name "*.app" -type d -print0)
+            fi
+          done < <(find src-tauri -name "*.app" -type d -print0)
+          
+          if [ -z "$REAL_APP" ]; then
+            REAL_APP=$(find src-tauri/gen/apple -name "*.app" -type d | head -n 1)
           fi
           
           if [ -n "$REAL_APP" ] && [ -d "$REAL_APP" ]; then
@@ -116,6 +92,7 @@ jobs:
             
             echo "Payload contents:"
             ls -la Payload/
+            ls -la "Payload/$(basename "$REAL_APP")"
             
             zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" Payload
             cp "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" "ios-artifacts/TG-Drive-${TAG}-iOS.ipa"
