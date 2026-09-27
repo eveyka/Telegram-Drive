@@ -53,11 +53,20 @@ jobs:
 
       - name: Build iOS Application (Tauri & Xcode)
         working-directory: app
-        env:
-          CI: "true"
         run: |
           npx tauri ios init
-          npm run tauri ios build -- --ci --target aarch64
+          cd src-tauri/gen/apple
+          xcodebuild -workspace app.xcworkspace \
+            -scheme app_iOS \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package iOS IPA & Simulator Artifacts
         working-directory: app
