@@ -92,35 +92,34 @@ jobs:
           TAG="${TAG_NAME}"
           
           echo "=== Locating built .app bundles ==="
-          find src-tauri -name "*.app" -type d
-          
           REAL_APP=""
-          for candidate in $(find src-tauri -name "*.app" -type d); do
-            APP_SIZE=$(du -sk "$candidate" | cut -f1)
-            echo "Candidate: $candidate (size: ${APP_SIZE}KB)"
-            if [ "$APP_SIZE" -gt 500 ]; then
+          while IFS= read -r -d '' candidate; do
+            echo "Found candidate: '$candidate'"
+            REAL_APP="$candidate"
+            break
+          done < <(find src-tauri/gen/apple -name "*.app" -type d -print0)
+          
+          if [ -z "$REAL_APP" ]; then
+            while IFS= read -r -d '' candidate; do
+              echo "Found fallback candidate: '$candidate'"
               REAL_APP="$candidate"
               break
-            fi
-          done
-          
-          if [ -z "$REAL_APP" ]; then
-            REAL_APP=$(find src-tauri -path "*derivedData-device*" -name "*.app" -type d | head -n 1)
-          fi
-          if [ -z "$REAL_APP" ]; then
-            REAL_APP=$(find src-tauri -name "*.app" -type d | head -n 1)
+            done < <(find src-tauri -name "*.app" -type d -print0)
           fi
           
           if [ -n "$REAL_APP" ] && [ -d "$REAL_APP" ]; then
-            echo "Packaging Physical Device IPA from: $REAL_APP"
+            echo "Packaging Physical Device IPA from: '$REAL_APP'"
             codesign --force --deep -s - "$REAL_APP" || true
             rm -rf Payload
             mkdir -p Payload
             cp -R "$REAL_APP" Payload/
             
-            zip -r -9 "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" Payload
+            echo "Payload contents:"
+            ls -la Payload/
+            
+            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" Payload
             cp "ios-artifacts/TG-Drive-${TAG}-iOS-Direct-Install.ipa" "ios-artifacts/TG-Drive-${TAG}-iOS.ipa"
-            zip -r -9 "ios-artifacts/TG-Drive-${TAG}-iOS-Simulator-App.zip" "$REAL_APP"
+            zip -r "ios-artifacts/TG-Drive-${TAG}-iOS-Simulator-App.zip" "$REAL_APP"
             echo "Created IPA: TG-Drive-${TAG}-iOS-Direct-Install.ipa"
           else
             echo "Error: Device .app not found!"
