@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HardDrive, Folder, Plus, RefreshCw, LogOut, ChevronLeft, ChevronRight, Settings2, Trash2, Check, X, Eye, EyeOff, Clock3, Star, Pin, FileWarning, CalendarClock, Copy, Database, Gift, Wallet } from 'lucide-react';
+import { HardDrive, Folder, Plus, RefreshCw, LogOut, ChevronLeft, ChevronRight, Settings, Settings2, Trash2, Check, X, Eye, EyeOff, Clock3, Star, Pin, FileWarning, CalendarClock, Copy, Database } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SidebarItem } from './SidebarItem';
 import { BandwidthWidget } from './BandwidthWidget';
@@ -16,7 +16,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { quietMetrics } from '../../../design/contracts';
 import { CreateFolderDialog } from './CreateFolderDialog';
 import { SyncStatusBadge } from '../sync/SyncStatusBadge';
-import { SmartAdBanner } from '../../shared/SmartAdBanner';
 import type { PaywallTriggerFeature } from '../../shared/PaywallGateModal';
 import { isCustomFolderLocked } from '../../../services/supporterVisibility';
 
@@ -122,13 +121,14 @@ interface SidebarProps {
     onSmartViewChange?: (view: SmartView | null) => void;
     isPro?: boolean;
     onRequirePro?: (feature?: PaywallTriggerFeature) => void;
+    onOpenSettings?: () => void;
 }
 
 export function Sidebar({
     folders, groups = [], activeFolderId, setActiveFolderId, onDelete, onRename, onToggleVisibility, onExportInvite, onCreate,
     isSyncing, isConnected, onSync, onLogout, userProfile, bandwidth,
     onAssignFolderToGroup, onCreateGroup, onUpdateGroup, onDeleteGroup, createFolderRequest = 0, activeSmartView = null, onSmartViewChange,
-    isPro = false, onRequirePro
+    isPro = false, onRequirePro, onOpenSettings
 }: SidebarProps) {
     const [showNewFolderInput, setShowNewFolderInput] = useState(false);
     const { t } = useTranslation();
@@ -448,21 +448,14 @@ export function Sidebar({
                 </nav>
             {/* Sticky Create Folder section — always visible above the footer */}
             {!settings.sidebarCollapsed && (
-                <div className="border-t border-app-border-subtle px-2 py-2">
+                <div className="border-t border-app-border-subtle/80 px-2.5 py-2">
                     <button
                         onClick={handleOpenCreateFolder}
-                        className="quiet-control flex h-9 w-full items-center gap-2 border border-dashed border-app-border px-3 text-ui font-medium text-app-text-secondary hover:border-app-border-strong hover:text-app-text cursor-pointer"
+                        className="quiet-control flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-app-border/80 bg-app-surface/40 px-3 text-xs font-semibold text-app-text-secondary hover:border-app-accent/60 hover:text-app-text hover:bg-app-accent/5 transition-all cursor-pointer shadow-2xs"
                     >
-                        <Plus className="w-4 h-4" />
-                        {t('common.create_folder')}
+                        <Plus className="w-4 h-4 text-app-accent" />
+                        <span>{t('common.create_folder')}</span>
                     </button>
-
-                    {/* Smart Free Tier Upgrade Ad Banner */}
-                    {!isPro && (
-                        <div className="mt-2">
-                            <SmartAdBanner onUpgrade={onRequirePro || (() => {})} variant="compact" />
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -470,99 +463,42 @@ export function Sidebar({
                 <CreateFolderDialog onClose={() => setShowNewFolderInput(false)} onCreate={onCreate} />
             )}
 
-            <div className={`flex flex-col border-t border-app-border-subtle p-2 ${settings.sidebarCollapsed ? 'items-center gap-2' : 'gap-2'}`}>
-                {/* Affiliate Program: Refer & Earn and Earnings & Payouts */}
-                {settings.sidebarCollapsed ? (
-                    <>
-                        <button
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-referral-screen'))}
-                            className="quiet-control p-2 text-amber-400 hover:bg-amber-500/15 rounded-lg border border-amber-500/30 transition-all group cursor-pointer"
-                            title="Refer & Earn Real Cash (₹50/sale)"
-                        >
-                            <Gift className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-withdrawal-screen'))}
-                            className="quiet-control p-2 text-cyan-400 hover:bg-cyan-500/15 rounded-lg border border-cyan-500/30 transition-all group cursor-pointer"
-                            title="Earnings & Payouts (Wallet & Withdrawals)"
-                        >
-                            <Wallet className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-                        </button>
-                    </>
-                ) : (
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-referral-screen'))}
-                            className="w-full flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 hover:border-amber-500/40 text-left transition-all group cursor-pointer"
-                        >
-                            <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-6 h-6 rounded-md bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <Gift className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-app-text group-hover:text-amber-400 truncate transition-colors">
-                                        Refer &amp; Earn Cash
-                                    </p>
-                                    <p className="text-[10px] text-app-text-secondary truncate">
-                                        Earn ₹50 per friend
-                                    </p>
-                                </div>
-                            </div>
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">
-                                ₹50
-                            </span>
-                        </button>
-
-                        <button
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-withdrawal-screen'))}
-                            className="w-full flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-500/25 hover:border-cyan-500/40 text-left transition-all group cursor-pointer"
-                        >
-                            <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <Wallet className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-app-text group-hover:text-cyan-400 truncate transition-colors">
-                                        Earnings &amp; Payouts
-                                    </p>
-                                    <p className="text-[10px] text-app-text-secondary truncate">
-                                        Wallet &amp; Withdrawals
-                                    </p>
-                                </div>
-                            </div>
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 shrink-0">
-                                Payout
-                            </span>
-                        </button>
-                    </div>
-                )}
-
+            <div className={`flex flex-col border-t border-app-border-subtle/80 p-2.5 ${settings.sidebarCollapsed ? 'items-center gap-2' : 'gap-2'}`}>
                 <SyncStatusBadge collapsed={settings.sidebarCollapsed} />
                 {settings.sidebarCollapsed ? (
                     <>
                         {userProfile && (
                             <div
-                                className="w-6 h-6 rounded-md bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[10px] shrink-0 shadow-2xs cursor-default"
+                                className="w-7 h-7 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-[11px] shrink-0 shadow-xs cursor-default"
                                 title={`${userProfile.firstName} ${userProfile.lastName || ''} (${userProfile.username ? `@${userProfile.username}` : `ID: ${userProfile.id}`})`}
                             >
                                 {userProfile.firstName.charAt(0).toUpperCase()}
                             </div>
                         )}
                         <div
-                            className={`h-2 w-2 flex-shrink-0 rounded-full ${isConnected ? 'bg-app-success' : 'bg-app-danger'}`}
+                            className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-app-sidebar ${isConnected ? 'bg-emerald-400 shadow-xs shadow-emerald-400/50' : 'bg-rose-400 shadow-xs shadow-rose-400/50'}`}
                             title={isConnected ? t('common.connected_telegram') : t('common.disconnected_telegram')}
                         />
+                        {onOpenSettings && (
+                            <button
+                                onClick={onOpenSettings}
+                                className="p-2 rounded-lg text-app-text-secondary hover:bg-app-hover hover:text-app-text transition-all hover:scale-105 active:scale-95"
+                                title={t('common.preferences', 'Settings')}
+                            >
+                                <Settings className="w-4 h-4" />
+                            </button>
+                        )}
                         <button
                             onClick={onSync}
                             disabled={isSyncing}
-                            className={`quiet-control sidebar-sync-action p-2 text-app-accent ${isSyncing ? 'cursor-not-allowed opacity-50' : ''}`}
+                            className={`p-2 rounded-lg text-app-accent hover:bg-app-accent/15 transition-all ${isSyncing ? 'cursor-not-allowed opacity-50' : 'hover:scale-105 active:scale-95'}`}
                             title={isSyncing ? t('common.syncing') : t('common.sync')}
                         >
                             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                         </button>
                         <button
                             onClick={onLogout}
-                            className="quiet-control sidebar-logout-action p-2 text-app-danger"
+                            className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/15 transition-all hover:scale-105 active:scale-95"
                             title={t('common.logout')}
                         >
                             <LogOut className="w-4 h-4" />
@@ -571,50 +507,71 @@ export function Sidebar({
                 ) : (
                     <>
                         {userProfile && (
-                            <div className="flex items-center justify-between rounded-lg bg-app-surface-sunken/40 p-2 border border-app-border-subtle/50">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
-                                        {userProfile.firstName.charAt(0).toUpperCase()}
+                            <div className="flex items-center justify-between rounded-xl bg-app-surface-sunken/60 p-2.5 border border-app-border-subtle/80 shadow-2xs">
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    <div className="relative">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
+                                            {userProfile.firstName.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-app-surface-sunken ${isConnected ? 'bg-emerald-400' : 'bg-rose-400'}`} />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1">
-                                            <p className="text-xs font-semibold text-app-text truncate leading-tight">
+                                            <p className="text-xs font-bold text-app-text truncate leading-tight">
                                                 {userProfile.firstName} {userProfile.lastName || ''}
                                             </p>
                                             {userProfile.isPremium && (
                                                 <span className="text-[10px] text-amber-400 shrink-0 font-bold" title="Telegram Premium">★</span>
                                             )}
                                         </div>
-                                        <p className="text-[10px] text-app-accent truncate">
+                                        <p className="text-[10px] font-medium text-app-accent truncate">
                                             {userProfile.username ? `@${userProfile.username}` : (userProfile.phone || `ID: ${userProfile.id}`)}
                                         </p>
                                     </div>
                                 </div>
+                                {onOpenSettings && (
+                                    <button
+                                        onClick={onOpenSettings}
+                                        className="p-1.5 rounded-lg text-app-text-secondary hover:bg-app-surface hover:text-app-text transition-all hover:scale-105 active:scale-95 shrink-0 ml-1"
+                                        title={t('common.preferences', 'Settings')}
+                                    >
+                                        <Settings className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         )}
 
-                        <div className="flex items-center gap-2 text-metadata text-app-text-secondary">
-                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-app-success' : 'bg-app-danger'}`}></div>
-                            <span>{isConnected ? t('common.connected_telegram') : t('common.disconnected_telegram')}</span>
+                        <div className="flex items-center gap-2 px-1 text-[11px] font-medium text-app-text-secondary">
+                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-400 shadow-xs shadow-emerald-400/50' : 'bg-rose-400'}`}></div>
+                            <span className="truncate">{isConnected ? t('common.connected_telegram') : t('common.disconnected_telegram')}</span>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5">
+                            {onOpenSettings && (
+                                <button
+                                    onClick={onOpenSettings}
+                                    className="flex h-[32px] flex-1 items-center justify-center gap-1.5 rounded-lg border border-app-border bg-app-surface/90 px-2 text-xs font-semibold text-app-text hover:bg-app-hover hover:border-app-border-strong transition-all cursor-pointer active:scale-95 shadow-2xs"
+                                    title={t('common.preferences', 'Settings')}
+                                >
+                                    <Settings className="w-3.5 h-3.5 text-app-accent" />
+                                    <span>{t('common.preferences', 'Settings')}</span>
+                                </button>
+                            )}
                             <button
                                 onClick={onSync}
                                 disabled={isSyncing}
-                                className={`quiet-control sidebar-sync-action flex h-[30px] flex-1 items-center justify-center gap-1.5 px-2.5 text-badge font-medium text-app-accent ${isSyncing ? 'cursor-not-allowed opacity-50' : ''}`}
+                                className={`flex h-[32px] items-center justify-center gap-1.5 rounded-lg border border-app-accent/30 bg-app-accent/10 px-2.5 text-xs font-bold text-app-accent hover:bg-app-accent/20 transition-all cursor-pointer ${isSyncing ? 'cursor-not-allowed opacity-50' : 'active:scale-95'}`}
                                 title="Scan for existing folders"
                             >
-                                <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                                {isSyncing ? t('common.syncing') : t('common.sync')}
+                                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                                <span>{isSyncing ? t('common.syncing') : t('common.sync')}</span>
                             </button>
                             <button
                                 onClick={onLogout}
-                                className="quiet-control sidebar-logout-action flex h-[30px] flex-1 items-center justify-center gap-1.5 px-2.5 text-badge font-medium text-app-danger"
+                                className="flex h-[32px] items-center justify-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 text-xs font-bold text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer active:scale-95"
                                 title="Sign Out"
                             >
-                                <LogOut className="w-3 h-3" />
-                                {t('common.logout')}
+                                <LogOut className="w-3.5 h-3.5" />
                             </button>
                         </div>
 

@@ -280,11 +280,14 @@ export function FileExplorer({
                                                 <button
                                                     key="upload"
                                                     onClick={(e) => { e.stopPropagation(); onManualUpload(); }}
-                                                    className="quiet-control group flex min-w-0 flex-col items-center justify-center overflow-hidden border border-dashed border-app-border-subtle bg-app-surface/25 text-app-text-secondary hover:border-app-accent/45 hover:bg-app-surface/50 hover:text-app-accent"
+                                                    className="group flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-700/80 bg-slate-900/40 p-4 text-slate-400 hover:border-app-accent/60 hover:bg-app-accent/5 hover:text-app-accent transition-all duration-200 cursor-pointer shadow-xs hover:shadow-app-accent/5 select-none"
                                                     style={{ height: `${cardHeight}px` }}
                                                 >
-                                                    <Plus className="mb-1.5 h-6 w-6" />
-                                                    <span className="text-ui font-medium">{t('common.upload_file')}</span>
+                                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-app-accent/10 border border-app-accent/25 text-app-accent group-hover:scale-110 group-hover:bg-app-accent/20 transition-all shadow-sm">
+                                                        <Plus className="h-5 w-5 stroke-[2.5]" />
+                                                    </div>
+                                                    <span className="mt-2 text-xs font-bold text-slate-200 group-hover:text-app-accent transition-colors">{t('common.upload_file')}</span>
+                                                    <span className="mt-0.5 text-[10px] text-slate-500">Drop files or click</span>
                                                 </button>
                                             );
                                         }
@@ -293,11 +296,14 @@ export function FileExplorer({
                                                 <button
                                                     key="upload-folder"
                                                     onClick={(e) => { e.stopPropagation(); onFolderUpload(); }}
-                                                    className="quiet-control group flex min-w-0 flex-col items-center justify-center overflow-hidden border border-dashed border-app-border-subtle bg-app-surface/25 text-app-text-secondary hover:border-app-accent/45 hover:bg-app-surface/50 hover:text-app-accent"
+                                                    className="group flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-700/80 bg-slate-900/40 p-4 text-slate-400 hover:border-app-accent/60 hover:bg-app-accent/5 hover:text-app-accent transition-all duration-200 cursor-pointer shadow-xs hover:shadow-app-accent/5 select-none"
                                                     style={{ height: `${cardHeight}px` }}
                                                 >
-                                                    <FolderUp className="mb-1.5 h-6 w-6" />
-                                                    <span className="text-ui font-medium">{t('common.upload_folder')}</span>
+                                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-app-accent/10 border border-app-accent/25 text-app-accent group-hover:scale-110 group-hover:bg-app-accent/20 transition-all shadow-sm">
+                                                        <FolderUp className="h-5 w-5 stroke-[2.5]" />
+                                                    </div>
+                                                    <span className="mt-2 text-xs font-bold text-slate-200 group-hover:text-app-accent transition-colors">{t('common.upload_folder')}</span>
+                                                    <span className="mt-0.5 text-[10px] text-slate-500">Drop folder or click</span>
                                                 </button>
                                             );
                                         }

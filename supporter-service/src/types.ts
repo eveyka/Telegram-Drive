@@ -77,6 +77,7 @@ export interface Env {
   RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
   RAZORPAY_WEBHOOK_SECRET?: string;
+  RAZORPAY_CHECKOUT_CONFIG_ID?: string;
   TELEGRAM_BOT_TOKEN?: string;
   MAX_DEFAULT_DEVICES?: string;
   LEMON_SQUEEZY_WEBHOOK_SECRET?: string;
@@ -93,6 +94,7 @@ export interface CreateRazorpayOrderRequest {
   customer_email?: string;
   plan_type?: LicensePlan;
   amount?: number;
+  checkout_config_id?: string;
 }
 
 export interface VerifyRazorpayPaymentRequest {

@@ -589,6 +589,23 @@ export async function ensureStoreTables(db: D1Database): Promise<void> {
       // Indexes may already exist
     }
 
+    // Seed official default coupons if not present
+    try {
+      await db.batch([
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_flash50', 'FLASH50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_pro50', 'PRO50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_vip50', 'VIP50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_special50', 'SPECIAL50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_tg50', 'TG50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_welcome10', 'WELCOME10', 'percent', 10, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_tgdrive', 'TGDRIVE', 'percent', 10, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_pro20', 'PRO20', 'percent', 20, 0, 0, NULL, 1, 1700000000)`),
+        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_save20', 'SAVE20', 'percent', 20, 0, 0, NULL, 1, 1700000000)`),
+      ]);
+    } catch {
+      // Seeding fallback
+    }
+
     tablesInitialized = true;
   } catch (err) {
     console.error('Error in ensureStoreTables:', err);
@@ -1351,6 +1368,19 @@ export async function listPaymentTransactions(
     .bind(limit, offset)
     .all<PaymentTransactionRow>();
   return res.results || [];
+}
+
+export async function getLatestPaidTransactionForUser(
+  db: D1Database,
+  telegramUserId: string
+): Promise<PaymentTransactionRow | null> {
+  await ensureStoreTables(db);
+  const cleanId = telegramUserId.trim();
+  if (!cleanId) return null;
+  return await db
+    .prepare("SELECT * FROM payment_transactions WHERE telegram_user_id = ? AND (status = 'paid' OR status = 'captured') ORDER BY created_at DESC LIMIT 1")
+    .bind(cleanId)
+    .first<PaymentTransactionRow>();
 }
 
 // -------------------------------------------------------------

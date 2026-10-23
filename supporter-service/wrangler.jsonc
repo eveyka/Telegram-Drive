@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tg-drive-license-service",
+  "account_id": "36a8bb867350b82ee35884892f318b8c",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-10",
   "workers_dev": true,
@@ -8,14 +9,17 @@
     {
       "binding": "DB",
       "database_name": "tg-drive-licenses",
-      "database_id": "a3b1ffec-2e8c-498c-8545-adf69dcb1133",
+      "database_id": "5f6d8e50-3125-4f40-8cb4-603c134a32ea",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
     "APP_NAME": "TG Drive: Unlimited Cloud",
     "STORE_URL": "https://rzp.io/rzp/eBLEV0w",
-    "MAX_DEFAULT_DEVICES": "2"
+    "MAX_DEFAULT_DEVICES": "2",
+    "RAZORPAY_KEY_ID": "rzp_live_T1mw2QboxNW91L",
+    "RAZORPAY_KEY_SECRET": "reDkBo457g05IR6k2SwYeVkD",
+    "RAZORPAY_WEBHOOK_SECRET": "reDkBo457g05IR6k2SwYeVkD"
   },
   "triggers": {
     "crons": [

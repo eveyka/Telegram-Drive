@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, Cloud, Database, Globe, HardDrive, Megaphone, Shield, Zap, Clipboard, Loader2, RefreshCw, Upload, Download } from 'lucide-react';
+import { Bug, Cloud, Database, Globe, HardDrive, Megaphone, Shield, Zap, Clipboard, Loader2, RefreshCw, Upload, Download, Gift, Wallet, ArrowRight } from 'lucide-react';
 import { openExternalUrl } from '../../../../utils/url';
 import { toast } from 'sonner';
 import type { TFunction } from 'i18next';
@@ -14,7 +14,8 @@ import {
   uploadSettingsSync,
   type SettingsSyncStatus,
 } from '../../../../services/settingsSync';
-import { licenseManager, type LicenseInfo } from '../../../../services/licenseManager';
+import { licenseManager, type LicenseInfo, type StoreConfig } from '../../../../services/licenseManager';
+import { TelegramPremiumView } from '../../../shared/TelegramPremiumView';
 import i18n from '../../../../i18n';
 
 const tabMotion = {
@@ -241,9 +242,9 @@ export function SupporterSettingsSection() {
   };
 
   const isPro = Boolean(license?.isLicensed);
-  const expiry = licenseManager.getExpiryDetails(license?.expiresAt ?? null);
+  const expiry = licenseManager.getExpiryDetails(license?.expiresAt ?? null, license?.planType);
   const checkoutUrl = (() => {
-    const base = 'https://tg-drive-license-service.jupiterbania472.workers.dev';
+    const base = 'https://tg-drive-license-service.baniarohan009.workers.dev';
     const params = new URLSearchParams();
     if (telegramUser?.id) params.set('tg_id', String(telegramUser.id));
     if (telegramUser?.phone) params.set('tg_phone', telegramUser.phone);
@@ -450,6 +451,185 @@ export function EncryptionSettingsTab() {
 
 export function ThemeSettingsTab() {
   return <ThemesTab />;
+}
+
+export function ProMembershipSettingsTab({ onOpenUpgrade: _onOpenUpgrade }: { onOpenUpgrade?: () => void }) {
+  const [license, setLicense] = useState<LicenseInfo | null>(null);
+  const [telegramUser, setTelegramUser] = useState<{ id: number; firstName: string; phone?: string | null; username?: string | null } | null>(null);
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const loadData = async () => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      const me = await invoke<{ id: number; firstName: string; phone?: string | null; username?: string | null }>('cmd_get_me').catch(() => null);
+      if (me) setTelegramUser(me);
+
+      const m = await import('../../../../services/licenseManager');
+      const current = await m.licenseManager.loadLicense();
+      setLicense(current);
+      const store = await m.licenseManager.getStoreConfig();
+      setStoreConfig(store);
+
+      if (me && !current.isLicensed) {
+        const res = await m.licenseManager.checkTelegramAccount(me.id, me.phone);
+        if (res.isLicensed && res.license) {
+          setLicense(res.license);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
+  const handleSyncLicense = async () => {
+    setSyncing(true);
+    try {
+      const m = await import('../../../../services/licenseManager');
+      if (telegramUser) {
+        const res = await m.licenseManager.checkTelegramAccount(telegramUser.id, telegramUser.phone);
+        if (res.isLicensed && res.license) {
+          setLicense(res.license);
+          toast.success('Pro status verified & active for your Telegram account!');
+          return;
+        }
+      }
+      const verified = await m.licenseManager.verifyLicense();
+      const updated = await m.licenseManager.loadLicense();
+      setLicense(updated);
+      if (verified && updated.isLicensed) {
+        toast.success('Pro license is active!');
+      } else {
+        toast.info('No active Pro purchase found for this account.');
+      }
+    } catch {
+      toast.error('Unable to connect to license server.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <motion.section key="pro-membership" {...tabMotion} className="w-full">
+      <TelegramPremiumView
+        mobileLicense={license}
+        setMobileLicense={setLicense}
+        liveStoreConfig={storeConfig}
+        userProfile={telegramUser ? {
+          id: telegramUser.id,
+          firstName: telegramUser.firstName,
+          phone: telegramUser.phone,
+          username: telegramUser.username,
+        } : undefined}
+        onSyncLicense={handleSyncLicense}
+        isLicenseSyncing={syncing}
+      />
+    </motion.section>
+  );
+}
+
+export function AffiliateSettingsTab() {
+  const handleOpenReferral = () => {
+    window.dispatchEvent(new CustomEvent('open-referral-screen'));
+  };
+
+  const handleOpenWithdrawals = () => {
+    window.dispatchEvent(new CustomEvent('open-withdrawal-screen'));
+  };
+
+  return (
+    <motion.section key="affiliate-program" {...tabMotion} className="w-full space-y-5">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 via-emerald-500/10 to-transparent p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-500 text-slate-950 shadow-md shadow-amber-500/20">
+              <Gift className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-app-text flex items-center gap-2">
+                Refer &amp; Earn Cash Program
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
+                  ₹50 / Referral
+                </span>
+              </h3>
+              <p className="text-xs text-app-text-secondary mt-0.5">
+                Earn flat ₹50 real cash in your wallet every time a friend upgrades using your code!
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={handleOpenReferral}
+          className="flex items-center justify-between p-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent hover:bg-amber-500/15 transition-all text-left group cursor-pointer shadow-xs"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 group-hover:scale-105 transition-transform">
+              <Gift className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-app-text group-hover:text-amber-300 transition-colors">
+                Refer &amp; Earn Dashboard
+              </p>
+              <p className="text-xs text-app-text-secondary">
+                Track referrals, sales, and share links
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleOpenWithdrawals}
+          className="flex items-center justify-between p-4 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-transparent hover:bg-cyan-500/15 transition-all text-left group cursor-pointer shadow-xs"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30 group-hover:scale-105 transition-transform">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-app-text group-hover:text-cyan-300 transition-colors">
+                Earnings &amp; Payouts (Wallet)
+              </p>
+              <p className="text-xs text-app-text-secondary">
+                View balance &amp; request instant withdrawals
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+
+      {/* How it works */}
+      <div className="rounded-xl border border-app-border-subtle bg-app-surface-sunken/20 p-4 space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-app-text-tertiary">How Referral Works</h4>
+        <div className="space-y-2.5 text-xs text-app-text-secondary">
+          <div className="flex items-start gap-2.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-400">1</span>
+            <p><strong className="text-app-text">Share your code:</strong> Share your unique referral code or link with friends.</p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-400">2</span>
+            <p><strong className="text-app-text">Friend gets a discount:</strong> Your friends receive an instant discount during checkout.</p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-400">3</span>
+            <p><strong className="text-app-text">Earn flat ₹50:</strong> You immediately receive ₹50 cash into your wallet per successful upgrade!</p>
+          </div>
+        </div>
+      </div>
+    </motion.section>
+  );
 }
 
 interface AboutSettingsTabProps {

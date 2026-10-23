@@ -2531,17 +2531,40 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {settingsSubpage === 'pro_plans' && (
-                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                  mobileLicense?.isLicensed
-                    ? mobileLicense?.planType === 'trial'
-                      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                      : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                    : 'bg-[#2D1B4E]/80 text-[#C084FC] border-[#8B5CF6]/40 shadow-sm'
-                }`}>
-                  {mobileLicense?.isLicensed ? (mobileLicense.planType === 'trial' ? '🎁 Trial' : '✓ Pro Active') : '⚡ FREE PLAN'}
-                </span>
-              )}
+              {settingsSubpage === 'pro_plans' && (() => {
+                const isProActive = Boolean(mobileLicense?.isLicensed && !mobileLicense?.isExpired);
+                const isExpired = Boolean(mobileLicense?.isExpired || (mobileLicense?.expiresAt && mobileLicense.expiresAt < Math.floor(Date.now() / 1000)));
+
+                if (isProActive) {
+                  const planText = mobileLicense?.planType === 'trial'
+                    ? '🎁 Trial Active'
+                    : mobileLicense?.planType === 'monthly'
+                    ? '📅 Monthly Active'
+                    : mobileLicense?.planType === 'annual'
+                    ? '🌟 Annual Active'
+                    : '👑 Lifetime Active';
+
+                  return (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                      {planText}
+                    </span>
+                  );
+                }
+
+                if (isExpired) {
+                  return (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-rose-500/15 text-rose-400 border-rose-500/30">
+                      ⚠️ Plan Expired
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border bg-[#2D1B4E]/80 text-[#C084FC] border-[#8B5CF6]/40 shadow-sm">
+                    ⚡ Free Plan
+                  </span>
+                );
+              })()}
               {settingsSubpage === 'account' && (
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${isConnected ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                   {isConnected ? '● MTProto Active' : '● Offline'}
@@ -5749,34 +5772,51 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
                   onClick={() => openSettingsSubpage('account')}
                 />
                 {(() => {
-                  const expiry = licenseManager.getExpiryDetails(mobileLicense?.expiresAt ?? null);
-                  const isProActive = Boolean(mobileLicense?.isLicensed);
+                  const expiry = licenseManager.getExpiryDetails(mobileLicense?.expiresAt ?? null, mobileLicense?.planType);
+                  const isExpired = Boolean(mobileLicense?.isExpired || expiry.isExpired);
+                  const isProActive = Boolean(mobileLicense?.isLicensed && !isExpired);
                   const planType = mobileLicense?.planType;
                   const isTrial = planType === 'trial';
                   const isAnnual = planType === 'annual';
                   const isMonthly = planType === 'monthly';
+                  const isLifetime = isProActive && (planType === 'lifetime' || (!planType && expiry.isLifetime));
+
+                  let subtitleText = 'Unlock Turbo Speed, Ad-Free & Unlimited Downloads';
+                  if (isProActive) {
+                    subtitleText = isLifetime
+                      ? 'Lifetime VIP Active · Permanent Access'
+                      : `Active Pass · Valid until ${expiry.formattedDate} (${expiry.countdownText})`;
+                  } else if (isExpired) {
+                    subtitleText = `Plan expired on ${expiry.formattedDate} · Tap to renew`;
+                  }
+
+                  let badgeNode = (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse">
+                      🚀 Upgrade
+                    </span>
+                  );
+
+                  if (isProActive) {
+                    badgeNode = (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                        {isTrial ? '🎁 Free Trial' : isAnnual ? '🌟 Annual' : isMonthly ? '📅 Monthly' : '👑 Lifetime'}
+                      </span>
+                    );
+                  } else if (isExpired) {
+                    badgeNode = (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border bg-rose-500/20 text-rose-400 border-rose-500/30">
+                        ⚠️ Expired
+                      </span>
+                    );
+                  }
 
                   return (
                     <TelegramSettingRow
                       icon={Zap}
                       iconBg="bg-[#f59e0b]"
                       title="TG Drive Pro &amp; Plans"
-                      subtitle={
-                        isProActive
-                          ? (expiry.isLifetime ? 'Lifetime Access · VIP Features Active' : `Valid until ${expiry.formattedDate} · Tap to view`)
-                          : 'Unlock Turbo Speed, Ad-Free & Unlimited Downloads'
-                      }
-                      badge={
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                          isProActive
-                            ? isTrial
-                              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                              : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse'
-                        }`}>
-                          {isProActive ? (isTrial ? '🎁 Free Trial' : isAnnual ? '🌟 Annual' : isMonthly ? '📅 Monthly' : '⚡ Lifetime') : '🚀 Upgrade'}
-                        </span>
-                      }
+                      subtitle={subtitleText}
+                      badge={badgeNode}
                       onClick={() => openSettingsSubpage('pro_plans')}
                     />
                   );

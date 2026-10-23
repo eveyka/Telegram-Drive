@@ -2,13 +2,13 @@
   "maxInitialJavaScriptBytes": 650000,
   "maxJavaScriptChunkBytes": 650000,
   "maxTotalJavaScriptBytes": 3800000,
-  "maxTotalCssBytes": 260000,
+  "maxTotalCssBytes": 280000,
   "routeJavaScriptBudgets": {
-    "src/components/desktop/DesktopDashboard.tsx": 360000,
+    "src/components/desktop/DesktopDashboard.tsx": 380000,
     "src/components/mobile/MobileDashboard.tsx": 420000
   },
   "featureChunkBudgets": {
-    "src/components/desktop/dashboard/SettingsModal.tsx": 160000,
+    "src/components/desktop/dashboard/SettingsModal.tsx": 170000,
     "src/components/desktop/dashboard/MediaPlayer.tsx": 250000,
     "src/components/desktop/dashboard/PdfViewer.tsx": 500000,
     "src/components/desktop/dashboard/ArchiveViewerModal.tsx": 25000,

@@ -155,25 +155,27 @@ export function TopBar({
             onClick={(event) => event.stopPropagation()}
         >
             {hasSelection ? (
-                <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 overflow-x-auto">
                     <IconButton label={t('files.clear_selection')} onClick={onClearSelection}>
                         <X className="h-4 w-4" />
                     </IconButton>
-                    <span className="me-1 min-w-0 truncate text-ui font-medium text-app-text">
+                    <span className="me-1 min-w-0 truncate text-xs sm:text-ui font-medium text-app-text shrink-0">
                         {t('files.items_selected', { count: selectedIds.length })}
                     </span>
-                    <Button size="sm" onClick={onShowMoveModal} leadingIcon={<FolderInput className="h-3.5 w-3.5" />}>
-                        {t('files.move_to')}
-                    </Button>
-                    <Button size="sm" onClick={onBulkDownload} leadingIcon={<Download className="h-3.5 w-3.5" />}>
-                        {t('files.download')}
-                    </Button>
-                    <Button size="sm" onClick={onBulkShare} leadingIcon={<Share2 className="h-3.5 w-3.5" />}>
-                        {t('files.share')}
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={onBulkDelete} leadingIcon={<Trash2 className="h-3.5 w-3.5" />}>
-                        {t('files.delete')}
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <Button size="sm" onClick={onShowMoveModal} leadingIcon={<FolderInput className="h-3.5 w-3.5" />}>
+                            <span className="hidden sm:inline">{t('files.move_to')}</span>
+                        </Button>
+                        <Button size="sm" onClick={onBulkDownload} leadingIcon={<Download className="h-3.5 w-3.5" />}>
+                            <span className="hidden sm:inline">{t('files.download')}</span>
+                        </Button>
+                        <Button size="sm" onClick={onBulkShare} leadingIcon={<Share2 className="h-3.5 w-3.5" />}>
+                            <span className="hidden sm:inline">{t('files.share')}</span>
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={onBulkDelete} leadingIcon={<Trash2 className="h-3.5 w-3.5" />}>
+                            <span className="hidden sm:inline">{t('files.delete')}</span>
+                        </Button>
+                    </div>
                 </div>
             ) : isSearchExpanded ? (
                 /* Full Header Search Mode */
@@ -340,7 +342,7 @@ export function TopBar({
                 </div>
             ) : (
                 <>
-                    <div className="min-w-[8rem] flex-1">
+                    <div className="min-w-0 shrink flex-1 max-w-[14rem]">
                         <h1 className="truncate text-app-title font-semibold tracking-[-0.01em] text-app-text" title={currentFolderName}>
                             {currentFolderName}
                         </h1>
@@ -351,7 +353,7 @@ export function TopBar({
                         type="button"
                         data-search-trigger
                         onClick={() => setSearchExpandedState(true)}
-                        className="quiet-control flex h-8 w-full max-w-[20rem] items-center justify-between rounded-lg border border-app-border bg-app-surface-sunken/45 px-2.5 text-xs text-app-text-secondary shadow-2xs hover:border-app-border-strong hover:bg-app-surface hover:text-app-text transition-all cursor-text"
+                        className="quiet-control flex h-8 min-w-[90px] max-w-[18rem] flex-1 items-center justify-between rounded-lg border border-app-border bg-app-surface-sunken/45 px-2.5 text-xs text-app-text-secondary shadow-2xs hover:border-app-border-strong hover:bg-app-surface hover:text-app-text transition-all cursor-text"
                         title="Click to search"
                     >
                         <div className="flex min-w-0 items-center gap-2 truncate">
@@ -362,15 +364,15 @@ export function TopBar({
                                     : t('common.search_in_folder', `Search in "${currentFolderName}"…`)}
                             </span>
                         </div>
-                        <kbd className="hidden sm:inline-flex items-center rounded border border-app-border bg-app-surface px-1.5 py-0.5 text-[10px] font-mono text-app-text-tertiary">
+                        <kbd className="hidden lg:inline-flex items-center rounded border border-app-border bg-app-surface px-1.5 py-0.5 text-[10px] font-mono text-app-text-tertiary">
                             Ctrl+F
                         </kbd>
                     </button>
 
-                    <div className="flex flex-1 items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-1.5 shrink-0">
                         {settings.proxyEnabled && settings.proxyLiveStateEnabled && (
                             <div
-                                className="quiet-control flex h-7 items-center gap-1.5 px-2 text-badge text-app-text-secondary"
+                                className="quiet-control hidden sm:flex h-7 items-center gap-1.5 px-2 text-badge text-app-text-secondary"
                                 title={!proxyStatus
                                     ? 'Proxy status: checking…'
                                     : proxyStatus.reachable
@@ -391,15 +393,17 @@ export function TopBar({
                             onClick={onUploadClick}
                             leadingIcon={<UploadCloud className="h-3.5 w-3.5" />}
                             className="toolbar-upload-action"
+                            title={t('common.upload')}
                         >
-                            {t('common.upload')}
+                            <span className="hidden md:inline">{t('common.upload')}</span>
                         </Button>
 
                         <Button
                             onClick={onNewFolderClick}
                             leadingIcon={<FolderPlus className="h-3.5 w-3.5" />}
+                            title={t('common.create_folder')}
                         >
-                            {t('common.create_folder')}
+                            <span className="hidden lg:inline">{t('common.create_folder')}</span>
                         </Button>
 
                         <IconButton
@@ -482,6 +486,10 @@ export function TopBar({
                                 </MenuPanel>
                             )}
                         </div>
+
+                        <IconButton label={t('common.preferences', 'Settings')} onClick={onSettingsClick}>
+                            <Settings className="h-3.5 w-3.5" />
+                        </IconButton>
 
                         <div className="relative" ref={moreRef}>
                             <IconButton label={t('common.preferences')} onClick={toggleMore} aria-expanded={showMore}>

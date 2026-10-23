@@ -58,7 +58,7 @@ export interface RequestPayoutParams {
   bankName?: string;
 }
 
-const API_BASE = 'https://tg-drive-license-service.jupiterbania472.workers.dev';
+const API_BASE = 'https://tg-drive-license-service.baniarohan009.workers.dev';
 
 export function useReferralProgram(initialEmail?: string, initialName?: string) {
   const [userEmail, setUserEmailState] = useState<string>(() => {

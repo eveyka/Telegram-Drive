@@ -5,6 +5,7 @@ import {
   Wallet,
   RefreshCw,
   Gift,
+  X,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { ReferralScreen } from './referral/ReferralScreen';
@@ -160,7 +161,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
             </div>
           </div>
 
-          {/* Right: Quick Action / Status indicator */}
+          {/* Right: Quick Action / Status indicator + Close Button */}
           <div className="flex items-center gap-2 shrink-0">
             {activeTab === 'earnings' ? (
               <button
@@ -184,6 +185,20 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                 <span className="sm:hidden">10% OFF</span>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className={`p-2 rounded-xl border transition-all shrink-0 cursor-pointer flex items-center justify-center ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600 hover:text-slate-900'
+                  : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+              title="Close"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
         </header>
 

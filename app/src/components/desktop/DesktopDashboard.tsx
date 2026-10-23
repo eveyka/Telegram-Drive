@@ -55,7 +55,7 @@ import { getCachedPreview, setCachedPreview, notifyThumbnailInvalidation } from 
 import { resetStreamInfoCache, clearAllThumbnailFailures } from '../../services/videoThumbnailService';
 import { SUPPORTER_VALUE_MOMENT_EVENT, type SupporterPromptTrigger, isCustomFolderLocked } from '../../services/supporterVisibility';
 import { LockedFeatureModal } from '../shared/LockedFeatureModal';
-import type { PaywallTriggerFeature } from '../shared/PaywallGateModal';
+import { PaywallGateModal, type PaywallTriggerFeature } from '../shared/PaywallGateModal';
 import { markDesktopFrontendReady, markDesktopFrontendUnready, type DesktopNavigationRequest } from '../../services/desktopLifecycle';
 import { isCurrentFolderLoadChunk, mergeFileChunk, normalizeListedFile, updateFileQueryData, type FolderLoadChunk } from '../../services/fileListRefresh';
 import { filterAndRankFiles, type FileSearchFilters, DEFAULT_SEARCH_FILTERS } from '../../services/fileSearch';
@@ -137,6 +137,8 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [supporterOfferTrigger, setSupporterOfferTrigger] = useState<SupporterPromptTrigger | null>(null);
+    const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+    const [paywallTriggerFeature, setPaywallTriggerFeature] = useState<PaywallTriggerFeature>('general');
     const [lockedFeatureModal, setLockedFeatureModal] = useState<{
         isOpen: boolean;
         feature: PaywallTriggerFeature;
@@ -157,6 +159,11 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const activeSmartViewRef = useRef(activeSmartView);
     activeSmartViewRef.current = activeSmartView;
     const isDesktopPro = Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free || supporterStatus.state === 'active');
+
+    const handleOpenPaywall = useCallback((feature: PaywallTriggerFeature = 'general') => {
+        setPaywallTriggerFeature(feature);
+        setIsPaywallOpen(true);
+    }, []);
 
     useEffect(() => {
         if (activeFolderId !== null && isCustomFolderLocked(activeFolderId, folders, isDesktopPro)) {
@@ -318,9 +325,9 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
             setSettingsInitialTab(tab);
             setShowSettings(true);
         };
-        const openPaywall = () => {
-            setSettingsInitialTab('privacy');
-            setShowSettings(true);
+        const openPaywall = (event: Event) => {
+            const feat = (event as CustomEvent<{ feature?: PaywallTriggerFeature }>).detail?.feature || 'general';
+            handleOpenPaywall(feat);
         };
         window.addEventListener('telegram-drive-open-settings', openSettings);
         window.addEventListener('telegram-drive-open-paywall', openPaywall);
@@ -1228,13 +1235,11 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 createFolderRequest={createFolderRequest}
                 activeSmartView={activeSmartView}
                 onSmartViewChange={setActiveSmartView}
-                isPro={Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free)}
+                isPro={isDesktopPro}
                 onRequirePro={(feature) => {
-                    setLockedFeatureModal({
-                        isOpen: true,
-                        feature: feature || 'folders',
-                    });
+                    handleOpenPaywall(feature || 'general');
                 }}
+                onOpenSettings={() => setShowSettings(true)}
             />
 
             <main className="flex min-w-0 flex-1 flex-col">
@@ -1264,13 +1269,9 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                     onSettingsClick={() => setShowSettings(true)}
                     onRemoteUploadClick={() => setShowRemoteUpload(true)}
                     onNewFolderClick={() => {
-                        const isPro = Boolean(desktopLicense?.isLicensed || supporterStatus.ad_free);
                         const customFolders = folders.filter(f => f.name.toLowerCase() !== 'saved messages' && f.name.toLowerCase() !== 'saved');
-                        if (!isPro && customFolders.length >= 1) {
-                            setLockedFeatureModal({
-                                isOpen: true,
-                                feature: 'folders',
-                            });
+                        if (!isDesktopPro && customFolders.length >= 1) {
+                            handleOpenPaywall('folders');
                             return;
                         }
                         setCreateFolderRequest((value) => value + 1);
@@ -1397,6 +1398,10 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                         isOpen={showSettings}
                         onClose={() => setShowSettings(false)}
                         initialTab={settingsInitialTab}
+                        onOpenUpgrade={() => {
+                            setShowSettings(false);
+                            handleOpenPaywall('general');
+                        }}
                     />
                 </LazyFeatureBoundary>
             )}
@@ -1416,7 +1421,7 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 <SupporterOfferDialog
                     trigger={supporterOfferTrigger}
                     onClose={() => setSupporterOfferTrigger(null)}
-                    onOpenSupporter={() => { setSupporterOfferTrigger(null); setSettingsInitialTab('privacy'); setShowSettings(true); }}
+                    onOpenSupporter={() => { setSupporterOfferTrigger(null); handleOpenPaywall('general'); }}
                 />
             )}
 
@@ -1426,10 +1431,33 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
                 customTitle={lockedFeatureModal.customTitle}
                 onClose={() => setLockedFeatureModal(prev => ({ ...prev, isOpen: false }))}
                 onGetPro={() => {
+                    const feat = lockedFeatureModal.feature;
                     setLockedFeatureModal(prev => ({ ...prev, isOpen: false }));
-                    setSettingsInitialTab('privacy');
-                    setShowSettings(true);
+                    handleOpenPaywall(feat || 'general');
                 }}
+            />
+
+            <PaywallGateModal
+                isOpen={isPaywallOpen}
+                triggerFeature={paywallTriggerFeature}
+                onClose={() => setIsPaywallOpen(false)}
+                onActivated={async (license) => {
+                    setIsPaywallOpen(false);
+                    setDesktopLicense(license);
+                    try {
+                        await refreshStatus();
+                    } catch { /* ignore */ }
+                    queryClient.invalidateQueries({ queryKey: ['supporter_status'] });
+                    queryClient.invalidateQueries({ queryKey: ['license_status'] });
+                    toast.success('🎉 TG Drive Pro VIP License Activated Successfully!');
+                }}
+                telegramAccount={userProfile ? {
+                    userId: userProfile.id,
+                    phoneNumber: userProfile.phone,
+                    firstName: userProfile.firstName,
+                    lastName: userProfile.lastName,
+                    username: userProfile.username,
+                } : undefined}
             />
 
             {(shareFile || (shareFiles && shareFiles.length > 0)) && (

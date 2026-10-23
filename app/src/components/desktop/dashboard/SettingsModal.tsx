@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, Download, Upload, Trash2, HardDrive, Globe, Key, Copy, Check, RefreshCw, FolderArchive, Shield, Zap, Activity, Gauge, Wifi, ChevronDown, Link, Sparkles, Info, Monitor, Loader2, Languages, Play, Palette, Tag, Search, Bug, Database, FolderSync, ArrowUpDown } from 'lucide-react';
+import { X, RotateCcw, Download, Upload, Trash2, HardDrive, Globe, Key, Copy, Check, RefreshCw, FolderArchive, Shield, Zap, Activity, Gauge, Wifi, ChevronDown, Link, Sparkles, Info, Monitor, Loader2, Languages, Play, Palette, Tag, Search, Bug, Database, FolderSync, ArrowUpDown, Gift } from 'lucide-react';
 import { SORT_OPTIONS } from '../../../utils/fileSorting';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ import { installVerifiedUpdate } from '../../../services/updateReliability';
 import { getDetailedTranscodeCache, transcodeCacheErrorMessage } from '../../../services/transcodeCacheClient';
 import { formatBytes } from '../../../utils';
 import { SettingsRow, SettingsStepper, SettingsToggle } from './settings/SettingsControls';
-import { AboutSettingsTab, AdvancedSettingsTab, EncryptionSettingsTab, GeneralSettingsTab, PrivacySettingsTab, ProxySettingsTab, SharingSettingsTab, ThemeSettingsTab, VpnSettingsTab, WebDavSettingsTab } from './settings/SettingsTabs';
+import { AboutSettingsTab, AdvancedSettingsTab, EncryptionSettingsTab, GeneralSettingsTab, PrivacySettingsTab, ProxySettingsTab, SharingSettingsTab, ThemeSettingsTab, VpnSettingsTab, WebDavSettingsTab, ProMembershipSettingsTab, AffiliateSettingsTab } from './settings/SettingsTabs';
 import { FfmpegInstallNotice } from '../../shared/FfmpegInstallNotice';
 import { SyncSettingsPanel } from '../sync/SyncSettingsPanel';
 import { DesktopBehaviorSettings } from './settings/DesktopBehaviorSettings';
@@ -30,6 +30,7 @@ interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialTab?: SettingsTab;
+    onOpenUpgrade?: () => void;
 }
 
 interface ApiSettings {
@@ -55,9 +56,9 @@ interface WebDavTokenResponse {
     url: string;
 }
 
-export type SettingsTab = 'general' | 'privacy' | 'advanced' | 'webdav' | 'themes' | 'proxy' | 'vpn' | 'encryption' | 'sharing' | 'sync' | 'about';
+export type SettingsTab = 'general' | 'pro' | 'referral' | 'privacy' | 'advanced' | 'webdav' | 'themes' | 'proxy' | 'vpn' | 'encryption' | 'sharing' | 'sync' | 'about';
 
-export function SettingsModal({ isOpen, onClose, initialTab = 'general' }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, initialTab = 'general', onOpenUpgrade }: SettingsModalProps) {
     const { settings, updateSetting, updateSettings, resetSettings } = useSettings();
     const { confirm } = useConfirm();
     const { t } = useTranslation();
@@ -714,60 +715,169 @@ export function SettingsModal({ isOpen, onClose, initialTab = 'general' }: Setti
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-                        className="quiet-raised flex h-[min(760px,calc(100vh-3rem))] w-[min(920px,calc(100vw-3rem))] flex-col overflow-hidden"
+                        className="flex h-[min(780px,calc(100vh-3rem))] w-[min(960px,calc(100vw-3rem))] flex-col rounded-2xl border border-app-border bg-app-surface shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="flex min-h-16 items-center justify-between border-b border-app-border-subtle px-6 py-4">
+                        <div className="flex min-h-16 items-center justify-between border-b border-app-border-subtle px-6 py-4 bg-app-surface shrink-0">
                             <div>
                                 <h2 id="settings-dialog-title" className="text-base font-semibold text-app-text">{t('settings.title')}</h2>
-                                <p className="mt-0.5 text-xs text-app-text-tertiary">{activeTab === 'privacy' ? 'Privacy, crash reporting & supporter license' : activeTab === 'advanced' ? 'Advanced connections and integrations' : t(`settings.tab_${activeTab}`)}</p>
+                                <p className="mt-0.5 text-xs text-app-text-tertiary">
+                                    {activeTab === 'pro'
+                                        ? 'Lifetime VIP access, unlimited speed & zero ads'
+                                        : activeTab === 'referral'
+                                        ? 'Refer friends and earn flat ₹50 real cash rewards'
+                                        : activeTab === 'privacy'
+                                        ? 'Privacy, crash reporting & supporter license'
+                                        : activeTab === 'advanced'
+                                        ? 'Advanced connections and integrations'
+                                        : t(`settings.tab_${activeTab}`, activeTab.charAt(0).toUpperCase() + activeTab.slice(1))}
+                                </p>
                             </div>
                             <button
                                 onClick={onClose}
                                 aria-label={t('common.close')}
-                                className="quiet-control p-2 text-app-text-secondary hover:text-app-text"
+                                className="p-2 rounded-lg text-app-text-secondary hover:bg-app-hover hover:text-app-text transition cursor-pointer"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="flex min-h-0 flex-1">
+                        <div className="flex min-h-0 flex-1 overflow-hidden">
                         {/* Settings navigation */}
-                        <aside className="w-56 shrink-0 overflow-y-auto border-e border-app-border-subtle bg-app-sidebar p-3">
-                            <div className="relative mb-3">
-                                <Search className="pointer-events-none absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-app-text-tertiary" />
-                                <input value={settingsSearch} onChange={(event) => setSettingsSearch(event.target.value)} placeholder="Search settings" className="quiet-control h-9 w-full border border-app-border bg-app-surface-sunken ps-8 pe-2 text-sm text-app-text outline-none focus:border-app-accent" />
+                        <aside className="w-64 shrink-0 flex flex-col border-e border-app-border-subtle bg-app-sidebar">
+                            <div className="p-3 border-b border-app-border-subtle/50 shrink-0">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute start-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-app-text-tertiary" />
+                                    <input
+                                        value={settingsSearch}
+                                        onChange={(event) => setSettingsSearch(event.target.value)}
+                                        placeholder="Search settings..."
+                                        className="h-8.5 w-full rounded-lg border border-app-border bg-app-surface-sunken ps-9 pe-3 text-xs text-app-text outline-none focus:border-app-accent transition"
+                                    />
+                                </div>
                             </div>
+                            <div className="flex-1 overflow-y-auto p-2.5 custom-scrollbar space-y-3">
                             {([
-                                ['Essentials', [['general', Globe, 'General transfers language updates'], ['themes', Palette, 'Appearance colors themes']] as const],
-                                ['Security & Privacy', [['privacy', Bug, 'Privacy telemetry crash reports consent supporter lifetime ad-free ads $5 PayPal recovery'], ['encryption', Shield, 'Encryption vault security auto lock']] as const],
-                                ['Connections', [['sync', FolderSync, 'Folder sync local directories Telegram channels'], ['sharing', Link, 'Sharing links local server']] as const],
-                                ['Advanced', [['advanced', Gauge, 'REST API proxy VPN WebDAV network integration Finder token port']] as const],
-                                ['Support', [['about', Info, 'About diagnostics version updates']] as const],
+                                ['Membership & Rewards', [
+                                    ['pro', Sparkles, 'Pro Lifetime VIP license upgrade speed ads unlimited supporters membership'],
+                                    ['referral', Gift, 'Refer earn cash affiliate wallet payouts bonus reward ₹50 friends'],
+                                ] as const],
+                                ['Essentials', [
+                                    ['general', Globe, 'General transfers language updates behavior'],
+                                    ['themes', Palette, 'Appearance colors themes dark light mode'],
+                                ] as const],
+                                ['Security & Privacy', [
+                                    ['privacy', Bug, 'Privacy telemetry crash reports consent supporter lifetime ad-free ads $5 PayPal recovery'],
+                                    ['encryption', Shield, 'Encryption vault security auto lock password'],
+                                ] as const],
+                                ['Connections', [
+                                    ['sync', FolderSync, 'Folder sync local directories Telegram channels'],
+                                    ['sharing', Link, 'Sharing links local server direct access'],
+                                ] as const],
+                                ['Advanced', [
+                                    ['advanced', Gauge, 'REST API proxy VPN WebDAV network integration Finder token port'],
+                                ] as const],
+                                ['Support', [
+                                    ['about', Info, 'About diagnostics version updates help contact developer'],
+                                ] as const],
                             ] as const).map(([group, items]) => {
                                 const visibleItems = items.filter(([key, , keywords]) => `${key} ${keywords}`.toLowerCase().includes(settingsSearch.trim().toLowerCase()));
                                 if (visibleItems.length === 0) return null;
                                 return (
-                                    <div key={group} className="mb-3">
-                                        <div className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-app-text-tertiary">{group}</div>
+                                    <div key={group} className="mb-2">
+                                        <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wider text-app-text-tertiary/80">{group}</div>
                                         {visibleItems.map(([key, Icon]) => (
-                                            <button key={key} onClick={() => setActiveTab(key)} className={`quiet-control mb-0.5 flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm font-medium ${activeTab === key ? 'bg-app-selected text-app-text' : 'text-app-text-secondary hover:text-app-text'}`}>
-                                                <Icon className={`h-4 w-4 ${activeTab === key ? 'text-app-accent' : ''}`} />
-                                                {key === 'privacy' ? 'Privacy' : key === 'advanced' ? 'Advanced' : t(`settings.tab_${key}`)}
+                                            <button
+                                                key={key}
+                                                onClick={() => setActiveTab(key)}
+                                                className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-start text-xs font-medium transition cursor-pointer ${
+                                                    activeTab === key
+                                                        ? 'bg-app-selected text-app-accent font-semibold shadow-2xs'
+                                                        : 'text-app-text-secondary hover:bg-app-hover hover:text-app-text'
+                                                }`}
+                                            >
+                                                <Icon className={`h-4 w-4 shrink-0 ${activeTab === key ? 'text-app-accent' : 'text-app-text-tertiary'}`} />
+                                                <span className="truncate">
+                                                    {key === 'pro'
+                                                        ? 'Pro Membership'
+                                                        : key === 'referral'
+                                                        ? 'Refer & Earn (Cash)'
+                                                        : key === 'privacy'
+                                                        ? 'Privacy'
+                                                        : key === 'advanced'
+                                                        ? 'Advanced'
+                                                        : t(`settings.tab_${key}`, key.charAt(0).toUpperCase() + key.slice(1))}
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
                                 );
                             })}
+                            </div>
                         </aside>
 
                         {/* Body */}
-                        <div className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-7 py-6">
+                        <div className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-8 py-6 custom-scrollbar bg-app-surface">
                             <AnimatePresence mode="wait" initial={false}>
+                                {activeTab === 'pro' && (
+                                    <ProMembershipSettingsTab onOpenUpgrade={onOpenUpgrade} />
+                                )}
+
+                                {activeTab === 'referral' && (
+                                    <AffiliateSettingsTab />
+                                )}
 
                                 {activeTab === 'general' && (
                                     <GeneralSettingsTab>
+                                        {/* Quick Upgrade & Rewards Promotion Box */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveTab('pro')}
+                                                className="flex items-center justify-between p-3.5 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent hover:bg-amber-500/15 transition-all text-left group cursor-pointer shadow-2xs"
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30 group-hover:scale-105 transition-transform">
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-app-text group-hover:text-amber-300 truncate">
+                                                            Pro Lifetime VIP
+                                                        </p>
+                                                        <p className="text-[10px] text-app-text-secondary truncate">
+                                                            Zero ads &amp; max speeds
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 shrink-0">
+                                                    Pro
+                                                </span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveTab('referral')}
+                                                className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent hover:bg-emerald-500/15 transition-all text-left group cursor-pointer shadow-2xs"
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 group-hover:scale-105 transition-transform">
+                                                        <Gift className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-app-text group-hover:text-emerald-300 truncate">
+                                                            Refer &amp; Earn Cash
+                                                        </p>
+                                                        <p className="text-[10px] text-app-text-secondary truncate">
+                                                            Earn flat ₹50 per friend
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                                                    ₹50
+                                                </span>
+                                            </button>
+                                        </div>
 
                             {/* Transfers Section */}
                             <section className="space-y-3">

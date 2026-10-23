@@ -58,6 +58,7 @@ import {
   getCrashReportCount,
   getCrashReports,
   recordCrashReport,
+  getLatestPaidTransactionForUser,
 } from './db';
 import {
   generateLicenseKey,
@@ -373,7 +374,7 @@ export default {
             currency: 'INR',
             key_id: env.RAZORPAY_KEY_ID || 'rzp_live_T1mw2QboxNW91L',
             payment_link: storeUrl,
-            webhook_endpoint: 'https://tg-drive-license-service.jupiterbania472.workers.dev/api/webhooks/razorpay',
+            webhook_endpoint: 'https://tg-drive-license-service.baniarohan009.workers.dev/api/webhooks/razorpay',
           });
         }
 
@@ -1007,10 +1008,11 @@ export default {
           let amountInPaise = 39900; // default ₹399 in paise
 
           if (typeof body.amount === 'number' && body.amount > 0) {
-            amountInPaise = body.amount >= 1000 ? Math.round(body.amount) : Math.round(body.amount * 100);
+            // Frontend sends amount in INR rupees (e.g. 24, 49, 199, 249, 499)
+            amountInPaise = body.amount >= 5000 && body.amount % 100 === 0 ? Math.round(body.amount) : Math.round(body.amount * 100);
           } else {
-            const livePriceStr = await getStoreSetting(env.DB, 'live_price', '399');
-            const livePrice = parseFloat(livePriceStr) || 399;
+            const livePriceStr = await getStoreSetting(env.DB, 'live_price', '499');
+            const livePrice = parseFloat(livePriceStr) || 499;
             amountInPaise = Math.round(livePrice * 100);
           }
 
@@ -1047,6 +1049,7 @@ export default {
           // Call official Razorpay Orders API
           const authHeader = 'Basic ' + btoa(`${keyId}:${keySecret}`);
           const receiptId = `rcpt_${tgUserId}_${Date.now()}`.slice(0, 40);
+          const checkoutConfigId = body.checkout_config_id || env.RAZORPAY_CHECKOUT_CONFIG_ID || 'config_TiUSpvBT1EEuwz';
 
           const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
             method: 'POST',
@@ -1058,6 +1061,7 @@ export default {
               amount: amountInPaise,
               currency: 'INR',
               receipt: receiptId,
+              checkout_config_id: checkoutConfigId,
               notes: {
                 telegram_user_id: tgUserId,
                 phone_number: body.phone_number || '',
@@ -1074,6 +1078,56 @@ export default {
             return jsonResponse({
               error: rzpData.error?.description || 'Failed to create Razorpay order',
             }, 500);
+          }
+
+          // Generate dedicated Razorpay Payment Link for Seamless Mobile UPI Intent (Google Pay / PhonePe / Paytm)
+          let paymentLinkUrl: string | undefined;
+          try {
+            const rawPhone = (body.phone_number || '').replace(/[^0-9+]/g, '');
+            const customerContact = rawPhone.length >= 10 ? rawPhone : undefined;
+            const customerEmail = body.customer_email || (tgUserId ? `tg_${tgUserId}@t-drive.internal` : undefined);
+
+            const plRes = await fetch('https://api.razorpay.com/v1/payment_links', {
+              method: 'POST',
+              headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount: amountInPaise,
+                currency: 'INR',
+                accept_partial: false,
+                description: `TG Drive Pro (${planType}) Upgrade`,
+                customer: {
+                  name: body.customer_name || 'TG Drive User',
+                  contact: customerContact,
+                  email: customerEmail,
+                },
+                notify: { sms: false, email: false },
+                reminder_enable: false,
+                notes: {
+                  telegram_user_id: tgUserId,
+                  order_id: rzpData.id,
+                  plan_type: planType,
+                  customer_name: body.customer_name || '',
+                  customer_email: body.customer_email || '',
+                  phone_number: body.phone_number || '',
+                },
+                callback_url: `https://tg-drive-license-service.baniarohan009.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(tgUserId)}&order_id=${encodeURIComponent(rzpData.id)}&plan_type=${encodeURIComponent(planType)}`,
+                callback_method: 'get',
+              }),
+            });
+
+            if (plRes.ok) {
+              const plData = (await plRes.json()) as { short_url?: string };
+              if (plData.short_url) {
+                paymentLinkUrl = plData.short_url;
+              }
+            } else {
+              console.warn('[create-order] Payment link creation returned non-ok:', await plRes.text());
+            }
+          } catch (plErr) {
+            console.warn('[create-order] Failed to generate payment link for mobile:', plErr);
           }
 
           // Record created order in payment_transactions table
@@ -1094,10 +1148,12 @@ export default {
             success: true,
             order_id: rzpData.id,
             key_id: keyId,
+            checkout_config_id: checkoutConfigId,
             amount: rzpData.amount || amountInPaise,
             currency: rzpData.currency || 'INR',
             plan_type: planType,
             telegram_user_id: tgUserId,
+            payment_link_url: paymentLinkUrl,
           });
         } catch (err) {
           console.error('Error in create-order:', err);
@@ -1193,6 +1249,106 @@ export default {
         }
       }
 
+      // GET /api/payment/razorpay/callback (Mobile Browser Completion Callback)
+      if (url.pathname === '/api/payment/razorpay/callback' && request.method === 'GET') {
+        const userId = url.searchParams.get('user_id') || '';
+        const orderId = url.searchParams.get('order_id') || '';
+        const razorpayPaymentId = url.searchParams.get('razorpay_payment_id') || '';
+        const razorpayPaymentLinkId = url.searchParams.get('razorpay_payment_link_id') || '';
+
+        // Auto upgrade user entitlement in DB if razorpay payment ID or link ID is verified
+        if (userId && (razorpayPaymentId || razorpayPaymentLinkId)) {
+          try {
+            let planType = (url.searchParams.get('plan_type') as LicensePlan) || null;
+            if (!planType && orderId) {
+              const tx = await getPaymentTransactionByOrderId(env.DB, orderId);
+              if (tx && tx.plan_type) {
+                planType = tx.plan_type as LicensePlan;
+              }
+            }
+            if (!planType) planType = 'lifetime';
+
+            const now = Math.floor(Date.now() / 1000);
+            let expiresAt: number | null = null;
+            if (planType === 'monthly') {
+              expiresAt = now + 30 * 86400;
+            } else if (planType === 'annual') {
+              expiresAt = now + 365 * 86400;
+            }
+
+            await directUpgradeProUser(env.DB, {
+              telegram_user_id: userId,
+              plan_type: planType,
+              expires_at: expiresAt,
+              notes: `Razorpay Link Callback (Payment: ${razorpayPaymentId || razorpayPaymentLinkId}, Order: ${orderId})`,
+            });
+          } catch (e) {
+            console.error('[callback] directUpgradeProUser error:', e);
+          }
+        }
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - TG Drive Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #06080e;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: rgba(13, 18, 32, 0.95);
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      border-radius: 24px;
+      padding: 36px 24px;
+      max-width: 440px;
+      width: 100%;
+    }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h1 { color: #00d2ff; font-size: 1.6rem; margin: 0 0 10px; }
+    p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin: 0 0 24px; }
+    .btn {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 14px 20px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-sizing: border-box;
+      box-shadow: 0 8px 20px rgba(0, 210, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🎉</div>
+    <h1>Payment Successful!</h1>
+    <p>Your TG Drive Pro upgrade is active.<br>Switch back to the TG Drive App to start enjoying unlimited cloud storage!</p>
+    <a href="https://t.me" class="btn">Return to TG Drive App</a>
+  </div>
+</body>
+</html>`;
+        return new Response(html, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        });
+      }
+
       // -------------------------------------------------------------
       // 2.2 Direct User Entitlement & Status API (/api/user/status)
       // -------------------------------------------------------------
@@ -1222,9 +1378,31 @@ export default {
         // 1. Check pro_users table
         if (tgUserId) {
           const proUser = await getProUserByTelegramId(env.DB, tgUserId);
-          if (proUser && proUser.is_banned === 0 && proUser.is_pro === 1) {
+          if (proUser && proUser.is_banned === 0) {
+            // Reconcile if marked lifetime by legacy callback, but user actually paid for monthly or annual
+            if (proUser.plan_type === 'lifetime' && !proUser.expires_at) {
+              try {
+                const latestTx = await getLatestPaidTransactionForUser(env.DB, tgUserId);
+                if (latestTx && latestTx.plan_type && latestTx.plan_type !== 'lifetime') {
+                  const paidAt = latestTx.paid_at || latestTx.created_at || Math.floor(Date.now() / 1000);
+                  const duration = latestTx.plan_type === 'annual' ? 365 * 86400 : 30 * 86400;
+                  const newExpiresAt = paidAt + duration;
+                  await env.DB.prepare('UPDATE pro_users SET plan_type = ?, expires_at = ? WHERE telegram_user_id = ?')
+                    .bind(latestTx.plan_type, newExpiresAt, tgUserId)
+                    .run();
+                  proUser.plan_type = latestTx.plan_type as LicensePlan;
+                  proUser.expires_at = newExpiresAt;
+                }
+              } catch (e) {
+                console.warn('[user/status] Transaction reconciliation error:', e);
+              }
+            }
+
             const now = Math.floor(Date.now() / 1000);
-            if (!proUser.expires_at || proUser.expires_at > now) {
+            const isExpired = Boolean(proUser.expires_at && proUser.expires_at <= now);
+            const isPro = proUser.is_pro === 1 && !isExpired;
+
+            if (isPro) {
               const claims: LicenseClaims = {
                 sub: proUser.telegram_user_id,
                 tg_id: proUser.telegram_user_id,
@@ -1240,6 +1418,7 @@ export default {
               return jsonResponse({
                 active: true,
                 is_pro: true,
+                is_expired: false,
                 plan_type: proUser.plan_type,
                 telegram_user_id: proUser.telegram_user_id,
                 phone_number: proUser.phone_number,
@@ -1250,6 +1429,20 @@ export default {
                 token,
                 message: 'TG Drive Pro is active on your Telegram account.',
               });
+            } else if (isExpired) {
+              return jsonResponse({
+                active: false,
+                is_pro: false,
+                is_expired: true,
+                plan_type: proUser.plan_type,
+                telegram_user_id: proUser.telegram_user_id,
+                phone_number: proUser.phone_number,
+                first_name: proUser.first_name,
+                username: proUser.username,
+                expires_at: proUser.expires_at,
+                ad_free: false,
+                message: 'Your Pro subscription has expired.',
+              });
             }
           }
         }
@@ -1258,7 +1451,9 @@ export default {
         const license = await getLicenseByTelegramAccount(env.DB, tgUserId || null, phone || null);
         if (license && license.is_banned === 0) {
           const now = Math.floor(Date.now() / 1000);
-          if (!license.expires_at || license.expires_at > now) {
+          const isExpired = Boolean(license.expires_at && license.expires_at <= now);
+
+          if (!isExpired) {
             const claims: LicenseClaims = {
               sub: license.telegram_user_id || license.license_key,
               tg_id: license.telegram_user_id || tgUserId || undefined,
@@ -1274,6 +1469,7 @@ export default {
             return jsonResponse({
               active: true,
               is_pro: true,
+              is_expired: false,
               plan_type: license.plan_type,
               telegram_user_id: license.telegram_user_id,
               phone_number: license.phone_number,
@@ -1282,6 +1478,19 @@ export default {
               ad_free: true,
               token,
               message: 'TG Drive Pro is active on your Telegram account.',
+            });
+          } else {
+            return jsonResponse({
+              active: false,
+              is_pro: false,
+              is_expired: true,
+              plan_type: license.plan_type,
+              telegram_user_id: license.telegram_user_id,
+              phone_number: license.phone_number,
+              customer_name: license.customer_name,
+              expires_at: license.expires_at,
+              ad_free: false,
+              message: 'Your Pro subscription has expired.',
             });
           }
         }
@@ -1550,19 +1759,68 @@ export default {
           const cleanCode = code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
           const coupon = await getCouponByCode(env.DB, cleanCode);
 
+          const rawPrice = parseFloat(url.searchParams.get('price') || '');
+          const planId = url.searchParams.get('plan_id') || 'lifetime';
+          let basePrice = 499;
+          if (!isNaN(rawPrice) && rawPrice > 0) {
+            basePrice = rawPrice;
+          } else if (planId === 'monthly') {
+            basePrice = 49;
+          } else if (planId === 'annual') {
+            basePrice = 199;
+          } else {
+            const basePriceStr = await getStoreSetting(env.DB, 'live_price', '499');
+            basePrice = parseFloat(basePriceStr) || 499;
+          }
+
+          const BUILTIN_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
+            FLASH50: { type: 'percent', value: 50, label: '50% Flash Sale Discount' },
+            PRO50: { type: 'percent', value: 50, label: '50% Pro Membership Discount' },
+            VIP50: { type: 'percent', value: 50, label: '50% VIP Access Discount' },
+            SPECIAL50: { type: 'percent', value: 50, label: '50% Special Promotional Offer' },
+            TG50: { type: 'percent', value: 50, label: '50% TG Drive Exclusive' },
+            WELCOME10: { type: 'percent', value: 10, label: '10% Welcome Discount' },
+            TGDRIVE: { type: 'percent', value: 10, label: '10% Official TG Drive Discount' },
+            PRO20: { type: 'percent', value: 20, label: '20% Pro Discount' },
+            SAVE20: { type: 'percent', value: 20, label: '20% Special Savings' },
+            EARLYBIRD: { type: 'percent', value: 30, label: '30% Early Bird Discount' },
+            STUDENT: { type: 'percent', value: 25, label: '25% Student Discount' },
+          };
+
           if (!coupon) {
-            // Check if code is a valid Refer & Earn code
+            // 1. Check built-in official promo codes
+            if (BUILTIN_COUPONS[cleanCode]) {
+              const b = BUILTIN_COUPONS[cleanCode];
+              let discountAmount = 0;
+              if (b.type === 'percent') {
+                discountAmount = Math.round((basePrice * b.value) / 100);
+              } else {
+                discountAmount = Math.min(basePrice - 1, Math.round(b.value));
+              }
+              const discountedPrice = Math.max(1, basePrice - discountAmount);
+
+              return jsonResponse({
+                valid: true,
+                code: cleanCode,
+                discount_text: b.label,
+                discount_type: b.type,
+                discount_value: b.value,
+                discount_amount: discountAmount,
+                original_price: basePrice,
+                new_price: discountedPrice,
+              });
+            }
+
+            // 2. Check if code is a valid Refer & Earn code
             const referral = await getReferralProfileByCode(env.DB, cleanCode);
             if (referral) {
               const friendDiscType = await getStoreSetting(env.DB, 'referral_friend_discount_type', 'percent');
               const friendDiscVal = parseFloat(await getStoreSetting(env.DB, 'referral_friend_discount_value', '10')) || 10;
-              const basePriceStr = await getStoreSetting(env.DB, 'live_price', '399');
-              const basePrice = parseFloat(basePriceStr) || 399;
               let discountAmount = 0;
               if (friendDiscType === 'percent') {
-                discountAmount = (basePrice * friendDiscVal) / 100;
+                discountAmount = Math.round((basePrice * friendDiscVal) / 100);
               } else {
-                discountAmount = friendDiscVal;
+                discountAmount = Math.min(basePrice - 1, Math.round(friendDiscVal));
               }
               const discountedPrice = Math.max(1, Math.round(basePrice - discountAmount));
               const discountText = friendDiscType === 'percent' ? `${friendDiscVal}% Referral Discount` : `₹${friendDiscVal} Referral Discount`;
@@ -1575,6 +1833,7 @@ export default {
                 discount_text: discountText,
                 discount_type: friendDiscType,
                 discount_value: friendDiscVal,
+                discount_amount: discountAmount,
                 original_price: basePrice,
                 new_price: discountedPrice,
                 payment_link: storeUrl,
@@ -1593,14 +1852,11 @@ export default {
             return jsonResponse({ valid: false, error: 'This coupon has reached its maximum usage limit.' });
           }
 
-          const basePriceStr = await getStoreSetting(env.DB, 'live_price', '399');
-          const basePrice = parseFloat(basePriceStr) || 399;
-
           let discountAmount = 0;
           if (coupon.discount_type === 'percent') {
-            discountAmount = (basePrice * coupon.discount_value) / 100;
+            discountAmount = Math.round((basePrice * coupon.discount_value) / 100);
           } else {
-            discountAmount = coupon.discount_value;
+            discountAmount = Math.min(basePrice - 1, Math.round(coupon.discount_value));
           }
 
           const discountedPrice = Math.max(1, Math.round(basePrice - discountAmount));
@@ -1616,6 +1872,7 @@ export default {
             discount_text: discountText,
             discount_type: coupon.discount_type,
             discount_value: coupon.discount_value,
+            discount_amount: discountAmount,
             original_price: basePrice,
             new_price: discountedPrice,
             payment_link: storeUrl,
@@ -2205,6 +2462,8 @@ export default {
             active: false,
             message: 'License has expired',
             expired: true,
+            is_expired: true,
+            plan_type: license.plan_type,
             expires_at: license.expires_at,
           }, 200);
         }
@@ -2695,6 +2954,8 @@ export default {
             payment_link?: {
               entity?: {
                 id?: string;
+                amount?: number;
+                notes?: Record<string, string>;
                 customer?: {
                   email?: string;
                   name?: string;
@@ -2764,6 +3025,10 @@ export default {
 
           const orderId = paymentEntity?.id || payload.payload?.payment_link?.entity?.id || orderEntity?.id || 'RZP-' + Date.now();
 
+          if (!email && telegramUserId) {
+            email = `tg_${telegramUserId}@t-drive.internal`;
+          }
+
           if (email) {
             // Check if license already exists for this exact order ID (Deduplication against multiple Razorpay webhooks)
             const existingLicenses = await getLicensesByEmail(env.DB, email);
@@ -2779,6 +3044,38 @@ export default {
 
             const noteContent = `Razorpay Payment ID: ${orderId}${checkoutSessionId ? ` Session: ${checkoutSessionId}` : ''}`;
 
+            let webhookPlanType = (paymentEntity?.notes?.plan_type ||
+              orderEntity?.notes?.plan_type ||
+              payload.payload?.payment_link?.entity?.notes?.plan_type) as LicensePlan | undefined;
+
+            if (!webhookPlanType && orderId) {
+              try {
+                const tx = await getPaymentTransactionByOrderId(env.DB, orderId);
+                if (tx && tx.plan_type) {
+                  webhookPlanType = tx.plan_type as LicensePlan;
+                }
+              } catch {}
+            }
+
+            if (!webhookPlanType) {
+              const amountPaise = paymentEntity?.amount || payload.payload?.payment_link?.entity?.amount || 0;
+              if (amountPaise > 0 && amountPaise <= 9900) {
+                webhookPlanType = 'monthly';
+              } else if (amountPaise > 9900 && amountPaise <= 29900) {
+                webhookPlanType = 'annual';
+              } else {
+                webhookPlanType = 'lifetime';
+              }
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            let expiresAt: number | null = null;
+            if (webhookPlanType === 'monthly') {
+              expiresAt = now + 30 * 86400;
+            } else if (webhookPlanType === 'annual') {
+              expiresAt = now + 365 * 86400;
+            }
+
             await createLicense(env.DB, {
               id,
               license_key: key,
@@ -2786,10 +3083,27 @@ export default {
               phone_number: phoneNumber,
               customer_name: name,
               customer_email: email,
-              plan_type: 'lifetime',
+              plan_type: webhookPlanType,
+              expires_at: expiresAt,
               max_devices: parseInt(env.MAX_DEFAULT_DEVICES || '2', 10),
               notes: noteContent,
             });
+
+            if (telegramUserId) {
+              try {
+                await directUpgradeProUser(env.DB, {
+                  telegram_user_id: String(telegramUserId),
+                  phone_number: phoneNumber,
+                  customer_name: name,
+                  customer_email: email,
+                  plan_type: webhookPlanType,
+                  expires_at: expiresAt,
+                  notes: noteContent,
+                });
+              } catch (upErr) {
+                console.error('[RAZORPAY_WEBHOOK] Failed to directUpgradeProUser:', upErr);
+              }
+            }
 
             await recordAdminLog(env.DB, 'RAZORPAY_ORDER', key, `Auto-generated for ${email}`);
 

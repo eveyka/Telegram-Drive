@@ -1,3 +1,10 @@
+## [1.0.0] - 2026-10-23
+
+### Features & Enhancements
+- Enhanced Razorpay checkout integration with dedicated dashboard configuration (`config_TiUSpvBT1EEuwz`) for UPI and dynamic QR payment support.
+- Hardened server webhook handling with automated Pro entitlement upgrade.
+- Optimized lightweight Android release build (ARM64-v8a) with bytecode minification and resource shrinking.
+
 ## [1.2.0] - 2026-09-23
 
 ### Features & Enhancements
