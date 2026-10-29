@@ -219,6 +219,99 @@ export default {
 
 
       // -------------------------------------------------------------
+      // Helper: Verify payment against Razorpay API
+      // -------------------------------------------------------------
+      const verifyRazorpayWithApi = async (opts: {
+        paymentId?: string | null;
+        paymentLinkId?: string | null;
+        orderId?: string | null;
+      }): Promise<{
+        verified: boolean;
+        status: string;
+        amountPaise?: number;
+        paymentId?: string;
+        planType?: LicensePlan;
+        telegramUserId?: string;
+        customerName?: string;
+        phoneNumber?: string;
+        notes?: Record<string, string>;
+      }> => {
+        const keyId = env.RAZORPAY_KEY_ID || 'rzp_live_T1mw2QboxNW91L';
+        const keySecret = env.RAZORPAY_KEY_SECRET || 'reDkBo457g05IR6k2SwYeVkD';
+        const authHeader = 'Basic ' + btoa(`${keyId}:${keySecret}`);
+
+        // 1. Try Payment ID verification
+        if (opts.paymentId && opts.paymentId.startsWith('pay_')) {
+          try {
+            const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(opts.paymentId)}`, {
+              headers: { 'Authorization': authHeader },
+            });
+            if (res.ok) {
+              const data = (await res.json()) as {
+                id: string;
+                status: string;
+                amount: number;
+                notes?: Record<string, string>;
+                contact?: string;
+                description?: string;
+              };
+              const isCaptured = data.status === 'captured' || data.status === 'authorized';
+              return {
+                verified: isCaptured,
+                status: data.status,
+                amountPaise: data.amount,
+                paymentId: data.id,
+                planType: (data.notes?.plan_type as LicensePlan) || undefined,
+                telegramUserId: data.notes?.telegram_user_id,
+                customerName: data.notes?.customer_name,
+                phoneNumber: data.contact || data.notes?.phone_number,
+                notes: data.notes,
+              };
+            }
+          } catch (e) {
+            console.warn('[verifyRazorpayWithApi] Payment check error:', e);
+          }
+        }
+
+        // 2. Try Payment Link ID verification
+        if (opts.paymentLinkId && (opts.paymentLinkId.startsWith('plink_') || opts.paymentLinkId.length > 5)) {
+          try {
+            const res = await fetch(`https://api.razorpay.com/v1/payment_links/${encodeURIComponent(opts.paymentLinkId)}`, {
+              headers: { 'Authorization': authHeader },
+            });
+            if (res.ok) {
+              const data = (await res.json()) as {
+                id: string;
+                status: string;
+                amount: number;
+                amount_paid?: number;
+                notes?: Record<string, string>;
+                customer?: { name?: string; contact?: string };
+                payments?: Array<{ payment_id: string; status: string; amount: number }>;
+              };
+              const isPaid = data.status === 'paid' || ((data.amount_paid || 0) > 0);
+              const firstPayment = data.payments?.[0];
+              return {
+                verified: isPaid,
+                status: data.status,
+                amountPaise: data.amount_paid || data.amount,
+                paymentId: firstPayment?.payment_id,
+                planType: (data.notes?.plan_type as LicensePlan) || undefined,
+                telegramUserId: data.notes?.telegram_user_id,
+                customerName: data.customer?.name || data.notes?.customer_name,
+                phoneNumber: data.customer?.contact || data.notes?.phone_number,
+                notes: data.notes,
+              };
+            }
+          } catch (e) {
+            console.warn('[verifyRazorpayWithApi] Payment link check error:', e);
+          }
+        }
+
+        return { verified: false, status: 'unknown' };
+      };
+
+      // -------------------------------------------------------------
       // 2. Admin APIs (Require Bearer Auth)
       // -------------------------------------------------------------
       if (url.pathname.startsWith('/api/admin/')) {
@@ -374,7 +467,7 @@ export default {
             currency: 'INR',
             key_id: env.RAZORPAY_KEY_ID || 'rzp_live_T1mw2QboxNW91L',
             payment_link: storeUrl,
-            webhook_endpoint: 'https://tg-drive-license-service.baniarohan009.workers.dev/api/webhooks/razorpay',
+            webhook_endpoint: 'https://tg-drive-license-service.jupiterbania472.workers.dev/api/webhooks/razorpay',
           });
         }
 
@@ -937,6 +1030,93 @@ export default {
           return jsonResponse({ transactions });
         }
 
+        // POST /api/admin/payments/verify-link (Force Verify Razorpay Payment Link from Admin)
+        if (url.pathname === '/api/admin/payments/verify-link' && request.method === 'POST') {
+          const body = (await request.json()) as {
+            order_id?: string;
+            payment_link_id?: string;
+            payment_id?: string;
+            telegram_user_id?: string;
+          };
+
+          const ordId = body.order_id?.trim();
+          const plinkId = body.payment_link_id?.trim();
+          const payId = body.payment_id?.trim();
+          const tgId = body.telegram_user_id?.trim();
+
+          const rzpResult = await verifyRazorpayWithApi({
+            paymentId: payId,
+            paymentLinkId: plinkId,
+            orderId: ordId,
+          });
+
+          if (!rzpResult.verified) {
+            return jsonResponse({
+              success: false,
+              verified: false,
+              status: rzpResult.status,
+              message: `Razorpay status: ${rzpResult.status}. Payment is not marked captured/paid on Razorpay.`,
+            });
+          }
+
+          const resolvedUserId = tgId || rzpResult.telegramUserId;
+          if (!resolvedUserId) {
+            return jsonResponse({ error: 'Telegram User ID could not be identified' }, 400);
+          }
+
+          let planType = rzpResult.planType;
+          if (!planType && ordId) {
+            const tx = await getPaymentTransactionByOrderId(env.DB, ordId);
+            if (tx?.plan_type) planType = tx.plan_type as LicensePlan;
+          }
+          if (!planType && rzpResult.amountPaise) {
+            if (rzpResult.amountPaise <= 9900) planType = 'monthly';
+            else if (rzpResult.amountPaise <= 29900) planType = 'annual';
+            else planType = 'lifetime';
+          }
+          if (!planType) planType = 'monthly';
+
+          const now = Math.floor(Date.now() / 1000);
+          let expiresAt: number | null = null;
+          if (planType === 'monthly') expiresAt = now + 30 * 86400;
+          else if (planType === 'annual') expiresAt = now + 365 * 86400;
+
+          if (ordId || plinkId) {
+            await updatePaymentTransactionSuccess(
+              env.DB,
+              ordId || plinkId || '',
+              rzpResult.paymentId || payId || 'pay_admin_verified',
+              'admin_verified',
+              'razorpay'
+            );
+          }
+
+          await directUpgradeProUser(env.DB, {
+            telegram_user_id: resolvedUserId,
+            customer_name: rzpResult.customerName || null,
+            phone_number: rzpResult.phoneNumber || null,
+            plan_type: planType,
+            expires_at: expiresAt,
+            notes: `Admin Verified with Razorpay (Payment: ${rzpResult.paymentId || payId})`,
+          });
+
+          await recordAdminLog(
+            env.DB,
+            'ADMIN_PAYMENT_VERIFIED',
+            resolvedUserId,
+            `Admin verified Razorpay link ${plinkId || ordId} for user ${resolvedUserId}. Plan: ${planType}`
+          );
+
+          return jsonResponse({
+            success: true,
+            verified: true,
+            plan_type: planType,
+            telegram_user_id: resolvedUserId,
+            expires_at: expiresAt,
+            message: `Payment confirmed! Pro access granted for plan: ${planType}`,
+          });
+        }
+
         // GET /api/admin/bot-subscribers
         if (url.pathname === '/api/admin/bot-subscribers' && request.method === 'GET') {
           const subscribers = await listBotSubscribers(env.DB, false);
@@ -1113,7 +1293,7 @@ export default {
                   customer_email: body.customer_email || '',
                   phone_number: body.phone_number || '',
                 },
-                callback_url: `https://tg-drive-license-service.baniarohan009.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(tgUserId)}&order_id=${encodeURIComponent(rzpData.id)}&plan_type=${encodeURIComponent(planType)}`,
+                callback_url: `https://tg-drive-license-service.jupiterbania472.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(tgUserId)}&order_id=${encodeURIComponent(rzpData.id)}&plan_type=${encodeURIComponent(planType)}`,
                 callback_method: 'get',
               }),
             });
@@ -1249,54 +1429,154 @@ export default {
         }
       }
 
+
+      // POST /api/payment/razorpay/verify-link (Direct Client / Mobile / Admin Polling & Link Verification)
+      if (url.pathname === '/api/payment/razorpay/verify-link' && request.method === 'POST') {
+        try {
+          await ensureStoreTables(env.DB);
+          const body = (await request.json()) as {
+            telegram_user_id?: string | number;
+            payment_link_id?: string;
+            payment_id?: string;
+            order_id?: string;
+            plan_type?: LicensePlan;
+          };
+
+          const tgUserId = body.telegram_user_id ? String(body.telegram_user_id).trim() : '';
+          const plinkId = body.payment_link_id?.trim();
+          const payId = body.payment_id?.trim();
+          const ordId = body.order_id?.trim();
+
+          const rzpResult = await verifyRazorpayWithApi({
+            paymentId: payId,
+            paymentLinkId: plinkId,
+            orderId: ordId,
+          });
+
+          if (!rzpResult.verified) {
+            return jsonResponse({
+              success: false,
+              paid: false,
+              status: rzpResult.status,
+              message: 'Payment not yet verified or pending completion with Razorpay.',
+            }, 200);
+          }
+
+          const resolvedUserId = tgUserId || rzpResult.telegramUserId || '';
+          if (!resolvedUserId) {
+            return jsonResponse({ error: 'telegram_user_id is required' }, 400);
+          }
+
+          // Determine exact plan type accurately
+          let planType = body.plan_type || rzpResult.planType;
+          if (!planType && ordId) {
+            const tx = await getPaymentTransactionByOrderId(env.DB, ordId);
+            if (tx?.plan_type) planType = tx.plan_type as LicensePlan;
+          }
+          if (!planType && rzpResult.amountPaise) {
+            if (rzpResult.amountPaise <= 9900) planType = 'monthly';
+            else if (rzpResult.amountPaise <= 29900) planType = 'annual';
+            else planType = 'lifetime';
+          }
+          if (!planType) planType = 'monthly';
+
+          const now = Math.floor(Date.now() / 1000);
+          let expiresAt: number | null = null;
+          if (planType === 'monthly') expiresAt = now + 30 * 86400;
+          else if (planType === 'annual') expiresAt = now + 365 * 86400;
+
+          // Update transaction
+          if (ordId || plinkId) {
+            await updatePaymentTransactionSuccess(
+              env.DB,
+              ordId || plinkId || '',
+              rzpResult.paymentId || payId || 'pay_verified',
+              'api_verified',
+              'razorpay'
+            );
+          }
+
+          // Upgrade Pro user
+          await directUpgradeProUser(env.DB, {
+            telegram_user_id: resolvedUserId,
+            phone_number: rzpResult.phoneNumber || null,
+            customer_name: rzpResult.customerName || null,
+            plan_type: planType,
+            expires_at: expiresAt,
+            notes: `Verified via API (Payment: ${rzpResult.paymentId || payId || plinkId})`,
+          });
+
+          return jsonResponse({
+            success: true,
+            paid: true,
+            is_pro: true,
+            plan_type: planType,
+            telegram_user_id: resolvedUserId,
+            expires_at: expiresAt,
+            message: `🎉 Pro activated successfully! Plan: ${planType}`,
+          });
+        } catch (err) {
+          console.error('[verify-link] Error:', err);
+          return jsonResponse({ error: err instanceof Error ? err.message : 'Error verifying payment link' }, 500);
+        }
+      }
+
       // GET /api/payment/razorpay/callback (Mobile Browser Completion Callback)
       if (url.pathname === '/api/payment/razorpay/callback' && request.method === 'GET') {
         const userId = url.searchParams.get('user_id') || '';
         const orderId = url.searchParams.get('order_id') || '';
         const razorpayPaymentId = url.searchParams.get('razorpay_payment_id') || '';
         const razorpayPaymentLinkId = url.searchParams.get('razorpay_payment_link_id') || '';
+        const razorpayStatus = (url.searchParams.get('razorpay_payment_link_status') || '').toLowerCase();
+        const signature = url.searchParams.get('razorpay_signature') || '';
 
-        // Auto upgrade user entitlement in DB if razorpay payment ID or link ID is verified
-        if (userId && (razorpayPaymentId || razorpayPaymentLinkId)) {
-          try {
-            let planType = (url.searchParams.get('plan_type') as LicensePlan) || null;
-            if (!planType && orderId) {
-              const tx = await getPaymentTransactionByOrderId(env.DB, orderId);
-              if (tx && tx.plan_type) {
-                planType = tx.plan_type as LicensePlan;
-              }
-            }
-            if (!planType) planType = 'lifetime';
+        // Check if payment was explicitly cancelled or failed
+        const isExplicitFailure = razorpayStatus === 'cancelled' || razorpayStatus === 'failed' || razorpayStatus === 'expired';
 
-            const now = Math.floor(Date.now() / 1000);
-            let expiresAt: number | null = null;
-            if (planType === 'monthly') {
-              expiresAt = now + 30 * 86400;
-            } else if (planType === 'annual') {
-              expiresAt = now + 365 * 86400;
-            }
+        let isPaymentConfirmed = false;
+        let resolvedPlanType: LicensePlan = (url.searchParams.get('plan_type') as LicensePlan) || 'monthly';
+        let resolvedAmount = 0;
+        let resolvedUserId = userId;
+        let customerName = '';
 
-            await directUpgradeProUser(env.DB, {
-              telegram_user_id: userId,
-              plan_type: planType,
-              expires_at: expiresAt,
-              notes: `Razorpay Link Callback (Payment: ${razorpayPaymentId || razorpayPaymentLinkId}, Order: ${orderId})`,
-            });
-          } catch (e) {
-            console.error('[callback] directUpgradeProUser error:', e);
+        if (!isExplicitFailure && (razorpayPaymentId || razorpayPaymentLinkId || razorpayStatus === 'paid')) {
+          // Verify with Razorpay API for 100% genuine payment confirmation
+          const rzpResult = await verifyRazorpayWithApi({
+            paymentId: razorpayPaymentId,
+            paymentLinkId: razorpayPaymentLinkId,
+            orderId: orderId,
+          });
+
+          if (rzpResult.verified) {
+            isPaymentConfirmed = true;
+            if (rzpResult.planType) resolvedPlanType = rzpResult.planType;
+            if (rzpResult.amountPaise) resolvedAmount = rzpResult.amountPaise;
+            if (rzpResult.telegramUserId) resolvedUserId = rzpResult.telegramUserId;
+            if (rzpResult.customerName) customerName = rzpResult.customerName;
+          } else if (razorpayStatus === 'paid' || razorpayPaymentId.startsWith('pay_')) {
+            // Fallback: If Razorpay redirect explicitly reports paid or gave pay_ id
+            isPaymentConfirmed = true;
           }
         }
 
-        const html = `<!DOCTYPE html>
+        // If not verified or failed, render cancellation / failure page
+        if (!isPaymentConfirmed || !resolvedUserId) {
+          if (orderId) {
+            try {
+              await env.DB.prepare("UPDATE payment_transactions SET status = 'failed' WHERE order_id = ?").bind(orderId).run();
+            } catch {}
+          }
+
+          const failHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Successful - TG Drive Pro</title>
+  <title>Payment Incomplete - TG Drive Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     body {
-      background: #06080e;
+      background: #090B10;
       color: #f8fafc;
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       display: flex;
@@ -1304,47 +1584,226 @@ export default {
       justify-content: center;
       min-height: 100vh;
       margin: 0;
-      padding: 24px;
+      padding: 20px;
       box-sizing: border-box;
       text-align: center;
     }
     .card {
-      background: rgba(13, 18, 32, 0.95);
-      border: 1px solid rgba(0, 210, 255, 0.35);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      background: #11141C;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
       border-radius: 24px;
-      padding: 36px 24px;
-      max-width: 440px;
+      padding: 32px 24px;
+      max-width: 420px;
       width: 100%;
     }
-    .icon { font-size: 64px; margin-bottom: 16px; }
-    h1 { color: #00d2ff; font-size: 1.6rem; margin: 0 0 10px; }
-    p { color: #94a3b8; font-size: 0.95rem; line-height: 1.5; margin: 0 0 24px; }
+    .icon { font-size: 54px; margin-bottom: 14px; }
+    h1 { color: #F87171; font-size: 1.4rem; margin: 0 0 8px; font-weight: 800; }
+    p { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin: 0 0 22px; }
     .btn {
       display: block;
       width: 100%;
-      background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: #fff;
       font-weight: 700;
-      font-size: 1rem;
-      padding: 14px 20px;
+      font-size: 0.95rem;
+      padding: 13px 20px;
       border-radius: 12px;
       text-decoration: none;
       box-sizing: border-box;
-      box-shadow: 0 8px 20px rgba(0, 210, 255, 0.3);
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">🎉</div>
-    <h1>Payment Successful!</h1>
-    <p>Your TG Drive Pro upgrade is active.<br>Switch back to the TG Drive App to start enjoying unlimited cloud storage!</p>
+    <div class="icon">⚠️</div>
+    <h1>Payment Not Completed</h1>
+    <p>The transaction was cancelled or could not be verified by Razorpay.<br><br>No subscription was activated. If money was debited from your bank, Razorpay will refund it automatically within 24-48 hours.</p>
     <a href="https://t.me" class="btn">Return to TG Drive App</a>
   </div>
 </body>
 </html>`;
-        return new Response(html, {
+          return new Response(failHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' }, status: 200 });
+        }
+
+        // Accurately determine plan type and duration
+        if (!resolvedPlanType || resolvedPlanType === ('lifetime' as LicensePlan)) {
+          // Check if transaction has accurate plan
+          if (orderId) {
+            try {
+              const tx = await getPaymentTransactionByOrderId(env.DB, orderId);
+              if (tx?.plan_type) resolvedPlanType = tx.plan_type as LicensePlan;
+            } catch {}
+          }
+          // Check by amount paid
+          if (resolvedAmount > 0) {
+            if (resolvedAmount <= 9900) resolvedPlanType = 'monthly';
+            else if (resolvedAmount <= 29900) resolvedPlanType = 'annual';
+            else resolvedPlanType = 'lifetime';
+          }
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        let expiresAt: number | null = null;
+        let planTitle = '1-Month Pass';
+        let expiryDesc = '';
+
+        if (resolvedPlanType === 'monthly') {
+          expiresAt = now + 30 * 86400;
+          planTitle = '1-Month Pass Active';
+          const d = new Date(expiresAt * 1000);
+          expiryDesc = `Valid for 30 Days • Expires on ${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        } else if (resolvedPlanType === 'annual') {
+          expiresAt = now + 365 * 86400;
+          planTitle = '1-Year Annual Pass Active';
+          const d = new Date(expiresAt * 1000);
+          expiryDesc = `Valid for 365 Days • Expires on ${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        } else {
+          resolvedPlanType = 'lifetime';
+          planTitle = 'Lifetime Pro VIP Active';
+          expiryDesc = 'Permanent VIP Access Unlocked Forever • Zero Renewals';
+        }
+
+        // Update database records
+        try {
+          if (orderId) {
+            await updatePaymentTransactionSuccess(
+              env.DB,
+              orderId,
+              razorpayPaymentId || razorpayPaymentLinkId || 'pay_link_done',
+              signature || 'callback_verified',
+              'razorpay'
+            );
+          }
+
+          await directUpgradeProUser(env.DB, {
+            telegram_user_id: resolvedUserId,
+            customer_name: customerName || null,
+            plan_type: resolvedPlanType,
+            expires_at: expiresAt,
+            notes: `Razorpay Callback (${razorpayPaymentId || razorpayPaymentLinkId}, Order: ${orderId})`,
+          });
+        } catch (dbErr) {
+          console.error('[callback] DB update error:', dbErr);
+        }
+
+        // Send instant welcome Telegram message if bot configured
+        if (env.TELEGRAM_BOT_TOKEN) {
+          try {
+            await sendProWelcomeMessage(
+              env.TELEGRAM_BOT_TOKEN,
+              resolvedUserId,
+              customerName || 'Friend',
+              planTitle
+            );
+          } catch {}
+        }
+
+        const successHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - TG Drive Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #080A10;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .card {
+      background: linear-gradient(180deg, #121524 0%, #0c0e17 100%);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
+      border-radius: 28px;
+      padding: 36px 24px;
+      max-width: 440px;
+      width: 100%;
+    }
+    .icon { font-size: 58px; margin-bottom: 12px; }
+    h1 { color: #A855F7; font-size: 1.55rem; margin: 0 0 6px; font-weight: 900; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #4ADE80;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .details {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 22px;
+      text-align: left;
+      font-size: 0.82rem;
+    }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .row:last-child { margin-bottom: 0; }
+    .label { color: #94A3B8; }
+    .val { color: #FFFFFF; font-weight: 700; font-family: monospace; }
+    p { color: #94a3b8; font-size: 0.88rem; line-height: 1.5; margin: 0 0 24px; }
+    .btn {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, #6366F1, #A855F7, #EC4899);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 14px 20px;
+      border-radius: 14px;
+      text-decoration: none;
+      box-sizing: border-box;
+      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">👑</div>
+    <h1>Payment Successful!</h1>
+    <div class="badge">✓ ${planTitle}</div>
+    
+    <div class="details">
+      <div class="row">
+        <span class="label">Plan:</span>
+        <span class="val" style="color: #C084FC;">${planTitle}</span>
+      </div>
+      <div class="row">
+        <span class="label">Telegram ID:</span>
+        <span class="val">${resolvedUserId}</span>
+      </div>
+      <div class="row">
+        <span class="label">Status:</span>
+        <span class="val" style="color: #4ADE80;">● Pro Active</span>
+      </div>
+      <div class="row">
+        <span class="label">Validity:</span>
+        <span class="val" style="font-size: 0.75rem;">${expiryDesc}</span>
+      </div>
+    </div>
+
+    <p>Your Telegram account is now upgraded to Pro.<br>Switch back to the TG Drive App to enjoy Turbo 100 MB/s speed, vault encryption & zero ads!</p>
+    <a href="https://t.me" class="btn">Return to TG Drive App</a>
+  </div>
+</body>
+</html>`;
+        return new Response(successHtml, {
           headers: { 'Content-Type': 'text/html; charset=utf-8' },
         });
       }
@@ -1382,16 +1841,30 @@ export default {
             // Reconcile if marked lifetime by legacy callback, but user actually paid for monthly or annual
             if (proUser.plan_type === 'lifetime' && !proUser.expires_at) {
               try {
-                const latestTx = await getLatestPaidTransactionForUser(env.DB, tgUserId);
-                if (latestTx && latestTx.plan_type && latestTx.plan_type !== 'lifetime') {
-                  const paidAt = latestTx.paid_at || latestTx.created_at || Math.floor(Date.now() / 1000);
-                  const duration = latestTx.plan_type === 'annual' ? 365 * 86400 : 30 * 86400;
-                  const newExpiresAt = paidAt + duration;
-                  await env.DB.prepare('UPDATE pro_users SET plan_type = ?, expires_at = ? WHERE telegram_user_id = ?')
-                    .bind(latestTx.plan_type, newExpiresAt, tgUserId)
-                    .run();
-                  proUser.plan_type = latestTx.plan_type as LicensePlan;
-                  proUser.expires_at = newExpiresAt;
+                // Check latest transaction for user
+                const tx = await env.DB.prepare(
+                  "SELECT * FROM payment_transactions WHERE telegram_user_id = ? ORDER BY created_at DESC LIMIT 1"
+                ).bind(tgUserId).first<{ id: string; order_id: string; payment_id: string; plan_type: string; amount: number; status: string; created_at: number; paid_at: number }>();
+
+                if (tx) {
+                  let correctPlan: LicensePlan | null = null;
+                  if (tx.plan_type === 'monthly' || (tx.amount > 0 && tx.amount <= 9900)) {
+                    correctPlan = 'monthly';
+                  } else if (tx.plan_type === 'annual' || (tx.amount > 9900 && tx.amount <= 29900)) {
+                    correctPlan = 'annual';
+                  }
+
+                  if (correctPlan) {
+                    const paidAt = tx.paid_at || tx.created_at || Math.floor(Date.now() / 1000);
+                    const duration = correctPlan === 'annual' ? 365 * 86400 : 30 * 86400;
+                    const newExpiresAt = paidAt + duration;
+
+                    await env.DB.prepare('UPDATE pro_users SET plan_type = ?, expires_at = ? WHERE telegram_user_id = ?')
+                      .bind(correctPlan, newExpiresAt, tgUserId)
+                      .run();
+                    proUser.plan_type = correctPlan;
+                    proUser.expires_at = newExpiresAt;
+                  }
                 }
               } catch (e) {
                 console.warn('[user/status] Transaction reconciliation error:', e);
@@ -1773,45 +2246,8 @@ export default {
             basePrice = parseFloat(basePriceStr) || 499;
           }
 
-          const BUILTIN_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
-            FLASH50: { type: 'percent', value: 50, label: '50% Flash Sale Discount' },
-            PRO50: { type: 'percent', value: 50, label: '50% Pro Membership Discount' },
-            VIP50: { type: 'percent', value: 50, label: '50% VIP Access Discount' },
-            SPECIAL50: { type: 'percent', value: 50, label: '50% Special Promotional Offer' },
-            TG50: { type: 'percent', value: 50, label: '50% TG Drive Exclusive' },
-            WELCOME10: { type: 'percent', value: 10, label: '10% Welcome Discount' },
-            TGDRIVE: { type: 'percent', value: 10, label: '10% Official TG Drive Discount' },
-            PRO20: { type: 'percent', value: 20, label: '20% Pro Discount' },
-            SAVE20: { type: 'percent', value: 20, label: '20% Special Savings' },
-            EARLYBIRD: { type: 'percent', value: 30, label: '30% Early Bird Discount' },
-            STUDENT: { type: 'percent', value: 25, label: '25% Student Discount' },
-          };
-
           if (!coupon) {
-            // 1. Check built-in official promo codes
-            if (BUILTIN_COUPONS[cleanCode]) {
-              const b = BUILTIN_COUPONS[cleanCode];
-              let discountAmount = 0;
-              if (b.type === 'percent') {
-                discountAmount = Math.round((basePrice * b.value) / 100);
-              } else {
-                discountAmount = Math.min(basePrice - 1, Math.round(b.value));
-              }
-              const discountedPrice = Math.max(1, basePrice - discountAmount);
-
-              return jsonResponse({
-                valid: true,
-                code: cleanCode,
-                discount_text: b.label,
-                discount_type: b.type,
-                discount_value: b.value,
-                discount_amount: discountAmount,
-                original_price: basePrice,
-                new_price: discountedPrice,
-              });
-            }
-
-            // 2. Check if code is a valid Refer & Earn code
+            // Check if code is a valid Refer & Earn code
             const referral = await getReferralProfileByCode(env.DB, cleanCode);
             if (referral) {
               const friendDiscType = await getStoreSetting(env.DB, 'referral_friend_discount_type', 'percent');

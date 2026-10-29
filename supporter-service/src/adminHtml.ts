@@ -88,587 +88,673 @@ export function renderAdminDashboardHtml(appName: string): string {
   <!-- Main Dashboard View -->
   <main id="dashboardView" class="hidden flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
     
-    <!-- Stats Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="glass-card p-5 rounded-2xl">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Licenses</span>
-          <span class="text-lg">🔑</span>
+    <!-- ── Modern Live KPI Stats Row (Pro Subscriptions & Revenue) ── -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <!-- 1. Total Pro Users -->
+      <div class="glass-card p-4 rounded-2xl border border-violet-500/20">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Total Pro Users</span>
+          <span>💎</span>
         </div>
-        <div class="mt-3 flex items-baseline gap-2">
-          <span id="statTotalLicenses" class="text-3xl font-extrabold text-white">0</span>
-          <span class="text-xs text-emerald-400 font-medium">Issued</span>
-        </div>
-      </div>
-
-      <div class="glass-card p-5 rounded-2xl">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Devices</span>
-          <span class="text-lg">💻</span>
-        </div>
-        <div class="mt-3 flex items-baseline gap-2">
-          <span id="statActiveDevices" class="text-3xl font-extrabold text-cyan-400">0</span>
-          <span class="text-xs text-slate-400 font-medium">Bound</span>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="statTotalProUsers" class="text-2xl font-black text-white">0</span>
+          <span class="text-[10px] text-violet-400 font-bold">Users</span>
         </div>
       </div>
 
-      <div class="glass-card p-5 rounded-2xl">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Lifetime Pro</span>
-          <span class="text-lg">⭐</span>
+      <!-- 2. Active Pro -->
+      <div class="glass-card p-4 rounded-2xl border border-emerald-500/20">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Active Pro</span>
+          <span>🟢</span>
         </div>
-        <div class="mt-3 flex items-baseline gap-2">
-          <span id="statLifetime" class="text-3xl font-extrabold text-indigo-400">0</span>
-          <span class="text-xs text-indigo-400 font-medium">Licenses</span>
-        </div>
-      </div>
-
-      <div class="glass-card p-5 rounded-2xl">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Banned / Revoked</span>
-          <span class="text-lg">🚫</span>
-        </div>
-        <div class="mt-3 flex items-baseline gap-2">
-          <span id="statBanned" class="text-3xl font-extrabold text-rose-400">0</span>
-          <span class="text-xs text-rose-400 font-medium">Blocked</span>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="statActiveProUsers" class="text-2xl font-black text-emerald-400">0</span>
+          <span class="text-[10px] text-emerald-400 font-bold">Active</span>
         </div>
       </div>
 
-      <div class="glass-card p-5 rounded-2xl border border-rose-500/20 glow-blue">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Crash Reports</span>
-          <span class="text-lg">🐛</span>
+      <!-- 3. Monthly Members -->
+      <div class="glass-card p-4 rounded-2xl border border-purple-500/20">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Monthly Pass</span>
+          <span>📅</span>
         </div>
-        <div class="mt-3 flex items-baseline justify-between">
-          <div class="flex items-baseline gap-2">
-            <span id="statCrashReports" class="text-3xl font-extrabold text-rose-400">0</span>
-            <span class="text-xs text-slate-400 font-medium">Logged</span>
-          </div>
-          <button onclick="scrollToCrashSection()" class="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors">Logs ↓</button>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="statMonthlyUsers" class="text-2xl font-black text-purple-300">0</span>
+          <span class="text-[10px] text-purple-300 font-bold">30d</span>
+        </div>
+      </div>
+
+      <!-- 4. Annual Members -->
+      <div class="glass-card p-4 rounded-2xl border border-sky-500/20">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Annual Pass</span>
+          <span>🌟</span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="statAnnualUsers" class="text-2xl font-black text-sky-400">0</span>
+          <span class="text-[10px] text-sky-400 font-bold">365d</span>
+        </div>
+      </div>
+
+      <!-- 5. Lifetime VIPs -->
+      <div class="glass-card p-4 rounded-2xl border border-amber-500/20">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Lifetime VIP</span>
+          <span>👑</span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1.5">
+          <span id="statLifetimeUsers" class="text-2xl font-black text-amber-400">0</span>
+          <span class="text-[10px] text-amber-400 font-bold">VIP</span>
+        </div>
+      </div>
+
+      <!-- 6. Total Revenue -->
+      <div class="glass-card p-4 rounded-2xl border border-emerald-500/30 glow-cyan">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
+          <span>Total Revenue</span>
+          <span>💰</span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-1">
+          <span class="text-xs font-mono font-bold text-emerald-400">₹</span>
+          <span id="statTotalRevenue" class="text-2xl font-black text-white font-mono">0</span>
         </div>
       </div>
     </div>
 
-    <!-- Membership Plans & Dynamic Pricing Controller -->
-    <div class="glass-card p-6 rounded-2xl border border-cyan-500/30 glow-cyan space-y-5">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-              ⚡ Membership Plans & Pricing Controller
-            </span>
-            <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Synced with Live App & Store</span>
+    <!-- ── Modern Horizontal Navigation Tabs Bar ── -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800/80 scrollbar-none">
+      <button type="button" onclick="switchAdminTab('pro_users', this)" class="admin-tab-btn active px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25">
+        <span>💎</span> Pro Subscriptions
+      </button>
+      <button type="button" onclick="switchAdminTab('payments', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>💳</span> Razorpay Purchases
+      </button>
+      <button type="button" onclick="switchAdminTab('plans', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>⚡</span> Plans & Pricing
+      </button>
+      <button type="button" onclick="switchAdminTab('offers', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>🔥</span> Flash Deals & Coupons
+      </button>
+      <button type="button" onclick="switchAdminTab('referrals', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>🤝</span> Refer & Earn
+      </button>
+      <button type="button" onclick="switchAdminTab('broadcast', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>📢</span> Bot Broadcast
+      </button>
+      <button type="button" onclick="switchAdminTab('crashes', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>🐛</span> Crash Telemetry
+      </button>
+      <button type="button" onclick="switchAdminTab('licenses', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
+        <span>🔑</span> Legacy Keys
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: 💎 Pro Telegram Subscriptions & Users (Active by Default)   -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-pro_users" class="space-y-4">
+      <div class="glass-card p-5 rounded-2xl border border-violet-500/30 glow-cyan">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
+                💎 Pro Telegram Subscriptions
+              </span>
+              <span id="proUsersCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Accounts</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Users whose Telegram User IDs are unlocked for 100% ad-free pro access across all devices.</p>
           </div>
-          <h3 class="text-lg font-bold text-white mt-1">Configure Pro Plans, Pricing & Payment URLs</h3>
-          <p class="text-xs text-slate-400">Whatever you set here will instantly appear inside the Android & Desktop apps for all users.</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="relative">
+              <input type="text" id="proUserSearchInput" oninput="handleProUserSearch()" placeholder="Search ID / Username / Name..." class="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500">
+              <span class="absolute left-2.5 top-1.5 text-slate-500 text-xs">🔍</span>
+            </div>
+            <button onclick="loadProUsers()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+              <span>🔄</span> Refresh
+            </button>
+            <button onclick="openUpgradeProModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98] flex items-center gap-1.5">
+              <span>➕</span> Grant Pro
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pills Bar -->
+        <div class="flex items-center gap-2 pt-3 flex-wrap">
+          <span class="text-[11px] text-slate-400 font-semibold">Filter Plan:</span>
+          <button type="button" onclick="filterProUsersByPlan('all', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-violet-600 text-white font-bold text-xs shadow-sm">All Plans</button>
+          <button type="button" onclick="filterProUsersByPlan('monthly', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-purple-300 font-bold text-xs hover:bg-slate-800">📅 Monthly Pass</button>
+          <button type="button" onclick="filterProUsersByPlan('annual', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-sky-300 font-bold text-xs hover:bg-slate-800">🌟 Annual Pass</button>
+          <button type="button" onclick="filterProUsersByPlan('lifetime', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 font-bold text-xs hover:bg-slate-800">👑 Lifetime VIP</button>
+          <button type="button" onclick="filterProUsersByPlan('expired', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-rose-300 font-bold text-xs hover:bg-slate-800">🔴 Expired</button>
+        </div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">Telegram User</th>
+                <th class="px-4 py-3">Phone</th>
+                <th class="px-4 py-3">Plan Type</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">Expiry / Countdown</th>
+                <th class="px-4 py-3">Joined Date</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="proUsersTableBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+                  Loading Pro subscriptions...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+    </div>
 
-      <form id="plansForm" onsubmit="handleSavePlans(event)" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- 1. Lifetime Pro Plan -->
-          <div class="p-4 rounded-xl bg-slate-900/80 border-2 border-amber-500/40 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
-                👑 Lifetime Pro
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: 💳 Razorpay Direct Transactions & Purchases                 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-payments" class="hidden space-y-4">
+      <div id="paymentTransactionsSection" class="glass-card p-5 rounded-2xl border border-blue-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+                💳 Razorpay Orders & Payments
               </span>
-              <span class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">Best Value</span>
+              <span class="text-[10px] text-slate-400">Direct In-App UPI & Card Purchases</span>
             </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-              <input type="number" id="planLifetimePrice" min="1" step="1" placeholder="499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-              <input type="number" id="planLifetimeOrig" min="1" step="1" placeholder="1499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-              <input type="url" id="planLifetimeUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
-            </div>
+            <p class="text-xs text-slate-400 mt-1">Live audit log of all generated Razorpay orders and payment completions. Click "Verify with Razorpay" to confirm pending links.</p>
           </div>
-
-          <!-- 2. 1-Year Annual Pass -->
-          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-black uppercase text-sky-400 flex items-center gap-1.5">
-                🌟 1-Year Annual Pass
-              </span>
-              <span class="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">365 Days</span>
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-              <input type="number" id="planAnnualPrice" min="1" step="1" placeholder="299" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-sky-400 focus:outline-none focus:border-sky-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-              <input type="number" id="planAnnualOrig" min="1" step="1" placeholder="599" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-sky-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-              <input type="url" id="planAnnualUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-400 font-mono">
-            </div>
-          </div>
-
-          <!-- 3. 1-Month Pass -->
-          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
-                📅 1-Month Pass
-              </span>
-              <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded">30 Days</span>
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-              <input type="number" id="planMonthlyPrice" min="1" step="1" placeholder="49" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-purple-400 focus:outline-none focus:border-purple-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-              <input type="number" id="planMonthlyOrig" min="1" step="1" placeholder="99" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-purple-400">
-            </div>
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-              <input type="url" id="planMonthlyUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-400 font-mono">
-            </div>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-3 pt-2">
-          <button type="submit" id="btnSavePlans" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:brightness-110 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all">
-            Save All Membership Plans
+          <button onclick="loadPaymentTransactions()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+            <span>🔄</span> Refresh
           </button>
         </div>
-      </form>
-      <div id="plansUpdateMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
+
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">Order / Link ID</th>
+                <th class="px-4 py-3">Payment ID</th>
+                <th class="px-4 py-3">Telegram User</th>
+                <th class="px-4 py-3">Plan Type</th>
+                <th class="px-4 py-3">Amount</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">Created At</th>
+                <th class="px-4 py-3">Paid At</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="paymentTransactionsTableBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="9" class="px-4 py-8 text-center text-slate-500">
+                  Loading transactions...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <!-- Free Trial Controller -->
-    <div class="glass-card p-5 rounded-2xl border border-purple-500/20 glow-blue">
-      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
-              🎁 Free Trial Controller
-            </span>
-            <span id="trialStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: 30-Day Free Trial</span>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 3: ⚡ Plans, Pricing & Free Trial                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-plans" class="hidden space-y-5">
+      <!-- Membership Plans & Dynamic Pricing Controller -->
+      <div class="glass-card p-6 rounded-2xl border border-cyan-500/30 glow-cyan space-y-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                ⚡ Membership Plans & Pricing Controller
+              </span>
+              <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Synced with Live App & Store</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mt-1">Configure Pro Plans, Pricing & Payment URLs</h3>
+            <p class="text-xs text-slate-400">Whatever you set here will instantly appear inside the Android & Desktop apps for all users.</p>
           </div>
-          <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-            Trial Duration: <span id="displayTrialDuration" class="text-purple-300 font-mono text-2xl font-black">1 Month (30 Days)</span>
-          </h3>
-          <p class="text-xs text-slate-400">Allow new users to claim a free trial for a specific duration without payment.</p>
         </div>
 
-        <form id="trialForm" onsubmit="handleUpdateTrial(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
-          <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-300">Status:</label>
-            <select id="inputTrialEnabled" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-purple-500">
+        <form id="plansForm" onsubmit="handleSavePlans(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- 1. Lifetime Pro Plan -->
+            <div class="p-4 rounded-xl bg-slate-900/80 border-2 border-amber-500/40 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                  👑 Lifetime Pro
+                </span>
+                <span class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">Best Value</span>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+                <input type="number" id="planLifetimePrice" min="1" step="1" placeholder="499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+                <input type="number" id="planLifetimeOrig" min="1" step="1" placeholder="1499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-amber-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+                <input type="url" id="planLifetimeUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+              </div>
+            </div>
+
+            <!-- 2. 1-Year Annual Pass -->
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-sky-400 flex items-center gap-1.5">
+                  🌟 1-Year Annual Pass
+                </span>
+                <span class="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">365 Days</span>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+                <input type="number" id="planAnnualPrice" min="1" step="1" placeholder="299" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-sky-400 focus:outline-none focus:border-sky-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+                <input type="number" id="planAnnualOrig" min="1" step="1" placeholder="599" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-sky-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+                <input type="url" id="planAnnualUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-400 font-mono">
+              </div>
+            </div>
+
+            <!-- 3. 1-Month Pass -->
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
+                  📅 1-Month Pass
+                </span>
+                <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded">30 Days</span>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
+                <input type="number" id="planMonthlyPrice" min="1" step="1" placeholder="49" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-purple-400 focus:outline-none focus:border-purple-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
+                <input type="number" id="planMonthlyOrig" min="1" step="1" placeholder="99" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-purple-400">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
+                <input type="url" id="planMonthlyUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-400 font-mono">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="submit" id="btnSavePlans" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:brightness-110 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all">
+              Save All Membership Plans
+            </button>
+          </div>
+        </form>
+        <div id="plansUpdateMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
+      </div>
+
+      <!-- Free Trial Controller -->
+      <div class="glass-card p-5 rounded-2xl border border-purple-500/20 glow-blue">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+                🎁 Free Trial Controller
+              </span>
+              <span id="trialStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: 30-Day Free Trial</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
+              Trial Duration: <span id="displayTrialDuration" class="text-purple-300 font-mono text-2xl font-black">1 Month (30 Days)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Allow new users to claim a free trial for a specific duration without payment.</p>
+          </div>
+
+          <form id="trialForm" onsubmit="handleUpdateTrial(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold text-slate-300">Status:</label>
+              <select id="inputTrialEnabled" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-purple-500">
+                <option value="1">Enabled</option>
+                <option value="0">Disabled</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2 flex-1 sm:w-52">
+              <label class="text-xs font-semibold text-slate-300">Duration:</label>
+              <select id="inputTrialDays" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-purple-300 focus:outline-none focus:border-purple-500">
+                <option value="7">7 Days (1 Week)</option>
+                <option value="14">14 Days (2 Weeks)</option>
+                <option value="30" selected>1 Month (30 Days)</option>
+                <option value="60">2 Months (60 Days)</option>
+                <option value="90">3 Months (90 Days)</option>
+                <option value="180">6 Months (180 Days)</option>
+                <option value="365">1 Year (365 Days)</option>
+              </select>
+            </div>
+
+            <button type="submit" id="btnUpdateTrial" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white text-sm font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] whitespace-nowrap">
+              Save Trial Settings
+            </button>
+          </form>
+        </div>
+        <div id="trialUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 4: 🔥 Flash Deals & Coupons Manager                            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-offers" class="hidden space-y-5">
+      <!-- Special Offers & Flash Sales Manager -->
+      <div class="glass-card p-5 rounded-2xl border border-amber-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                🔥 Special Offers & Flash Sales
+              </span>
+              <span class="text-[10px] text-slate-400">Promotional Banners & Deal Announcer</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Publish live promotional deals, festive banners, and countdown timers to all Telegram Drive users.</p>
+          </div>
+          <button onclick="openCreateOfferModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
+            <span>➕</span> New Special Offer
+          </button>
+        </div>
+
+        <div id="offersList" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+          <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading special promotional offers...</p>
+        </div>
+      </div>
+
+      <!-- Coupons & Promotional Offers Manager -->
+      <div class="glass-card p-5 rounded-2xl border border-indigo-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+                Coupons & Promo Codes
+              </span>
+              <span class="text-[10px] text-slate-400">Time & Usage Limited Discounts</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Create discount codes with custom user limits and expiration durations.</p>
+          </div>
+          <button onclick="openCreateCouponModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
+            <span>➕</span> New Promo Code
+          </button>
+        </div>
+
+        <div id="couponsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+          <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading promotional coupons...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 5: 🤝 Refer & Earn Controller & Payouts                         -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-referrals" class="hidden space-y-5">
+      <!-- Refer & Earn Commission & Settings Controller -->
+      <div class="glass-card p-5 rounded-2xl border border-emerald-500/20 glow-cyan">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                🤝 Refer & Earn Controller
+              </span>
+              <span id="referralStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: ₹50 / Sale</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
+              Referral Reward: <span id="displayReferralReward" class="text-emerald-400 font-mono text-2xl font-black">₹50.00 / Sale</span>
+            </h3>
+            <p class="text-xs text-slate-400">Users earn cash commission when friends purchase Pro using their referral code.</p>
+          </div>
+        </div>
+
+        <form id="referralSettingsForm" onsubmit="handleUpdateReferralSettings(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 items-end">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Status</label>
+            <select id="inputReferralEnabled" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
               <option value="1">Enabled</option>
               <option value="0">Disabled</option>
             </select>
           </div>
 
-          <div class="flex items-center gap-2 flex-1 sm:w-52">
-            <label class="text-xs font-semibold text-slate-300">Duration:</label>
-            <select id="inputTrialDays" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-purple-300 focus:outline-none focus:border-purple-500">
-              <option value="7">7 Days (1 Week)</option>
-              <option value="14">14 Days (2 Weeks)</option>
-              <option value="30" selected>1 Month (30 Days)</option>
-              <option value="60">2 Months (60 Days)</option>
-              <option value="90">3 Months (90 Days)</option>
-              <option value="180">6 Months (180 Days)</option>
-              <option value="365">1 Year (365 Days)</option>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Reward Type</label>
+            <select id="inputReferralRewardType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
+              <option value="fixed">Fixed Cash (₹)</option>
+              <option value="percent">Percentage (%)</option>
             </select>
           </div>
 
-          <button type="submit" id="btnUpdateTrial" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white text-sm font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] whitespace-nowrap">
-            Save Trial Settings
-          </button>
-        </form>
-      </div>
-      <div id="trialUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
-    </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Commission per Sale</label>
+            <input type="number" id="inputReferralRewardValue" min="1" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
+          </div>
 
-    <!-- Coupons & Promotional Offers Manager -->
-    <div class="glass-card p-5 rounded-2xl border border-indigo-500/20 glow-blue">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Friend Discount (%)</label>
+            <input type="number" id="inputReferralFriendDiscount" min="0" max="100" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-cyan-400 focus:outline-none focus:border-emerald-500">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Min Payout (₹)</label>
+            <input type="number" id="inputReferralMinPayout" min="10" step="10" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-emerald-500">
+          </div>
+
+          <div>
+            <button type="submit" id="btnSaveReferralSettings" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
+              Save Settings
+            </button>
+          </div>
+        </form>
+        <div id="referralUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
+      </div>
+
+      <!-- Withdrawal & Payout Requests Manager -->
+      <div class="glass-card p-5 rounded-2xl border border-cyan-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                💸 Withdrawal & Payout Requests
+              </span>
+              <span id="pendingPayoutBadge" class="text-[10px] text-amber-400 font-semibold">0 Pending Requests</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Review and process user earnings withdrawals via UPI or Bank Transfer.</p>
+          </div>
+
+          <!-- Filter Buttons -->
+          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
+            <button type="button" onclick="loadPayoutRequests('all', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">All</button>
+            <button type="button" onclick="loadPayoutRequests('pending', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold shadow-sm transition-all">Pending</button>
+            <button type="button" onclick="loadPayoutRequests('completed', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Completed</button>
+            <button type="button" onclick="loadPayoutRequests('rejected', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Rejected</button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900/80 uppercase font-semibold text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">User / Code</th>
+                <th class="px-4 py-3">Amount</th>
+                <th class="px-4 py-3">Payment Details</th>
+                <th class="px-4 py-3">Date Requested</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="payoutsTableBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading payout requests...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top Referrers Leaderboard -->
+      <div class="glass-card p-5 rounded-2xl border border-indigo-500/20">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-              Coupons & Promo Codes
+              🏆 Top Referrers Leaderboard
             </span>
-            <span class="text-[10px] text-slate-400">Time & Usage Limited Discounts</span>
+            <span class="text-[10px] text-slate-400">Best Viral Promoters</span>
           </div>
-          <p class="text-xs text-slate-400 mt-1">Create discount codes with custom user limits and expiration durations.</p>
+          <button onclick="loadTopReferrers()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">🔄 Refresh</button>
         </div>
-        <button onclick="openCreateCouponModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
-          <span>➕</span> New Promo Code
-        </button>
-      </div>
-
-      <div id="couponsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
-        <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading promotional coupons...</p>
+        <div id="topReferrersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+          <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading top referrers...</p>
+        </div>
       </div>
     </div>
 
-    <!-- Special Offers & Flash Sales Manager -->
-    <div class="glass-card p-5 rounded-2xl border border-amber-500/20 glow-blue">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 6: 📢 Telegram Bot & Broadcast Manager                          -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-broadcast" class="hidden space-y-4">
+      <div id="broadcastSection" class="glass-card p-5 rounded-2xl border border-sky-500/30 glow-cyan space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
+                📢 Telegram Bot Broadcast & Marketing
+              </span>
+              <span id="botSubscriberCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Active Bot Subscribers</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Broadcast new feature updates, discounts, flash sales, or announcements directly to user Telegram inboxes.</p>
+          </div>
+        </div>
+
+        <form id="broadcastForm" onsubmit="handleSendBroadcast(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Message Text (Supports Markdown format)</label>
+            <textarea id="broadcastMessageInput" rows="4" required placeholder="🔥 *Special 50% OFF Weekend Deal!* 💎&#10;&#10;Upgrade to TG Drive PRO today for only ₹199! No ads forever.&#10;&#10;Tap below to claim now! 👇" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button Text (Optional)</label>
+              <input type="text" id="broadcastButtonTextInput" placeholder="🚀 Upgrade to PRO" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button URL (Optional)</label>
+              <input type="url" id="broadcastButtonUrlInput" placeholder="https://tg-drive.vercel.app/pricing" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-[11px] text-slate-400">💡 Uses official Telegram Bot API with rate-limited queueing.</span>
+            <button type="submit" id="btnSendBroadcast" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center gap-2">
+              <span>🚀</span> Send Broadcast to All Subscribers
+            </button>
+          </div>
+        </form>
+        <div id="broadcastStatusMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 7: 🐛 Crash Telemetry & Diagnostics                             -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-crashes" class="hidden space-y-4">
+      <div id="crashReportsSection" class="glass-card p-5 rounded-2xl border border-rose-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+                🐛 Crash Reports & Diagnostics
+              </span>
+              <span id="crashTelemetryStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Ingestion Active • Desktop & Android</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Live error telemetry submitted automatically by Telegram Drive builds when an unhandled crash occurs.</p>
+          </div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              🔥 Special Offers & Flash Sales
-            </span>
-            <span class="text-[10px] text-slate-400">Promotional Banners & Deal Announcer</span>
+            <button onclick="loadCrashReports()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+              <span>🔄</span> Refresh
+            </button>
+            <button onclick="handleClearAllCrashes()" class="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors flex items-center gap-1.5">
+              <span>🗑️</span> Clear All Logs
+            </button>
           </div>
-          <p class="text-xs text-slate-400 mt-1">Publish live promotional deals, festive banners, and countdown timers to all Telegram Drive users.</p>
         </div>
-        <button onclick="openCreateOfferModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
-          <span>➕</span> New Special Offer
-        </button>
-      </div>
 
-      <div id="offersList" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-        <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading special promotional offers...</p>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="px-4 py-3">Error Type</th>
+                <th class="px-4 py-3">Source</th>
+                <th class="px-4 py-3">App Version</th>
+                <th class="px-4 py-3">Platform / OS</th>
+                <th class="px-4 py-3">Occurred At</th>
+                <th class="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="crashReportsTableBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                  Loading crash reports...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Refer & Earn Commission & Settings Controller -->
-    <div class="glass-card p-5 rounded-2xl border border-emerald-500/20 glow-cyan">
-      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-              🤝 Refer & Earn Controller
-            </span>
-            <span id="referralStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: ₹50 / Sale</span>
-          </div>
-          <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-            Referral Reward: <span id="displayReferralReward" class="text-emerald-400 font-mono text-2xl font-black">₹50.00 / Sale</span>
-          </h3>
-          <p class="text-xs text-slate-400">Users earn cash commission when friends purchase Pro using their referral code. Configurable reward, friend discount, & payout limits.</p>
-        </div>
-      </div>
-
-      <form id="referralSettingsForm" onsubmit="handleUpdateReferralSettings(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 items-end">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Status</label>
-          <select id="inputReferralEnabled" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
-            <option value="1">Enabled</option>
-            <option value="0">Disabled</option>
-          </select>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB 8: 🔑 Legacy Software License Keys                              -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-licenses" class="hidden space-y-4">
+      <div class="glass p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="w-full md:w-96 relative">
+          <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search by Key, Customer Name, Email..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
+          <span class="absolute left-3.5 top-3 text-slate-500 text-sm">🔍</span>
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Reward Type</label>
-          <select id="inputReferralRewardType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
-            <option value="fixed">Fixed Cash (₹)</option>
-            <option value="percent">Percentage (%)</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Commission per Sale</label>
-          <input type="number" id="inputReferralRewardValue" min="1" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Friend Discount (%)</label>
-          <input type="number" id="inputReferralFriendDiscount" min="0" max="100" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-cyan-400 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Min Payout (₹)</label>
-          <input type="number" id="inputReferralMinPayout" min="10" step="10" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <button type="submit" id="btnSaveReferralSettings" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
-            Save Settings
-          </button>
-        </div>
-      </form>
-      <div id="referralUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
-    </div>
-
-    <!-- Withdrawal & Payout Requests Manager -->
-    <div class="glass-card p-5 rounded-2xl border border-cyan-500/20 glow-blue">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-              💸 Withdrawal & Payout Requests
-            </span>
-            <span id="pendingPayoutBadge" class="text-[10px] text-amber-400 font-semibold">0 Pending Requests</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Review and process user earnings withdrawals via UPI or Bank Transfer.</p>
-        </div>
-
-        <!-- Filter Buttons -->
-        <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
-          <button type="button" onclick="loadPayoutRequests('all', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">All</button>
-          <button type="button" onclick="loadPayoutRequests('pending', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold shadow-sm transition-all">Pending</button>
-          <button type="button" onclick="loadPayoutRequests('completed', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Completed</button>
-          <button type="button" onclick="loadPayoutRequests('rejected', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Rejected</button>
-        </div>
-      </div>
-
-      <div class="overflow-x-auto mt-4">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="bg-slate-900/80 uppercase font-semibold text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="px-4 py-3">User / Code</th>
-              <th class="px-4 py-3">Amount</th>
-              <th class="px-4 py-3">Payment Details</th>
-              <th class="px-4 py-3">Date Requested</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="payoutsTableBody" class="divide-y divide-slate-800/60">
-            <tr>
-              <td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading payout requests...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Top Referrers Leaderboard -->
-    <div class="glass-card p-5 rounded-2xl border border-indigo-500/20">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-            🏆 Top Referrers Leaderboard
-          </span>
-          <span class="text-[10px] text-slate-400">Best Viral Promoters</span>
-        </div>
-        <button onclick="loadTopReferrers()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">🔄 Refresh</button>
-      </div>
-      <div id="topReferrersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-        <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading top referrers...</p>
-      </div>
-    </div>
-
-
-
-    <!-- Actions & Filter Toolbar -->
-    <div class="glass p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="w-full md:w-96 relative">
-        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search by Key, Customer Name, Email..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
-        <span class="absolute left-3.5 top-3 text-slate-500 text-sm">🔍</span>
-      </div>
-
-      <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-        <button onclick="loadLicenses()" class="px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-semibold transition-colors flex items-center gap-2">
-          <span>🔄</span> Refresh
-        </button>
-        <button onclick="openCreateModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98] flex items-center gap-2">
-          <span>➕</span> Generate License Key
-        </button>
-      </div>
-    </div>
-
-    <!-- License List Table -->
-    <div class="glass rounded-2xl overflow-hidden border border-slate-800">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="px-6 py-4">License Key</th>
-              <th class="px-6 py-4">Customer / Notes</th>
-              <th class="px-6 py-4">Plan Type</th>
-              <th class="px-6 py-4">Devices</th>
-              <th class="px-6 py-4">Status</th>
-              <th class="px-6 py-4">Created Date</th>
-              <th class="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="licensesTableBody" class="divide-y divide-slate-800/60">
-            <tr>
-              <td colspan="7" class="px-6 py-12 text-center text-slate-500">
-                Loading licenses...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- App Crash Telemetry & Diagnostics Section -->
-    <div id="crashReportsSection" class="glass-card p-5 rounded-2xl border border-rose-500/20 glow-blue">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-              🐛 Crash Reports & Diagnostics
-            </span>
-            <span id="crashTelemetryStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Ingestion Active • Desktop & Android</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Live error telemetry submitted automatically by Telegram Drive builds when an unhandled crash occurs.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="loadCrashReports()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+          <button onclick="loadLicenses()" class="px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-semibold transition-colors flex items-center gap-2">
             <span>🔄</span> Refresh
           </button>
-          <button onclick="handleClearAllCrashes()" class="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors flex items-center gap-1.5">
-            <span>🗑️</span> Clear All Logs
+          <button onclick="openCreateModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98] flex items-center gap-2">
+            <span>➕</span> Generate License Key
           </button>
         </div>
       </div>
 
-      <div class="mt-4 overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="px-4 py-3">Error Type</th>
-              <th class="px-4 py-3">Source</th>
-              <th class="px-4 py-3">App Version</th>
-              <th class="px-4 py-3">Platform / OS</th>
-              <th class="px-4 py-3">Occurred At</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="crashReportsTableBody" class="divide-y divide-slate-800/60">
-            <tr>
-              <td colspan="6" class="px-4 py-8 text-center text-slate-500">
-                Loading crash reports...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 💎 Pro Telegram Users Manager (Direct Account-Linked Entitlements) -->
-    <div id="proUsersSection" class="glass-card p-5 rounded-2xl border border-violet-500/30 glow-cyan">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
-              💎 Pro Telegram Accounts
-            </span>
-            <span id="proUsersCountBadge" class="text-[10px] text-emerald-400 font-semibold">Account-Linked Pro Users</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Users whose Telegram User IDs are unlocked for 100% ad-free pro access across all devices.</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <div class="relative">
-            <input type="text" id="proUserSearchInput" oninput="handleProUserSearch()" placeholder="Search Telegram ID / Username..." class="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500">
-            <span class="absolute left-2.5 top-1.5 text-slate-500 text-xs">🔍</span>
-          </div>
-          <button onclick="loadProUsers()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
-            <span>🔄</span> Refresh
-          </button>
-          <button onclick="openUpgradeProModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98] flex items-center gap-1.5">
-            <span>➕</span> Grant Pro
-          </button>
+      <div class="glass rounded-2xl overflow-hidden border border-slate-800">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="px-6 py-4">License Key</th>
+                <th class="px-6 py-4">Customer / Notes</th>
+                <th class="px-6 py-4">Plan Type</th>
+                <th class="px-6 py-4">Devices</th>
+                <th class="px-6 py-4">Status</th>
+                <th class="px-6 py-4">Created Date</th>
+                <th class="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="licensesTableBody" class="divide-y divide-slate-800/60">
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                  Loading licenses...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <div class="mt-4 overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="px-4 py-3">Telegram User</th>
-              <th class="px-4 py-3">Phone</th>
-              <th class="px-4 py-3">Plan</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Joined Date</th>
-              <th class="px-4 py-3">Expires At</th>
-              <th class="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="proUsersTableBody" class="divide-y divide-slate-800/60">
-            <tr>
-              <td colspan="7" class="px-4 py-8 text-center text-slate-500">
-                Loading Pro users...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 💳 Razorpay Direct Transactions -->
-    <div id="paymentTransactionsSection" class="glass-card p-5 rounded-2xl border border-blue-500/20">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
-              💳 Razorpay Orders & Payments
-            </span>
-            <span class="text-[10px] text-slate-400">Direct In-App UPI / Card Purchases</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Live audit log of all generated Razorpay orders and payment completions.</p>
-        </div>
-        <button onclick="loadPaymentTransactions()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
-          <span>🔄</span> Refresh
-        </button>
-      </div>
-
-      <div class="mt-4 overflow-x-auto">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
-            <tr>
-              <th class="px-4 py-3">Order ID</th>
-              <th class="px-4 py-3">Payment ID</th>
-              <th class="px-4 py-3">Telegram User</th>
-              <th class="px-4 py-3">Amount</th>
-              <th class="px-4 py-3">Status</th>
-              <th class="px-4 py-3">Created At</th>
-              <th class="px-4 py-3">Paid At</th>
-            </tr>
-          </thead>
-          <tbody id="paymentTransactionsTableBody" class="divide-y divide-slate-800/60">
-            <tr>
-              <td colspan="7" class="px-4 py-8 text-center text-slate-500">
-                Loading transactions...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 📢 Telegram Bot & Broadcast Manager -->
-    <div id="broadcastSection" class="glass-card p-5 rounded-2xl border border-sky-500/30 glow-cyan space-y-4">
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
-              📢 Telegram Bot Broadcast & Marketing
-            </span>
-            <span id="botSubscriberCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Active Bot Subscribers</span>
-          </div>
-          <p class="text-xs text-slate-400 mt-1">Broadcast new feature updates, discounts, flash sales, or announcements directly to user Telegram inboxes.</p>
-        </div>
-      </div>
-
-      <form id="broadcastForm" onsubmit="handleSendBroadcast(event)" class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Message Text (Supports Markdown format)</label>
-          <textarea id="broadcastMessageInput" rows="4" required placeholder="🔥 *Special 50% OFF Weekend Deal!* 💎&#10;&#10;Upgrade to TG Drive PRO today for only ₹199! No ads forever.&#10;&#10;Tap below to claim now! 👇" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"></textarea>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button Text (Optional)</label>
-            <input type="text" id="broadcastButtonTextInput" placeholder="🚀 Upgrade to PRO" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button URL (Optional)</label>
-            <input type="url" id="broadcastButtonUrlInput" placeholder="https://tg-drive.vercel.app/pricing" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between pt-2">
-          <span class="text-[11px] text-slate-400">💡 Uses official Telegram Bot API with rate-limited queueing.</span>
-          <button type="submit" id="btnSendBroadcast" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center gap-2">
-            <span>🚀</span> Send Broadcast to All Subscribers
-          </button>
-        </div>
-      </form>
-      <div id="broadcastStatusMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
     </div>
   </main>
 
@@ -1636,6 +1722,35 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
+    function switchAdminTab(tabName, clickedBtn) {
+      const allTabs = ['pro_users', 'payments', 'plans', 'offers', 'referrals', 'broadcast', 'crashes', 'licenses'];
+      allTabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.remove('hidden');
+
+      // Update button styling
+      document.querySelectorAll('.admin-tab-btn').forEach(b => {
+        b.className = 'admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+      });
+      if (clickedBtn) {
+        clickedBtn.className = 'admin-tab-btn active px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25';
+      }
+
+      // Auto-load tab data
+      if (tabName === 'pro_users') loadProUsers();
+      else if (tabName === 'payments') loadPaymentTransactions();
+      else if (tabName === 'plans') { loadPlans(); loadTrialSettings(); }
+      else if (tabName === 'offers') { loadDiscounts(); loadOffers(); }
+      else if (tabName === 'referrals') { loadReferralSettings(); loadPayoutRequests(); }
+      else if (tabName === 'broadcast') loadBotSubscribers();
+      else if (tabName === 'crashes') loadCrashReports();
+      else if (tabName === 'licenses') loadLicenses();
+    }
+
     async function loadStats() {
       try {
         const res = await fetch('/api/admin/stats', {
@@ -1643,10 +1758,19 @@ export function renderAdminDashboardHtml(appName: string): string {
         });
         if (res.ok) {
           const data = await res.json();
-          document.getElementById('statTotalLicenses').textContent = data.totalLicenses || 0;
-          document.getElementById('statActiveDevices').textContent = data.activeDevices || 0;
-          document.getElementById('statLifetime').textContent = data.lifetimeLicenses || 0;
-          document.getElementById('statBanned').textContent = data.bannedLicenses || 0;
+          // Pro user KPIs
+          if (document.getElementById('statTotalProUsers')) document.getElementById('statTotalProUsers').textContent = data.totalProUsers || 0;
+          if (document.getElementById('statActiveProUsers')) document.getElementById('statActiveProUsers').textContent = data.activeProUsers || 0;
+          if (document.getElementById('statMonthlyUsers')) document.getElementById('statMonthlyUsers').textContent = data.monthlyProUsers || 0;
+          if (document.getElementById('statAnnualUsers')) document.getElementById('statAnnualUsers').textContent = data.annualProUsers || 0;
+          if (document.getElementById('statLifetimeUsers')) document.getElementById('statLifetimeUsers').textContent = data.lifetimeProUsers || 0;
+          if (document.getElementById('statTotalRevenue')) document.getElementById('statTotalRevenue').textContent = (data.totalRevenueInr || 0).toLocaleString();
+
+          // Legacy license KPIs if present
+          if (document.getElementById('statTotalLicenses')) document.getElementById('statTotalLicenses').textContent = data.totalLicenses || 0;
+          if (document.getElementById('statActiveDevices')) document.getElementById('statActiveDevices').textContent = data.activeDevices || 0;
+          if (document.getElementById('statLifetime')) document.getElementById('statLifetime').textContent = data.lifetimeLicenses || 0;
+          if (document.getElementById('statBanned')) document.getElementById('statBanned').textContent = data.bannedLicenses || 0;
           const crashStatEl = document.getElementById('statCrashReports');
           if (crashStatEl) {
             crashStatEl.textContent = data.totalCrashes || 0;
@@ -2358,61 +2482,162 @@ export function renderAdminDashboardHtml(appName: string): string {
     // Pro Users Management (pro_users)
     // -------------------------------------------------------------
     let cachedProUsers = [];
+    let currentProPlanFilter = 'all';
+
+    function filterProUsersByPlan(plan, btn) {
+      currentProPlanFilter = plan;
+      document.querySelectorAll('.pro-plan-filter-btn').forEach(b => {
+        b.className = 'pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs hover:bg-slate-800';
+      });
+      if (btn) {
+        btn.className = 'pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-violet-600 text-white font-bold text-xs shadow-sm';
+      }
+      renderProUsersTable();
+    }
+
+    function renderProUsersTable() {
+      const tbody = document.getElementById('proUsersTableBody');
+      const now = Math.floor(Date.now() / 1000);
+
+      let filtered = cachedProUsers;
+      if (currentProPlanFilter === 'monthly') {
+        filtered = cachedProUsers.filter(u => u.plan_type === 'monthly');
+      } else if (currentProPlanFilter === 'annual') {
+        filtered = cachedProUsers.filter(u => u.plan_type === 'annual');
+      } else if (currentProPlanFilter === 'lifetime') {
+        filtered = cachedProUsers.filter(u => u.plan_type === 'lifetime');
+      } else if (currentProPlanFilter === 'expired') {
+        filtered = cachedProUsers.filter(u => u.expires_at && u.expires_at <= now);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No matching Pro accounts found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString('en-IN') : '—';
+        const isBanned = u.is_banned === 1;
+        const isExpired = Boolean(u.expires_at && u.expires_at <= now);
+
+        let planBadge = '';
+        if (u.plan_type === 'monthly') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">📅 Monthly Pass</span>';
+        } else if (u.plan_type === 'annual') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border border-sky-500/30">🌟 Annual Pass</span>';
+        } else if (u.plan_type === 'lifetime') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">👑 Lifetime VIP</span>';
+        } else {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-800 text-slate-300 border border-slate-700">' + (u.plan_type || 'PRO') + '</span>';
+        }
+
+        let statusBadge = '';
+        if (isBanned) {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">🚫 Banned</span>';
+        } else if (isExpired) {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">🔴 Expired</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 Active</span>';
+        }
+
+        let expiryDisplay = '';
+        if (!u.expires_at || u.plan_type === 'lifetime') {
+          expiryDisplay = '<span class="text-amber-400 font-bold font-mono">👑 Lifetime (Permanent)</span>';
+        } else {
+          const diff = u.expires_at - now;
+          const expDate = new Date(u.expires_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          if (diff <= 0) {
+            const expDaysAgo = Math.floor(Math.abs(diff) / 86400);
+            expiryDisplay = '<span class="text-rose-400 font-bold font-mono">🔴 Expired ' + (expDaysAgo > 0 ? expDaysAgo + 'd ago' : 'today') + ' (' + expDate + ')</span>';
+          } else {
+            const daysLeft = Math.floor(diff / 86400);
+            const hoursLeft = Math.floor((diff % 86400) / 3600);
+            const cdText = daysLeft > 0 ? (daysLeft + 'd left') : (hoursLeft + 'h left');
+            if (daysLeft <= 3) {
+              expiryDisplay = '<span class="text-amber-400 font-bold font-mono">⚠️ ' + cdText + ' (' + expDate + ')</span>';
+            } else {
+              expiryDisplay = '<span class="text-emerald-400 font-bold font-mono">🟢 ' + cdText + ' (' + expDate + ')</span>';
+            }
+          }
+        }
+
+        const nameDisp = u.first_name || u.username ? ((u.first_name || '') + (u.username ? ' (@' + u.username + ')' : '')).trim() : 'Telegram User';
+
+        return \`
+          <tr class="hover:bg-slate-900/50 transition-colors">
+            <td class="px-4 py-3 font-mono font-bold text-white flex items-center gap-2">
+              <span class="text-base">\${u.plan_type === 'lifetime' ? '👑' : '💎'}</span>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-white">\${u.telegram_user_id}</span>
+                  <button type="button" onclick="navigator.clipboard.writeText('\${u.telegram_user_id}'); showToast('Copied ID!')" class="text-slate-500 hover:text-white text-xs">📋</button>
+                </div>
+                <div class="text-[11px] font-sans font-normal text-slate-400 truncate max-w-xs">\${nameDisp}</div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-slate-300 font-mono text-xs">\${u.phone_number || '—'}</td>
+            <td class="px-4 py-3">\${planBadge}</td>
+            <td class="px-4 py-3">\${statusBadge}</td>
+            <td class="px-4 py-3 text-xs">\${expiryDisplay}</td>
+            <td class="px-4 py-3 text-slate-400 text-xs">\${joined}</td>
+            <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 30, 'monthly')" title="Extend +30 Days" class="px-2 py-1 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 font-bold text-[10px] transition-all">+30d</button>
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 365, 'annual')" title="Extend +1 Year" class="px-2 py-1 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 font-bold text-[10px] transition-all">+1yr</button>
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 0, 'lifetime')" title="Make Lifetime VIP" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-bold text-[10px] transition-all">👑 VIP</button>
+              \${isBanned 
+                ? \`<button onclick="handleUnbanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold text-[10px]">Unban</button>\`
+                : \`<button onclick="handleBanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 font-bold text-[10px]">Ban</button>\`
+              }
+              <button onclick="handleDeleteProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:text-rose-400 font-bold text-[10px]">Delete</button>
+            </td>
+          </tr>
+        \`;
+      }).join('');
+    }
 
     async function loadProUsers(query = '') {
       const tbody = document.getElementById('proUsersTableBody');
-      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Pro accounts...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Pro subscriptions...</td></tr>';
       try {
         const url = query ? '/api/admin/pro-users?q=' + encodeURIComponent(query) : '/api/admin/pro-users';
         const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + adminToken } });
         if (!res.ok) {
-          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Failed to load Pro accounts</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Failed to load Pro subscriptions</td></tr>';
           return;
         }
         const data = await res.json();
         cachedProUsers = data.users || [];
         document.getElementById('proUsersCountBadge').textContent = \`\${cachedProUsers.length} Account(s)\`;
-
-        if (cachedProUsers.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No Pro accounts registered yet.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = cachedProUsers.map(u => {
-          const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString() : '—';
-          const expires = u.expires_at ? new Date(u.expires_at * 1000).toLocaleDateString() : '<span class="text-amber-400 font-bold">Lifetime (Forever)</span>';
-          const statusBadge = u.is_banned === 1
-            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">Banned</span>'
-            : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Active PRO</span>';
-
-          const nameDisp = u.first_name || u.username ? \`\${u.first_name || ''} \${u.username ? '(@' + u.username + ')' : ''}\` : 'Telegram User';
-
-          return \`
-            <tr class="hover:bg-slate-900/50 transition-colors">
-              <td class="px-4 py-3 font-mono font-bold text-white flex items-center gap-1.5">
-                <span>💎</span>
-                <div>
-                  <div>\${u.telegram_user_id}</div>
-                  <div class="text-[11px] font-sans font-normal text-slate-400">\${nameDisp}</div>
-                </div>
-              </td>
-              <td class="px-4 py-3 text-slate-300 font-mono text-xs">\${u.phone_number || '—'}</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30">\${u.plan_type}</span></td>
-              <td class="px-4 py-3">\${statusBadge}</td>
-              <td class="px-4 py-3 text-slate-400 text-xs">\${joined}</td>
-              <td class="px-4 py-3 text-xs">\${expires}</td>
-              <td class="px-4 py-3 text-right space-x-1">
-                \${u.is_banned === 1 
-                  ? \`<button onclick="handleUnbanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold text-[10px]">Unban</button>\`
-                  : \`<button onclick="handleBanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 font-bold text-[10px]">Ban</button>\`
-                }
-                <button onclick="handleDeleteProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:text-rose-400 font-bold text-[10px]">Delete</button>
-              </td>
-            </tr>
-          \`;
-        }).join('');
+        renderProUsersTable();
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Network error loading Pro users</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Network error loading Pro subscriptions</td></tr>';
+      }
+    }
+
+    async function handleQuickExtend(tgUserId, durationDays, planType) {
+      const desc = durationDays > 0 ? \`+\${durationDays} days (\${planType})\` : 'Permanent Lifetime VIP';
+      if (!confirm(\`Are you sure you want to update User \${tgUserId} to \${desc}?\`)) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/upgrade', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_user_id: tgUserId,
+            plan_type: planType,
+            duration_days: durationDays,
+            notes: \`Admin quick extension: \${planType}\`
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(\`User \${tgUserId} updated to \${planType}!\`);
+          loadProUsers();
+          loadStats();
+        } else {
+          alert(data.error || 'Failed to update user');
+        }
+      } catch (e) {
+        alert('Network error updating user: ' + e.message);
       }
     }
 
@@ -2535,7 +2760,7 @@ export function renderAdminDashboardHtml(appName: string): string {
     // -------------------------------------------------------------
     async function loadPaymentTransactions() {
       const tbody = document.getElementById('paymentTransactionsTableBody');
-      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading transactions...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">Loading transactions...</td></tr>';
       try {
         const res = await fetch('/api/admin/payment-transactions', { headers: { 'Authorization': 'Bearer ' + adminToken } });
         if (!res.ok) return;
@@ -2543,34 +2768,76 @@ export function renderAdminDashboardHtml(appName: string): string {
         const txs = data.transactions || [];
 
         if (txs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No payment transactions recorded yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No payment transactions recorded yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = txs.map(t => {
           const amt = '₹' + (t.amount >= 100 ? (t.amount / 100).toFixed(2) : t.amount);
-          const created = t.created_at ? new Date(t.created_at * 1000).toLocaleString() : '—';
-          const paid = t.paid_at ? new Date(t.paid_at * 1000).toLocaleString() : '—';
+          const created = t.created_at ? new Date(t.created_at * 1000).toLocaleString('en-IN') : '—';
+          const paid = t.paid_at ? new Date(t.paid_at * 1000).toLocaleString('en-IN') : '—';
           const statusBadge = t.status === 'paid'
             ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✅ Paid</span>'
             : t.status === 'created'
               ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Created</span>'
               : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">❌ Failed</span>';
 
+          const planDisp = t.plan_type === 'monthly'
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">📅 Monthly</span>'
+            : t.plan_type === 'annual'
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">🌟 Annual</span>'
+              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">👑 Lifetime</span>';
+
           return \`
             <tr class="hover:bg-slate-900/50 transition-colors">
               <td class="px-4 py-3 font-mono font-bold text-white text-xs">\${t.order_id}</td>
               <td class="px-4 py-3 font-mono text-slate-300 text-xs">\${t.payment_id || '—'}</td>
-              <td class="px-4 py-3 font-mono text-cyan-400 text-xs">\${t.telegram_user_id}</td>
+              <td class="px-4 py-3 font-mono text-cyan-400 text-xs">
+                \${t.telegram_user_id}
+                \${t.phone_number ? \`<div class="text-[10px] text-slate-500 font-sans">\${t.phone_number}</div>\` : ''}
+              </td>
+              <td class="px-4 py-3">\${planDisp}</td>
               <td class="px-4 py-3 font-mono font-bold text-emerald-400 text-xs">\${amt}</td>
               <td class="px-4 py-3">\${statusBadge}</td>
               <td class="px-4 py-3 text-slate-400 text-[11px]">\${created}</td>
               <td class="px-4 py-3 text-slate-400 text-[11px]">\${paid}</td>
+              <td class="px-4 py-3 text-right">
+                <button type="button" onclick="handleVerifyPaymentLink('\${t.order_id}', '\${t.payment_id || ''}', '\${t.telegram_user_id}')" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold transition-all active:scale-95 whitespace-nowrap">
+                  ⚡ Verify with Razorpay
+                </button>
+              </td>
             </tr>
           \`;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Error loading payment transactions</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-rose-400">Error loading payment transactions</td></tr>';
+      }
+    }
+
+    async function handleVerifyPaymentLink(orderId, paymentId, tgUserId) {
+      if (!confirm(\`Verify order \${orderId} against Razorpay API now?\`)) return;
+      try {
+        const res = await fetch('/api/admin/payments/verify-link', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: orderId,
+            payment_link_id: orderId.startsWith('plink_') ? orderId : undefined,
+            payment_id: paymentId || undefined,
+            telegram_user_id: tgUserId
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.verified) {
+          alert(\`🎉 Payment Verified! Pro activated for user \${data.telegram_user_id} (\${data.plan_type})!\`);
+          loadPaymentTransactions();
+          loadProUsers();
+          loadStats();
+        } else {
+          alert(\`Razorpay status: \${data.status || 'not verified'}. \${data.message || ''}\`);
+        }
+      } catch (e) {
+        alert('Error verifying payment: ' + e.message);
       }
     }
 

@@ -315,13 +315,19 @@ export class LicenseManager {
       };
 
         if (response.ok && data.active) {
+        const resolvedPlan: LicensePlan = data.plan_type
+          ? data.plan_type
+          : data.expires_at
+          ? (data.expires_at - Math.floor(Date.now() / 1000) > 35 * 86400 ? 'annual' : 'monthly')
+          : 'monthly';
+
         const licenseInfo: LicenseInfo = {
           isLicensed: true,
           isExpired: false,
           licenseKey: data.license_key || `TG-PRO-${tgId}`,
-          planType: data.plan_type || 'lifetime',
+          planType: resolvedPlan,
           customerName: data.customer_name || null,
-          expiresAt: data.expires_at || null,
+          expiresAt: resolvedPlan === 'lifetime' ? null : (data.expires_at || (Math.floor(Date.now() / 1000) + 30 * 86400)),
           token: data.token || null,
           hardwareId: hwid,
           maxDevices: 999, // Unlocked across all user devices
@@ -573,13 +579,19 @@ export class LicenseManager {
         };
 
         if (data.is_pro || data.active) {
+          const resolvedPlan: LicensePlan = data.plan_type
+            ? data.plan_type
+            : data.expires_at
+            ? (data.expires_at - Math.floor(Date.now() / 1000) > 35 * 86400 ? 'annual' : 'monthly')
+            : 'monthly';
+
           const licenseInfo: LicenseInfo = {
             isLicensed: true,
             isExpired: false,
             licenseKey: `TG-PRO-${tgId}`,
-            planType: data.plan_type || 'lifetime',
+            planType: resolvedPlan,
             customerName: data.first_name || null,
-            expiresAt: data.expires_at || null,
+            expiresAt: resolvedPlan === 'lifetime' ? null : (data.expires_at || (Math.floor(Date.now() / 1000) + 30 * 86400)),
             token: data.token || null,
             hardwareId: hwid,
             maxDevices: 999,
@@ -695,7 +707,7 @@ export class LicenseManager {
                 order_id: orderRes.orderId,
                 plan_type: params.planType || 'lifetime',
               },
-              callback_url: `https://tg-drive-license-service.baniarohan009.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(String(params.telegramUserId))}&order_id=${encodeURIComponent(orderRes.orderId)}&plan_type=${encodeURIComponent(params.planType || 'lifetime')}`,
+              callback_url: `https://tg-drive-license-service.baniarohan009.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(String(params.telegramUserId))}&order_id=${encodeURIComponent(orderRes.orderId)}&plan_type=${encodeURIComponent(params.planType || 'monthly')}`,
               callback_method: 'get',
             }),
           });

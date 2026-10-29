@@ -331,11 +331,22 @@ export async function getDashboardStats(db: D1Database): Promise<{
   bannedLicenses: number;
   lifetimeLicenses: number;
   totalCrashes: number;
+  totalProUsers: number;
+  activeProUsers: number;
+  monthlyProUsers: number;
+  annualProUsers: number;
+  lifetimeProUsers: number;
+  expiredProUsers: number;
+  totalRevenueInr: number;
+  paidTransactionsCount: number;
 }> {
+  const now = Math.floor(Date.now() / 1000);
+  await ensureStoreTables(db);
   const total = await db.prepare('SELECT COUNT(*) as count FROM licenses').first<{ count: number }>();
   const activeDev = await db.prepare('SELECT COUNT(*) as count FROM device_activations WHERE is_revoked = 0').first<{ count: number }>();
   const banned = await db.prepare('SELECT COUNT(*) as count FROM licenses WHERE is_banned = 1').first<{ count: number }>();
   const lifetime = await db.prepare("SELECT COUNT(*) as count FROM licenses WHERE plan_type = 'lifetime'").first<{ count: number }>();
+  
   let crashesCount = 0;
   try {
     const crashes = await db.prepare('SELECT COUNT(*) as count FROM crash_reports').first<{ count: number }>();
@@ -344,12 +355,61 @@ export async function getDashboardStats(db: D1Database): Promise<{
     crashesCount = 0;
   }
 
+  // Telegram Pro User metrics
+  let totalProUsers = 0;
+  let activeProUsers = 0;
+  let monthlyProUsers = 0;
+  let annualProUsers = 0;
+  let lifetimeProUsers = 0;
+  let expiredProUsers = 0;
+  try {
+    const totalPro = await db.prepare('SELECT COUNT(*) as count FROM pro_users').first<{ count: number }>();
+    totalProUsers = totalPro?.count || 0;
+
+    const activePro = await db.prepare('SELECT COUNT(*) as count FROM pro_users WHERE is_pro = 1 AND is_banned = 0 AND (expires_at IS NULL OR expires_at > ?)').bind(now).first<{ count: number }>();
+    activeProUsers = activePro?.count || 0;
+
+    const monthly = await db.prepare("SELECT COUNT(*) as count FROM pro_users WHERE plan_type = 'monthly'").first<{ count: number }>();
+    monthlyProUsers = monthly?.count || 0;
+
+    const annual = await db.prepare("SELECT COUNT(*) as count FROM pro_users WHERE plan_type = 'annual'").first<{ count: number }>();
+    annualProUsers = annual?.count || 0;
+
+    const life = await db.prepare("SELECT COUNT(*) as count FROM pro_users WHERE plan_type = 'lifetime'").first<{ count: number }>();
+    lifetimeProUsers = life?.count || 0;
+
+    const expired = await db.prepare('SELECT COUNT(*) as count FROM pro_users WHERE expires_at IS NOT NULL AND expires_at <= ?').bind(now).first<{ count: number }>();
+    expiredProUsers = expired?.count || 0;
+  } catch (e) {
+    console.warn('[getDashboardStats] Error querying pro_users:', e);
+  }
+
+  // Razorpay payment revenue metrics
+  let totalRevenueInr = 0;
+  let paidTransactionsCount = 0;
+  try {
+    const revenue = await db.prepare("SELECT SUM(amount) as total_paise, COUNT(*) as count FROM payment_transactions WHERE status = 'paid' OR status = 'captured'").first<{ total_paise: number; count: number }>();
+    const totalPaise = revenue?.total_paise || 0;
+    totalRevenueInr = Math.round(totalPaise / 100);
+    paidTransactionsCount = revenue?.count || 0;
+  } catch (e) {
+    console.warn('[getDashboardStats] Error querying payment_transactions:', e);
+  }
+
   return {
     totalLicenses: total?.count || 0,
     activeDevices: activeDev?.count || 0,
     bannedLicenses: banned?.count || 0,
     lifetimeLicenses: lifetime?.count || 0,
     totalCrashes: crashesCount,
+    totalProUsers,
+    activeProUsers,
+    monthlyProUsers,
+    annualProUsers,
+    lifetimeProUsers,
+    expiredProUsers,
+    totalRevenueInr,
+    paidTransactionsCount,
   };
 }
 
@@ -587,23 +647,6 @@ export async function ensureStoreTables(db: D1Database): Promise<void> {
       await db.prepare(`CREATE INDEX IF NOT EXISTS idx_licenses_phone ON licenses(phone_number)`).run();
     } catch {
       // Indexes may already exist
-    }
-
-    // Seed official default coupons if not present
-    try {
-      await db.batch([
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_flash50', 'FLASH50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_pro50', 'PRO50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_vip50', 'VIP50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_special50', 'SPECIAL50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_tg50', 'TG50', 'percent', 50, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_welcome10', 'WELCOME10', 'percent', 10, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_tgdrive', 'TGDRIVE', 'percent', 10, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_pro20', 'PRO20', 'percent', 20, 0, 0, NULL, 1, 1700000000)`),
-        db.prepare(`INSERT OR IGNORE INTO coupons (id, code, discount_type, discount_value, max_uses, times_used, expires_at, is_active, created_at) VALUES ('cp_save20', 'SAVE20', 'percent', 20, 0, 0, NULL, 1, 1700000000)`),
-      ]);
-    } catch {
-      // Seeding fallback
     }
 
     tablesInitialized = true;

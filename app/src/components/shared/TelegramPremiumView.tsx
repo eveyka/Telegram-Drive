@@ -278,7 +278,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
     }
   }, [userProfile?.id, setMobileLicense]);
 
-  // Fetch active offer from backend on mount
+  // Fetch active offer from backend on mount (configured by admin in portal)
   useEffect(() => {
     let isMounted = true;
     void licenseManager.getActiveOffer().then((res) => {
@@ -289,19 +289,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
           setCountdownSeconds(res.offer.remaining_seconds);
         }
       } else {
-        // Fallback default 30-Day Flash Sale offer (50% OFF ₹249)
-        const fallbackOffer: ActiveSpecialOffer = {
-          title: 'Special 50% Flash Sale Active!',
-          badge: '🔥 50% OFF FLASH DEAL',
-          description: 'Get extra 50% discount on Lifetime Pro Access! Special promotional price.',
-          discount_type: 'percent',
-          discount_value: 50,
-          original_price: 499,
-          offer_price: 249,
-          coupon_code: 'FLASH50',
-          remaining_seconds: 30 * 86400,
-        };
-        setActiveOffer(fallbackOffer);
+        setActiveOffer(null);
       }
     });
 
@@ -347,23 +335,6 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
 
-  // Systematic built-in promo codes dictionary for instant and reliable activation
-  const BUILTIN_PROMOS: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
-    FLASH50: { type: 'percent', value: 50, label: '50% Flash Sale Offer' },
-    PRO50: { type: 'percent', value: 50, label: '50% Pro Membership Discount' },
-    VIP50: { type: 'percent', value: 50, label: '50% VIP Access Discount' },
-    SPECIAL50: { type: 'percent', value: 50, label: '50% Special Promotional Offer' },
-    TG50: { type: 'percent', value: 50, label: '50% TG Drive Exclusive' },
-    FLAT50: { type: 'percent', value: 50, label: '50% Flat Discount' },
-    OFF50: { type: 'percent', value: 50, label: '50% Special Discount' },
-    PRO20: { type: 'percent', value: 20, label: '20% Pro Member Discount' },
-    SAVE20: { type: 'percent', value: 20, label: '20% Special Savings' },
-    WELCOME10: { type: 'percent', value: 10, label: '10% Welcome Discount' },
-    TGDRIVE: { type: 'percent', value: 10, label: '10% Official TG Discount' },
-    EARLYBIRD: { type: 'percent', value: 30, label: '30% Early Bird Discount' },
-    STUDENT: { type: 'percent', value: 25, label: '25% Student Discount' },
-  };
-
   // Re-calculate discount when selected plan changes
   const handleSelectPlan = (planId: string) => {
     setSelectedPlanId(planId);
@@ -371,12 +342,12 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
       const targetPlan = currentPlans.find(p => p.id === planId) || currentPlans[0] || DEFAULT_STORE_PLANS[0];
       const base = targetPlan.price;
       let discountAmount = 0;
-      if (appliedCoupon.discountType === 'percent' && appliedCoupon.discountValue) {
+      if (appliedCoupon.discountType === 'percent' && typeof appliedCoupon.discountValue === 'number') {
         discountAmount = Math.round((base * appliedCoupon.discountValue) / 100);
-      } else if (appliedCoupon.discountValue) {
+      } else if (typeof appliedCoupon.discountValue === 'number') {
         discountAmount = Math.min(base - 1, Math.round(appliedCoupon.discountValue));
       } else {
-        discountAmount = Math.round(base * 0.5);
+        discountAmount = Math.min(base - 1, appliedCoupon.discountAmount);
       }
       const finalPrice = Math.max(1, base - discountAmount);
       setAppliedCoupon({
@@ -388,7 +359,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
     setCouponError(null);
   };
 
-  // Core systematic coupon application function
+  // Core systematic coupon application function (validates directly against admin backend)
   const executeApplyCoupon = async (rawCode: string) => {
     const clean = rawCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
     if (!clean) {
@@ -402,87 +373,79 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
 
     const base = selectedPlan.price;
 
-    try {
-      const res = await fetch(
-        `https://tg-drive-license-service.baniarohan009.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&_t=${Date.now()}`
-      );
-      if (res.ok) {
-        const data = (await res.json()) as {
-          valid: boolean;
-          code?: string;
-          discount_text?: string;
-          discount_type?: 'percent' | 'fixed';
-          discount_value?: number;
-          discount_amount?: number;
-          new_price?: number;
-          error?: string;
-        };
+    // Endpoints for admin-configured live coupons
+    const endpoints = [
+      `https://tg-drive-license-service.jupiterbania472.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&_t=${Date.now()}`,
+      `https://tg-drive-license-service.baniarohan009.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&_t=${Date.now()}`
+    ];
 
-        if (data.valid) {
-          const discountType = data.discount_type || 'percent';
-          const discountVal = data.discount_value ?? (data.discount_amount ? Math.round((data.discount_amount / base) * 100) : 50);
-          let discountAmount = 0;
-          if (typeof data.discount_amount === 'number' && data.discount_amount > 0) {
-            discountAmount = Math.min(base - 1, data.discount_amount);
-          } else if (discountType === 'percent') {
-            discountAmount = Math.round((base * discountVal) / 100);
-          } else {
-            discountAmount = Math.min(base - 1, Math.round(discountVal));
-          }
-          const finalPrice = Math.max(1, base - discountAmount);
+    let lastErrorMessage = 'Invalid coupon or referral code. Please check and try again.';
+    let validatedData: {
+      valid: boolean;
+      code?: string;
+      discount_text?: string;
+      discount_type?: 'percent' | 'fixed';
+      discount_value?: number;
+      discount_amount?: number;
+      new_price?: number;
+      error?: string;
+    } | null = null;
 
-          setAppliedCoupon({
-            code: data.code || clean,
-            discountText: data.discount_text || (discountType === 'percent' ? `${discountVal}% OFF` : `₹${discountAmount} OFF`),
-            discountType,
-            discountValue: discountVal,
-            discountAmount,
-            finalPrice,
-          });
-          setCouponCode(data.code || clean);
-          if (discountVal >= 50 || clean === 'FLASH50' || clean === 'SPECIAL50') {
-            setIsOfferApplied(true);
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            valid: boolean;
+            code?: string;
+            discount_text?: string;
+            discount_type?: 'percent' | 'fixed';
+            discount_value?: number;
+            discount_amount?: number;
+            new_price?: number;
+            error?: string;
+          };
+          if (data.valid) {
+            validatedData = data;
+            break;
+          } else if (data.error) {
+            lastErrorMessage = data.error;
           }
-          setCouponError(null);
-          toast.success(`🎉 Coupon "${data.code || clean}" applied! Saved ₹${discountAmount}`);
-          setIsValidatingCoupon(false);
-          return;
-        } else if (data.error && !BUILTIN_PROMOS[clean]) {
-          setAppliedCoupon(null);
-          setCouponError(data.error);
-          setIsValidatingCoupon(false);
-          return;
         }
+      } catch {
+        // Continue to fallback endpoint
       }
-    } catch (e) {
-      console.warn('[executeApplyCoupon] API fetch failed, falling back to built-in promo dictionary:', e);
     }
 
-    // Built-in promo fallback
-    if (BUILTIN_PROMOS[clean]) {
-      const p = BUILTIN_PROMOS[clean];
-      const discountAmount = p.type === 'percent'
-        ? Math.round((base * p.value) / 100)
-        : Math.min(base - 1, Math.round(p.value));
+    if (validatedData && validatedData.valid) {
+      const discountType = validatedData.discount_type || 'percent';
+      const discountVal = validatedData.discount_value ?? 0;
+      let discountAmount = 0;
+      if (typeof validatedData.discount_amount === 'number' && validatedData.discount_amount > 0) {
+        discountAmount = Math.min(base - 1, validatedData.discount_amount);
+      } else if (typeof validatedData.new_price === 'number' && validatedData.new_price > 0 && validatedData.new_price < base) {
+        discountAmount = base - validatedData.new_price;
+      } else if (discountType === 'percent') {
+        discountAmount = Math.round((base * discountVal) / 100);
+      } else {
+        discountAmount = Math.min(base - 1, Math.round(discountVal));
+      }
       const finalPrice = Math.max(1, base - discountAmount);
 
       setAppliedCoupon({
-        code: clean,
-        discountText: p.label,
-        discountType: p.type,
-        discountValue: p.value,
+        code: validatedData.code || clean,
+        discountText: validatedData.discount_text || (discountType === 'percent' ? `${discountVal}% OFF` : `₹${discountAmount} OFF`),
+        discountType,
+        discountValue: discountVal,
         discountAmount,
         finalPrice,
       });
-      setCouponCode(clean);
-      if (p.value >= 50 || clean === 'FLASH50' || clean === 'SPECIAL50') {
-        setIsOfferApplied(true);
-      }
+      setCouponCode(validatedData.code || clean);
       setCouponError(null);
-      toast.success(`🎉 Promo code "${clean}" applied! Saved ₹${discountAmount}`);
+      toast.success(`🎉 Coupon "${validatedData.code || clean}" applied! Saved ₹${discountAmount}`);
     } else {
       setAppliedCoupon(null);
-      setCouponError('Invalid coupon code. Try FLASH50, PRO50, or WELCOME10.');
+      setCouponError(lastErrorMessage);
     }
 
     setIsValidatingCoupon(false);
@@ -504,7 +467,8 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
       return;
     }
 
-    const offerCode = activeOffer?.coupon_code || 'FLASH50';
+    const offerCode = activeOffer?.coupon_code;
+    if (!offerCode) return;
     setIsOfferApplied(true);
     void executeApplyCoupon(offerCode);
   };
@@ -1124,41 +1088,6 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
             </button>
           </form>
         )}
-
-        {/* Quick 1-Tap Available Coupons Chips */}
-        <div className="pt-0.5">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] text-[#9CA3AF] font-bold uppercase tracking-wider">
-              Popular:
-            </span>
-            {[
-              { code: 'FLASH50', label: '⚡ FLASH50 (50% OFF)' },
-              { code: 'PRO50', label: '👑 PRO50 (50% OFF)' },
-              { code: 'WELCOME10', label: '✨ WELCOME10 (10% OFF)' },
-              { code: 'PRO20', label: '🚀 PRO20 (20% OFF)' },
-            ].map((chip) => {
-              const isChipApplied = appliedCoupon?.code === chip.code;
-              return (
-                <button
-                  key={chip.code}
-                  type="button"
-                  onClick={() => {
-                    setCouponCode(chip.code);
-                    void executeApplyCoupon(chip.code);
-                  }}
-                  className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
-                    isChipApplied
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-xs'
-                      : 'bg-white/5 border-white/10 text-[#D1D5DB] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/10'
-                  }`}
-                >
-                  {isChipApplied && <Check className="w-2.5 h-2.5 stroke-[3] text-emerald-400" />}
-                  <span>{chip.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {couponError && (
           <p className="text-[10px] text-red-400 font-semibold animate-in fade-in duration-150">
