@@ -134,7 +134,12 @@ export function renderAdminDashboardHtml(appName: string): string {
       <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3">
         <div>
           <label class="block text-[10px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Master Admin Secret</label>
-          <input type="password" id="adminSecretInput" required placeholder="••••••••••••••••" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors font-mono">
+          <div class="relative">
+            <input type="password" id="adminSecretInput" required placeholder="Enter master admin secret" class="w-full pl-3 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors font-mono">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-white text-xs" title="Toggle visibility">
+              <span id="pwdEye">👁️</span>
+            </button>
+          </div>
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs hover:from-cyan-400 hover:to-blue-500 transition-all shadow-md shadow-cyan-500/25 active:scale-[0.98] flex items-center justify-center gap-1.5">
           <span>⚡</span> Unlock Admin Portal
@@ -1433,6 +1438,18 @@ export function renderAdminDashboardHtml(appName: string): string {
         }
       } catch (err) {
         console.error('Stats error:', err);
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const inp = document.getElementById('adminSecretInput');
+      const eye = document.getElementById('pwdEye');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        eye.textContent = '🙈';
+      } else {
+        inp.type = 'password';
+        eye.textContent = '👁️';
       }
     }
 
