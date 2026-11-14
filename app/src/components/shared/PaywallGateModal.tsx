@@ -33,7 +33,7 @@ export const PaywallGateModal: React.FC<PaywallGateModalProps> = ({
   isCompulsory = false,
   telegramAccount,
 }) => {
-  const [currentLicense, setCurrentLicense] = useState<LicenseInfo | null>(null);
+  const [currentLicense, setCurrentLicense] = useState<LicenseInfo | null>(() => licenseManager.getCachedLicense());
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
   const [syncing, setSyncing] = useState(false);
 

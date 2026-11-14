@@ -200,15 +200,18 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
   onSyncLicense,
   isLicenseSyncing = false,
 }) => {
+  // Use passed mobileLicense or instant cached license (0ms instant resolution)
+  const effectiveLicense = mobileLicense || licenseManager.getCachedLicense();
+
   // Plan-aware expiration calculation
   const expiry = useMemo(
-    () => licenseManager.getExpiryDetails(mobileLicense?.expiresAt ?? null, mobileLicense?.planType),
-    [mobileLicense?.expiresAt, mobileLicense?.planType]
+    () => licenseManager.getExpiryDetails(effectiveLicense?.expiresAt ?? null, effectiveLicense?.planType),
+    [effectiveLicense?.expiresAt, effectiveLicense?.planType]
   );
 
-  const isExpired = Boolean(mobileLicense?.isExpired || expiry.isExpired);
-  const isProActive = Boolean(mobileLicense?.isLicensed && !isExpired);
-  const isLifetime = isProActive && (mobileLicense?.planType === 'lifetime' || (!mobileLicense?.planType && expiry.isLifetime));
+  const isExpired = Boolean(effectiveLicense?.isExpired || expiry.isExpired);
+  const isProActive = Boolean(effectiveLicense?.isLicensed && !isExpired);
+  const isLifetime = isProActive && (effectiveLicense?.planType === 'lifetime' || (!effectiveLicense?.planType && expiry.isLifetime));
 
   // Helper for human-readable plan title
   const getPlanDisplayName = (type: LicensePlan | null | undefined): string => {
@@ -373,10 +376,11 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
 
     const base = selectedPlan.price;
 
-    // Endpoints for admin-configured live coupons
+    // Endpoints for admin-configured live coupons & referral verification
+    const buyerTgId = userProfile?.id ? String(userProfile.id) : '';
     const endpoints = [
-      `https://tg-drive-license-service.jupiterbania472.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&_t=${Date.now()}`,
-      `https://tg-drive-license-service.baniarohan009.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&_t=${Date.now()}`
+      `https://tg-drive-license-service.baniarohan009.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&telegram_user_id=${encodeURIComponent(buyerTgId)}&_t=${Date.now()}`,
+      `https://tg-drive-license-service.jupiterbania472.workers.dev/api/store/validate-coupon?code=${encodeURIComponent(clean)}&plan_id=${encodeURIComponent(selectedPlan.id)}&price=${encodeURIComponent(base)}&telegram_user_id=${encodeURIComponent(buyerTgId)}&_t=${Date.now()}`
     ];
 
     let lastErrorMessage = 'Invalid coupon or referral code. Please check and try again.';
@@ -493,10 +497,11 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
         planName: `${selectedPlan.name}${couponNote}`,
         customerName: customerName || 'TG Drive User',
         phoneNumber: phone,
+        referralCode: appliedCoupon?.code,
+        username: userProfile?.username || undefined,
         onOpen: () => {
           setIsProcessingCheckout(false);
           toast.dismiss(toastId);
-          toast.success('📱 UPI Checkout opened! Complete payment in Google Pay / PhonePe.', { duration: 6000 });
         },
         onSuccess: (license) => {
           setIsProcessingCheckout(false);
@@ -650,7 +655,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
               </div>
               <div className="min-w-0">
                 <h4 className="text-xs font-black text-white truncate flex items-center gap-1.5">
-                  <span>{getPlanDisplayName(mobileLicense?.planType)}</span>
+                  <span>{getPlanDisplayName(effectiveLicense?.planType)}</span>
                   <span className="text-[9px] text-emerald-400 font-bold">• Active</span>
                 </h4>
                 <p className="text-[10px] text-emerald-300/80 truncate">
@@ -718,7 +723,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
               </div>
               <div className="min-w-0">
                 <h4 className="text-xs font-black text-white truncate flex items-center gap-1.5">
-                  <span>{getPlanDisplayName(mobileLicense?.planType)}</span>
+                  <span>{getPlanDisplayName(effectiveLicense?.planType)}</span>
                   <span className="text-[9px] text-rose-400 font-bold">• Expired</span>
                 </h4>
                 <p className="text-[10px] text-[#9CA3AF] truncate">
@@ -750,8 +755,8 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (mobileLicense?.planType) {
-                handleSelectPlan(mobileLicense.planType);
+              if (effectiveLicense?.planType) {
+                handleSelectPlan(effectiveLicense.planType);
               }
               const planSection = document.getElementById('plans-selection-section');
               planSection?.scrollIntoView({ behavior: 'smooth' });
@@ -759,7 +764,7 @@ export const TelegramPremiumView: React.FC<TelegramPremiumViewProps> = ({
             className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:brightness-110 active:scale-98 text-black text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
           >
             <Zap className="w-3 h-3 fill-black text-black" />
-            <span>Renew {getPlanDisplayName(mobileLicense?.planType)} Now</span>
+            <span>Renew {getPlanDisplayName(effectiveLicense?.planType)} Now</span>
           </button>
         </div>
       )}

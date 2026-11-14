@@ -68,5 +68,37 @@ describe('Commercial License Worker API', () => {
     const response = await worker.fetch(request, env);
     expect(response.status).toBe(400);
   });
+
+  it('validates correct admin secret at /api/admin/auth/verify', async () => {
+    const request = new Request('http://localhost:8787/api/admin/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: 'test-secret-123' }),
+    });
+    const env = {
+      DB: {} as D1Database,
+      ADMIN_SECRET: 'test-secret-123',
+    };
+
+    const response = await worker.fetch(request, env);
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as { valid: boolean; success: boolean };
+    expect(json.valid).toBe(true);
+  });
+
+  it('rejects wrong admin secret at /api/admin/auth/verify', async () => {
+    const request = new Request('http://localhost:8787/api/admin/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: 'wrong-secret' }),
+    });
+    const env = {
+      DB: {} as D1Database,
+      ADMIN_SECRET: 'test-secret-123',
+    };
+
+    const response = await worker.fetch(request, env);
+    expect(response.status).toBe(401);
+  });
 });
 

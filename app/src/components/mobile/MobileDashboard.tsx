@@ -274,7 +274,9 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
     feature: PaywallTriggerFeature;
     customTitle?: string;
   }>({ isOpen: false, feature: 'general' });
-  const [mobileLicense, setMobileLicense] = useState<LicenseInfo | null>(null);
+  const [mobileLicense, setMobileLicense] = useState<LicenseInfo | null>(() => {
+    return licenseManager.getCachedLicense();
+  });
   const [liveStoreConfig, setLiveStoreConfig] = useState<StoreConfig | null>(null);
   const [isLicenseSyncing, setIsLicenseSyncing] = useState(false);
 
@@ -472,10 +474,10 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
   // Initial load and Telegram account license verification
   const loadAndVerifyLicense = useCallback(async () => {
     try {
-      const local = await licenseManager.loadLicense();
+      const local = licenseManager.getCachedLicense();
       setMobileLicense(local);
 
-      if (userProfile) {
+      if (userProfile?.id) {
         const res = await licenseManager.checkTelegramAccount(userProfile.id, userProfile.phone);
         if (res.isLicensed && res.license) {
           setMobileLicense(res.license);
@@ -2691,85 +2693,100 @@ export default function MobileDashboard({ onLogout }: { onLogout?: () => void })
           </div>
         ) : (
           /* 5. Home Tab Header (Default) */
-          <div className="flex items-center justify-between w-full">
-            <div className="flex flex-col justify-center">
-              <h1 className="brand-header-title text-[1.15rem]">
-                <span className="brand-title-telegram">Telegram</span>
-                <span className="brand-title-drive">Drive</span>
-                <span className="brand-title-dot" />
-              </h1>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[10px] text-telegram-subtext font-medium leading-none tracking-wide">
-                  Cloud Vault • Online
-                </p>
+          showMobileSearch ? (
+            /* Home Tab: Full Header Smooth Search Bar */
+            <div className="flex items-center gap-2 w-full animate-in fade-in slide-in-from-right-3 duration-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileSearch(false);
+                  setMobileSearchQuery('');
+                }}
+                className="flex items-center justify-center w-8 h-8 rounded-xl bg-telegram-hover/40 hover:bg-telegram-hover/70 active:scale-95 border border-telegram-border/40 text-telegram-text transition-all shrink-0 cursor-pointer"
+                title={t('common.back', 'Back')}
+                aria-label={t('common.back', 'Back')}
+              >
+                <ArrowLeft className="w-4 h-4 text-telegram-subtext hover:text-telegram-text" />
+              </button>
+
+              <div className="relative flex-1 flex items-center min-w-0">
+                <Search className="absolute left-3 w-4 h-4 text-telegram-subtext pointer-events-none" />
+                <input
+                  type="text"
+                  value={mobileSearchQuery}
+                  onChange={(e) => setMobileSearchQuery(e.target.value)}
+                  placeholder={t('files.search_placeholder', 'Search files by name...')}
+                  autoFocus
+                  className="w-full pl-9 pr-9 py-1.5 text-xs rounded-xl bg-telegram-surface border border-telegram-border/70 text-telegram-text placeholder-telegram-subtext/60 focus:outline-none focus:border-telegram-primary/80 focus:ring-1 focus:ring-telegram-primary/30 transition-all shadow-inner"
+                />
+                {mobileSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchQuery('')}
+                    className="absolute right-2.5 p-1 text-telegram-subtext hover:text-telegram-text transition-colors rounded-lg hover:bg-telegram-hover/60"
+                    title={t('common.clear', 'Clear')}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
+          ) : (
+            /* Normal Home Tab Header */
+            <div className="flex items-center justify-between w-full animate-in fade-in duration-200">
+              <div className="flex flex-col justify-center">
+                <h1 className="brand-header-title text-[1.15rem]">
+                  <span className="brand-title-telegram">Telegram</span>
+                  <span className="brand-title-drive">Drive</span>
+                  <span className="brand-title-dot" />
+                </h1>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <p className="text-[10px] text-telegram-subtext font-medium leading-none tracking-wide">
+                    Cloud Vault • Online
+                  </p>
+                </div>
+              </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowMobileSearch(prev => !prev)}
-                className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 ${
-                  showMobileSearch || mobileSearchQuery
-                    ? 'bg-telegram-primary text-black border-telegram-primary shadow-sm'
-                    : 'bg-telegram-hover/40 hover:bg-telegram-hover/70 text-telegram-subtext hover:text-telegram-text border-telegram-border/40'
-                }`}
-                title={t('common.search', 'Search')}
-                aria-label={t('common.search', 'Search')}
-              >
-                <Search className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowUploadDestinationSheet(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-telegram-primary text-black hover:bg-telegram-primary/95 border border-telegram-primary/10 active:scale-95 transition-all duration-200 shadow-sm shadow-telegram-primary/20"
-                title={t('common.upload', 'Upload')}
-                aria-label={t('common.upload', 'Upload')}
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>{t('common.upload', 'Upload')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSyncFolders}
-                disabled={isSyncing}
-                className="flex items-center justify-center w-8 h-8 rounded-xl bg-telegram-hover/40 hover:bg-telegram-hover/70 active:scale-95 border border-telegram-border/40 text-telegram-subtext hover:text-telegram-text transition-all disabled:opacity-50"
-                title={t('common.sync', 'Sync')}
-                aria-label={t('common.sync', 'Sync')}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Expandable Mobile Search Bar */}
-        {showMobileSearch && (
-          <div className="pt-2 px-1">
-            <div className="relative flex items-center">
-              <Search className="absolute left-3 w-3.5 h-3.5 text-telegram-subtext pointer-events-none" />
-              <input
-                type="text"
-                value={mobileSearchQuery}
-                onChange={(e) => setMobileSearchQuery(e.target.value)}
-                placeholder={t('files.search_placeholder', 'Search files by name...')}
-                autoFocus
-                className="w-full pl-8 pr-8 py-1.5 text-xs rounded-xl bg-telegram-surface border border-telegram-border/60 text-telegram-text placeholder-telegram-subtext/60 focus:outline-none focus:border-telegram-primary/80 transition-all shadow-inner"
-              />
-              {mobileSearchQuery && (
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setMobileSearchQuery('')}
-                  className="absolute right-2.5 p-1 text-telegram-subtext hover:text-telegram-text"
+                  onClick={() => setShowMobileSearch(true)}
+                  className={`flex items-center justify-center w-8 h-8 rounded-xl border transition-all active:scale-95 ${
+                    mobileSearchQuery
+                      ? 'bg-telegram-primary text-black border-telegram-primary shadow-sm'
+                      : 'bg-telegram-hover/40 hover:bg-telegram-hover/70 text-telegram-subtext hover:text-telegram-text border-telegram-border/40'
+                  }`}
+                  title={t('common.search', 'Search')}
+                  aria-label={t('common.search', 'Search')}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <Search className="w-3.5 h-3.5" />
                 </button>
-              )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowUploadDestinationSheet(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-telegram-primary text-black hover:bg-telegram-primary/95 border border-telegram-primary/10 active:scale-95 transition-all duration-200 shadow-sm shadow-telegram-primary/20"
+                  title={t('common.upload', 'Upload')}
+                  aria-label={t('common.upload', 'Upload')}
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  <span>{t('common.upload', 'Upload')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSyncFolders}
+                  disabled={isSyncing}
+                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-telegram-hover/40 hover:bg-telegram-hover/70 active:scale-95 border border-telegram-border/40 text-telegram-subtext hover:text-telegram-text transition-all disabled:opacity-50"
+                  title={t('common.sync', 'Sync')}
+                  aria-label={t('common.sync', 'Sync')}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
-          </div>
+          )
         )}
       </header>
 

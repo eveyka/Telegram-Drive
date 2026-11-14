@@ -4,7 +4,6 @@ import {
   Users,
   Wallet,
   RefreshCw,
-  Gift,
   X,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,16 +14,18 @@ import { useReferralProgram } from '../../hooks/useReferralProgram';
 export interface ReferralModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultEmail?: string;
-  defaultName?: string;
+  telegramUserId?: string | number;
+  telegramUsername?: string;
+  telegramName?: string;
   initialTab?: 'referral' | 'earnings';
 }
 
 export const ReferralModal: React.FC<ReferralModalProps> = ({
   isOpen,
   onClose,
-  defaultEmail,
-  defaultName,
+  telegramUserId,
+  telegramUsername,
+  telegramName,
   initialTab = 'referral',
 }) => {
   const { theme } = useTheme();
@@ -33,8 +34,8 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const openedWithTabRef = useRef<'referral' | 'earnings'>(initialTab);
   const historyPushedRef = useRef(false);
 
-  const referralData = useReferralProgram(defaultEmail, defaultName);
-  const { profile, settings, loading, fetchProfile, userEmail, userName } = referralData;
+  const referralData = useReferralProgram(telegramUserId, telegramUsername, telegramName);
+  const { profile, settings, loading, fetchProfile } = referralData;
 
   useEffect(() => {
     if (isOpen) {
@@ -116,13 +117,13 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
       className="fixed inset-0 z-[150] flex items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in"
     >
       <div
-        className={`w-full max-w-5xl h-[100dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-3xl border-0 sm:border shadow-2xl overflow-hidden transition-all ${
+        className={`w-full max-w-4xl h-[100dvh] sm:h-[90vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-3xl border-0 sm:border shadow-2xl overflow-hidden transition-all ${
           isLight
             ? 'bg-white text-slate-900 border-slate-200 shadow-slate-300/50'
             : 'bg-slate-950 text-slate-100 border-slate-800/80 shadow-black/80'
         }`}
       >
-        {/* ── Top Header Bar (With Back Button, Clean Title, NO Cross 'X' Button) ── */}
+        {/* Top Header Bar */}
         <header
           className={`px-3.5 sm:px-6 py-3 border-b flex items-center justify-between shrink-0 transition-colors ${
             isLight ? 'bg-white/95 border-slate-200' : 'bg-slate-900/95 border-slate-800'
@@ -133,7 +134,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
             <button
               type="button"
               onClick={handleBack}
-              className={`p-2.5 rounded-xl border transition-all shrink-0 cursor-pointer flex items-center justify-center min-w-[42px] min-h-[42px] ${
+              className={`p-2 rounded-xl border transition-all shrink-0 cursor-pointer flex items-center justify-center min-w-[38px] min-h-[38px] ${
                 isLight
                   ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 active:scale-95'
                   : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-200 active:scale-95'
@@ -141,50 +142,41 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
               title="Go Back"
               aria-label="Go Back"
             >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+              <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
             </button>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black tracking-tight text-app-text truncate">
-                  Refer &amp; Earn Program
+                <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-app-text truncate">
+                  Refer &amp; Earn
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0 hidden xs:inline-block">
-                  ₹{settings.reward_value}/Sale
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">
+                  ₹{settings.reward_value}/Pro Sale
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+              <p className="text-[11px] text-slate-400 truncate">
                 {activeTab === 'referral'
-                  ? 'Share your invite link & earn ₹' + settings.reward_value + ' cash per sale'
-                  : 'Manage wallet balance & request instant UPI/Bank payouts'}
+                  ? `Give ${settings.friend_discount_value}% OFF • Earn ₹${settings.reward_value} on verified purchase`
+                  : 'Withdraw wallet earnings to UPI or Bank'}
               </p>
             </div>
           </div>
 
-          {/* Right: Quick Action / Status indicator + Close Button */}
+          {/* Right: Refresh & Close */}
           <div className="flex items-center gap-2 shrink-0">
-            {activeTab === 'earnings' ? (
-              <button
-                type="button"
-                onClick={() => void fetchProfile(userEmail, userName)}
-                disabled={loading}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                    : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-200'
-                }`}
-                title="Refresh Wallet Balance"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
-                <Gift className="w-3.5 h-3.5 shrink-0" />
-                <span className="hidden sm:inline">10% Friend Discount</span>
-                <span className="sm:hidden">10% OFF</span>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => void fetchProfile()}
+              disabled={loading}
+              className={`p-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                  : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-200'
+              }`}
+              title="Refresh"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-telegram-primary' : ''}`} />
+            </button>
 
             <button
               type="button"
@@ -202,79 +194,64 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
           </div>
         </header>
 
-        {/* ── Segmented Tab Switcher DIRECTLY BELOW HEADER ── */}
+        {/* Tab Switcher */}
         <div
-          className={`px-3.5 sm:px-6 py-2.5 border-b shrink-0 transition-colors ${
+          className={`px-3.5 sm:px-6 py-2 border-b shrink-0 transition-colors ${
             isLight ? 'bg-slate-50/90 border-slate-200' : 'bg-slate-950/90 border-slate-800/90'
           }`}
         >
           <div
-            className={`grid grid-cols-2 p-1 rounded-2xl border ${
+            className={`grid grid-cols-2 p-1 rounded-xl border ${
               isLight ? 'bg-slate-200/70 border-slate-300/80' : 'bg-slate-900 border-slate-800'
             }`}
           >
-            {/* Tab 1: Refer & Earn */}
             <button
               type="button"
               onClick={() => setActiveTab('referral')}
-              className={`py-2 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'referral'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 scale-[1.01]'
+                  ? 'bg-indigo-600 text-white shadow-sm scale-[1.01]'
                   : isLight
                   ? 'text-slate-600 hover:text-slate-900'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Users className="w-4 h-4 shrink-0" />
-              <span className="truncate">Refer &amp; Earn</span>
-              <span
-                className={`px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full shrink-0 ${
-                  activeTab === 'referral'
-                    ? 'bg-slate-950/20 text-slate-950'
-                    : 'bg-emerald-500/20 text-emerald-400'
-                }`}
-              >
-                ₹{settings.reward_value}
-              </span>
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span>Refer &amp; Earn</span>
             </button>
 
-            {/* Tab 2: Earnings & Payouts */}
             <button
               type="button"
               onClick={() => setActiveTab('earnings')}
-              className={`py-2 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              className={`py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === 'earnings'
-                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 scale-[1.01]'
+                  ? 'bg-emerald-600 text-white shadow-sm scale-[1.01]'
                   : isLight
                   ? 'text-slate-600 hover:text-slate-900'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Wallet className="w-4 h-4 shrink-0" />
-              <span className="truncate">Earnings &amp; Payouts</span>
-              <span
-                className={`px-1.5 py-0.2 text-[9px] font-black font-mono rounded-full shrink-0 ${
-                  activeTab === 'earnings'
-                    ? 'bg-slate-950/20 text-slate-950'
-                    : 'bg-cyan-500/20 text-cyan-400'
-                }`}
-              >
+              <Wallet className="w-3.5 h-3.5 shrink-0" />
+              <span>Wallet &amp; Payouts</span>
+              <span className={`px-1.5 py-0.2 text-[9px] font-extrabold rounded-full ${
+                activeTab === 'earnings' ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-400'
+              }`}>
                 ₹{profile?.wallet_balance ? Math.round(profile.wallet_balance) : 0}
               </span>
             </button>
           </div>
         </div>
 
-        {/* ── Scrollable Body with safe-area padding ── */}
+        {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-3.5 sm:px-6 py-4 pb-[calc(4rem+env(safe-area-inset-bottom,20px))]">
           {activeTab === 'referral' ? (
             <ReferralScreen
               onNavigateToEarnings={() => setActiveTab('earnings')}
-              userEmail={referralData.userEmail}
-              userName={referralData.userName}
-              setUserEmail={referralData.setUserEmail}
-              setUserName={referralData.setUserName}
+              telegramUserId={referralData.telegramUserId}
+              telegramUsername={referralData.telegramUsername}
+              telegramName={referralData.telegramName}
               profile={referralData.profile}
+              conversions={referralData.conversions}
               settings={referralData.settings}
               copiedCode={referralData.copiedCode}
               copiedLink={referralData.copiedLink}
@@ -291,10 +268,9 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
           ) : (
             <EarningsWithdrawalScreen
               onNavigateToReferral={() => setActiveTab('referral')}
-              userEmail={referralData.userEmail}
-              userName={referralData.userName}
-              setUserEmail={referralData.setUserEmail}
-              setUserName={referralData.setUserName}
+              telegramUserId={referralData.telegramUserId}
+              telegramUsername={referralData.telegramUsername}
+              telegramName={referralData.telegramName}
               profile={referralData.profile}
               payouts={referralData.payouts}
               settings={referralData.settings}

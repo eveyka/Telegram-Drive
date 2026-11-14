@@ -102,7 +102,7 @@ export function PdfViewer({ file, onClose, onNext, onPrev, currentIndex, totalIt
                 : '';
             const streamUrl = `${streamInfo.base_url}/stream/${folderIdParam}/${file.id}?token=${encodeURIComponent(streamInfo.token)}${credential}`;
             activeLoadingTask = pdfjsLib.getDocument(streamUrl);
-            activeLoadingTask.promise.then(finishPdfLoad, (err) => {
+            activeLoadingTask.promise.then(finishPdfLoad, (err: unknown) => {
                 if (cancelled) return;
                 console.error("Error loading PDF stream:", err);
                 setError("Failed to load PDF document.");
@@ -117,7 +117,7 @@ export function PdfViewer({ file, onClose, onNext, onPrev, currentIndex, totalIt
                 disableStream: true,
                 disableAutoFetch: true,
             });
-            activeLoadingTask.promise.then(finishPdfLoad, (err) => {
+            activeLoadingTask.promise.then(finishPdfLoad, (err: unknown) => {
                 if (cancelled) return;
                 if (!isAndroidPlatform) {
                     console.warn("Cached PDF could not be rendered; falling back to streaming:", err);
@@ -400,11 +400,11 @@ function PdfPage({ pageNumber, pdf, scale }: { pageNumber: number; pdf: pdfjsLib
         if (!isVisible || !pdf) return;
 
         let cancelled = false;
-        pdf.getPage(pageNumber).then(loadedPage => {
+        pdf.getPage(pageNumber).then((loadedPage: any) => {
             if (!cancelled) {
                 setPage(loadedPage);
             }
-        }).catch(err => console.error(`Error loading page ${pageNumber}:`, err));
+        }).catch((err: unknown) => console.error(`Error loading page ${pageNumber}:`, err));
 
         return () => {
             cancelled = true;
@@ -439,7 +439,7 @@ function PdfPage({ pageNumber, pdf, scale }: { pageNumber: number; pdf: pdfjsLib
         });
         renderTaskRef.current = renderTask;
 
-        renderTask.promise.catch((err) => {
+        renderTask.promise.catch((err: any) => {
             // RenderingCancelledException is expected during zoom — ignore it
             if (err?.name !== 'RenderingCancelledException') {
                 console.error(`Render error on page ${pageNumber}:`, err);

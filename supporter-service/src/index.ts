@@ -48,6 +48,7 @@ import {
   createPayoutRequest,
   getOrCreateReferralProfile,
   getReferralProfileByCode,
+  getReferralConversionsByCode,
   getTopReferrers,
   getUserPayouts,
   listPayoutRequests,
@@ -308,6 +309,51 @@ export default {
           }
         }
 
+        // 3. Try Order ID verification directly via Razorpay Orders API
+        if (opts.orderId && opts.orderId.startsWith('order_')) {
+          try {
+            const res = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(opts.orderId)}`, {
+              headers: { 'Authorization': authHeader },
+            });
+            if (res.ok) {
+              const data = (await res.json()) as {
+                id: string;
+                status: string;
+                amount: number;
+                amount_paid?: number;
+                notes?: Record<string, string>;
+              };
+              const isPaid = data.status === 'paid' || ((data.amount_paid || 0) > 0);
+              let payId: string | undefined;
+              if (isPaid) {
+                try {
+                  const payRes = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(opts.orderId)}/payments`, {
+                    headers: { 'Authorization': authHeader },
+                  });
+                  if (payRes.ok) {
+                    const payData = (await payRes.json()) as { items?: Array<{ id: string; status: string }> };
+                    const successfulPayment = payData.items?.find(p => p.status === 'captured' || p.status === 'authorized');
+                    if (successfulPayment) payId = successfulPayment.id;
+                  }
+                } catch {}
+              }
+              return {
+                verified: isPaid,
+                status: data.status,
+                amountPaise: data.amount_paid || data.amount,
+                paymentId: payId,
+                planType: (data.notes?.plan_type as LicensePlan) || undefined,
+                telegramUserId: data.notes?.telegram_user_id,
+                customerName: data.notes?.customer_name,
+                phoneNumber: data.notes?.phone_number,
+                notes: data.notes,
+              };
+            }
+          } catch (e) {
+            console.warn('[verifyRazorpayWithApi] Order check error:', e);
+          }
+        }
+
         return { verified: false, status: 'unknown' };
       };
 
@@ -315,6 +361,25 @@ export default {
       // 2. Admin APIs (Require Bearer Auth)
       // -------------------------------------------------------------
       if (url.pathname.startsWith('/api/admin/')) {
+        // Dedicated login authentication verification endpoint
+        if (url.pathname === '/api/admin/auth/verify' && request.method === 'POST') {
+          const masterSecret = env.ADMIN_SECRET || 'tg-drive-master-secret-2026';
+          let candidate = '';
+          const authHeader = request.headers.get('Authorization') || '';
+          if (authHeader.startsWith('Bearer ')) {
+            candidate = authHeader.substring(7).trim();
+          } else {
+            try {
+              const body = (await request.json()) as { secret?: string };
+              candidate = (body.secret || '').trim();
+            } catch (_) {}
+          }
+          if (candidate && timingSafeEqual(candidate, masterSecret)) {
+            return jsonResponse({ valid: true, success: true });
+          }
+          return jsonResponse({ valid: false, error: 'Invalid admin secret' }, 401);
+        }
+
         if (!verifyAdminAuth(request, env)) {
           return jsonResponse({ error: 'Unauthorized: Invalid Admin Secret' }, 401);
         }
@@ -467,7 +532,7 @@ export default {
             currency: 'INR',
             key_id: env.RAZORPAY_KEY_ID || 'rzp_live_T1mw2QboxNW91L',
             payment_link: storeUrl,
-            webhook_endpoint: 'https://tg-drive-license-service.jupiterbania472.workers.dev/api/webhooks/razorpay',
+            webhook_endpoint: `${url.origin}/api/webhooks/razorpay`,
           });
         }
 
@@ -1174,6 +1239,101 @@ export default {
       // 2.1 Direct Razorpay Payment APIs (Account-Linked Entitlement)
       // -------------------------------------------------------------
 
+      // Helper function to award referral bonus securely upon genuine verified purchase
+      const awardReferralBonusIfApplicable = async (
+        referralCode: string | null | undefined,
+        buyerTgId: string,
+        buyerName: string | null | undefined,
+        orderId: string
+      ) => {
+        if (!referralCode || !buyerTgId) return;
+        const cleanCode = referralCode.trim().toUpperCase();
+        if (!cleanCode) return;
+
+        try {
+          const referrerProfile = await getReferralProfileByCode(env.DB, cleanCode);
+          if (!referrerProfile) {
+            console.warn(`[Referral] Referral code ${cleanCode} not found in database`);
+            return;
+          }
+
+          const referrerTgId = referrerProfile.telegram_user_id ? String(referrerProfile.telegram_user_id).trim() : '';
+          const cleanBuyerTgId = String(buyerTgId).trim();
+
+          // 1. Anti-Self-Referral Guard
+          if (referrerTgId && referrerTgId === cleanBuyerTgId) {
+            console.warn(`[Referral] Anti-self-referral rejected: buyer ${cleanBuyerTgId} used own code ${cleanCode}`);
+            return;
+          }
+
+          // 2. One-time per buyer guard
+          const priorClaim = await env.DB.prepare(
+            `SELECT id FROM referral_conversions WHERE referred_telegram_user_id = ? LIMIT 1`
+          ).bind(cleanBuyerTgId).first();
+
+          if (priorClaim) {
+            console.warn(`[Referral] Buyer ${cleanBuyerTgId} has already claimed a referral conversion previously.`);
+            return;
+          }
+
+          // Prevent double-crediting for the exact same order_id
+          if (orderId) {
+            const priorOrder = await env.DB.prepare(
+              `SELECT id FROM referral_conversions WHERE order_id = ? LIMIT 1`
+            ).bind(orderId).first();
+            if (priorOrder) {
+              console.warn(`[Referral] Order ${orderId} already credited for referral.`);
+              return;
+            }
+          }
+
+          const rewardStr = await getStoreSetting(env.DB, 'referral_reward_amount', '50');
+          const rewardAmount = parseFloat(rewardStr) || 50;
+          const orderTx = orderId ? await getPaymentTransactionByOrderId(env.DB, orderId) : null;
+          const orderAmountRupees = orderTx?.amount ? (orderTx.amount >= 1000 ? orderTx.amount / 100 : orderTx.amount) : 49;
+
+          await recordReferralConversion(env.DB, {
+            referral_code: cleanCode,
+            referrer_telegram_user_id: referrerTgId || undefined,
+            referred_telegram_user_id: cleanBuyerTgId,
+            order_id: orderId,
+            order_amount: orderAmountRupees,
+            commission_amount: rewardAmount,
+            conversion_type: 'pro_purchase',
+          });
+
+          console.log(`[Referral] Successfully credited ₹${rewardAmount} to code ${cleanCode} for buyer ${cleanBuyerTgId} (Order: ${orderId})`);
+
+          // Notify referrer via official Telegram bot if configured
+          if (env.TELEGRAM_BOT_TOKEN && referrerTgId) {
+            try {
+              const displayName = buyerName ? buyerName.trim() : 'Friend';
+              const updatedBal = referrerProfile.wallet_balance + rewardAmount;
+              const botMsg = `🎉 *Congratulations!*\n\n` +
+                `A friend just upgraded to *TG Drive Pro* using your referral link!\n\n` +
+                `👤 *Referred User:* ${displayName}\n` +
+                `💰 *Reward Credited:* ₹${rewardAmount.toFixed(0)}\n` +
+                `💼 *Wallet Balance:* ₹${updatedBal.toFixed(0)}\n\n` +
+                `Open *TG Drive* > *Refer & Earn* to withdraw via UPI or Bank transfer.`;
+
+              await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: referrerTgId,
+                  text: botMsg,
+                  parse_mode: 'Markdown',
+                }),
+              });
+            } catch (notifyErr) {
+              console.error('[Referral] Failed to notify referrer via Telegram bot:', notifyErr);
+            }
+          }
+        } catch (err) {
+          console.error('[Referral] Error awarding referral bonus:', err);
+        }
+      };
+
       // POST /api/payment/razorpay/create-order
       if (url.pathname === '/api/payment/razorpay/create-order' && request.method === 'POST') {
         try {
@@ -1229,7 +1389,25 @@ export default {
           // Call official Razorpay Orders API
           const authHeader = 'Basic ' + btoa(`${keyId}:${keySecret}`);
           const receiptId = `rcpt_${tgUserId}_${Date.now()}`.slice(0, 40);
-          const checkoutConfigId = body.checkout_config_id || env.RAZORPAY_CHECKOUT_CONFIG_ID || 'config_TiUSpvBT1EEuwz';
+          const checkoutConfigId = body.checkout_config_id || env.RAZORPAY_CHECKOUT_CONFIG_ID;
+
+          const orderPayload: Record<string, unknown> = {
+            amount: amountInPaise,
+            currency: 'INR',
+            receipt: receiptId,
+            notes: {
+              telegram_user_id: tgUserId,
+              phone_number: body.phone_number || '',
+              customer_name: body.customer_name || '',
+              customer_email: body.customer_email || '',
+              plan_type: planType,
+              referral_code: body.referral_code ? body.referral_code.trim().toUpperCase() : '',
+              username: body.username ? body.username.trim() : '',
+            },
+          };
+          if (checkoutConfigId && checkoutConfigId !== 'config_TiUSpvBT1EEuwz') {
+            orderPayload.checkout_config_id = checkoutConfigId;
+          }
 
           const rzpRes = await fetch('https://api.razorpay.com/v1/orders', {
             method: 'POST',
@@ -1237,19 +1415,7 @@ export default {
               'Authorization': authHeader,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              amount: amountInPaise,
-              currency: 'INR',
-              receipt: receiptId,
-              checkout_config_id: checkoutConfigId,
-              notes: {
-                telegram_user_id: tgUserId,
-                phone_number: body.phone_number || '',
-                customer_name: body.customer_name || '',
-                customer_email: body.customer_email || '',
-                plan_type: planType,
-              },
-            }),
+            body: JSON.stringify(orderPayload),
           });
 
           const rzpData = (await rzpRes.json()) as { id?: string; amount?: number; currency?: string; error?: { description?: string } };
@@ -1292,8 +1458,10 @@ export default {
                   customer_name: body.customer_name || '',
                   customer_email: body.customer_email || '',
                   phone_number: body.phone_number || '',
+                  referral_code: body.referral_code ? body.referral_code.trim().toUpperCase() : '',
+                  username: body.username ? body.username.trim() : '',
                 },
-                callback_url: `https://tg-drive-license-service.jupiterbania472.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(tgUserId)}&order_id=${encodeURIComponent(rzpData.id)}&plan_type=${encodeURIComponent(planType)}`,
+                callback_url: `${url.origin}/api/payment/razorpay/callback?user_id=${encodeURIComponent(tgUserId)}&order_id=${encodeURIComponent(rzpData.id)}&plan_type=${encodeURIComponent(planType)}`,
                 callback_method: 'get',
               }),
             });
@@ -1328,7 +1496,7 @@ export default {
             success: true,
             order_id: rzpData.id,
             key_id: keyId,
-            checkout_config_id: checkoutConfigId,
+            checkout_config_id: checkoutConfigId && checkoutConfigId !== 'config_TiUSpvBT1EEuwz' ? checkoutConfigId : undefined,
             amount: rzpData.amount || amountInPaise,
             currency: rzpData.currency || 'INR',
             plan_type: planType,
@@ -1410,6 +1578,21 @@ export default {
             } catch (botErr) {
               console.error('Failed to send Telegram bot pro welcome message:', botErr);
             }
+          }
+
+          // Award Referral Bonus upon genuine cryptographically verified purchase
+          try {
+            const referralCode = body.referral_code ? body.referral_code.trim().toUpperCase() : null;
+            if (referralCode) {
+              await awardReferralBonusIfApplicable(
+                referralCode,
+                tgUserId,
+                body.customer_name || body.username || null,
+                order_id
+              );
+            }
+          } catch (refErr) {
+            console.error('[verify] Referral processing error:', refErr);
           }
 
           await recordAdminLog(env.DB, 'RAZORPAY_VERIFY_SUCCESS', tgUserId, `Pro unlocked for Telegram User ${tgUserId} (Order: ${order_id})`);
@@ -2246,10 +2429,28 @@ export default {
             basePrice = parseFloat(basePriceStr) || 499;
           }
 
+          const buyerTgId = url.searchParams.get('telegram_user_id') || url.searchParams.get('tg_id') || '';
+
           if (!coupon) {
             // Check if code is a valid Refer & Earn code
             const referral = await getReferralProfileByCode(env.DB, cleanCode);
             if (referral) {
+              // Anti-self-referral guard
+              if (buyerTgId && referral.telegram_user_id && buyerTgId === referral.telegram_user_id) {
+                return jsonResponse({ valid: false, error: 'You cannot use your own referral code.' });
+              }
+
+              // One-time referral check per buyer account
+              if (buyerTgId) {
+                const prevUsage = await env.DB
+                  .prepare('SELECT id FROM referral_conversions WHERE referred_telegram_user_id = ?')
+                  .bind(buyerTgId)
+                  .first();
+                if (prevUsage) {
+                  return jsonResponse({ valid: false, error: 'Referral discount can only be claimed once per Telegram account.' });
+                }
+              }
+
               const friendDiscType = await getStoreSetting(env.DB, 'referral_friend_discount_type', 'percent');
               const friendDiscVal = parseFloat(await getStoreSetting(env.DB, 'referral_friend_discount_value', '10')) || 10;
               let discountAmount = 0;
@@ -2323,14 +2524,17 @@ export default {
       // 2.45 Refer & Earn Public Client Endpoints
       // -------------------------------------------------------------
 
-      // GET /api/referral/profile?email=...&name=...
+      // GET /api/referral/profile?telegram_user_id=...&username=...&name=...
       if (url.pathname === '/api/referral/profile' && request.method === 'GET') {
         try {
           await ensureStoreTables(env.DB);
-          const email = url.searchParams.get('email') || '';
+          const tgUserId = url.searchParams.get('telegram_user_id') || url.searchParams.get('tg_id') || '';
+          const tgUsername = url.searchParams.get('username') || url.searchParams.get('telegram_username') || '';
           const name = url.searchParams.get('name') || undefined;
-          if (!email.trim() || !email.includes('@')) {
-            return jsonResponse({ error: 'A valid email address is required to access your referral wallet.' }, 400);
+          const email = url.searchParams.get('email') || undefined;
+
+          if (!tgUserId && (!email || !email.includes('@'))) {
+            return jsonResponse({ error: 'telegram_user_id or valid email is required to access your referral wallet.' }, 400);
           }
 
           const referralEnabled = (await getStoreSetting(env.DB, 'referral_enabled', '1')) === '1';
@@ -2340,14 +2544,27 @@ export default {
           const friendDiscVal = parseFloat(await getStoreSetting(env.DB, 'referral_friend_discount_value', '10')) || 10;
           const minPayout = parseFloat(await getStoreSetting(env.DB, 'referral_min_payout', '200')) || 200;
 
-          const profile = await getOrCreateReferralProfile(env.DB, email, name);
-          const payouts = await getUserPayouts(env.DB, email);
+          const profile = await getOrCreateReferralProfile(env.DB, {
+            telegram_user_id: tgUserId || undefined,
+            telegram_username: tgUsername || undefined,
+            name: name,
+            email: email,
+          });
+
+          const payouts = await getUserPayouts(env.DB, {
+            telegram_user_id: tgUserId || undefined,
+            email: email || profile.user_email,
+            referral_code: profile.referral_code,
+          });
+
+          const conversions = await getReferralConversionsByCode(env.DB, profile.referral_code, 20);
 
           return jsonResponse({
             success: true,
             enabled: referralEnabled,
             profile,
             payouts,
+            conversions,
             settings: {
               min_payout: minPayout,
               reward_type: rewardType,
@@ -2367,6 +2584,8 @@ export default {
         try {
           await ensureStoreTables(env.DB);
           const body = (await request.json()) as {
+            telegram_user_id?: string | number;
+            telegram_username?: string;
             email?: string;
             name?: string;
             amount?: number;
@@ -2378,8 +2597,11 @@ export default {
             bank_holder_name?: string;
           };
 
-          if (!body.email || !body.email.trim() || !body.email.includes('@')) {
-            return jsonResponse({ error: 'Valid email address is required.' }, 400);
+          const tgUserId = body.telegram_user_id ? String(body.telegram_user_id).trim() : '';
+          const email = body.email ? body.email.trim() : '';
+
+          if (!tgUserId && (!email || !email.includes('@'))) {
+            return jsonResponse({ error: 'telegram_user_id or valid email is required.' }, 400);
           }
 
           const amount = parseFloat(String(body.amount));
@@ -2404,6 +2626,8 @@ export default {
           }
 
           const result = await createPayoutRequest(env.DB, {
+            telegram_user_id: tgUserId || undefined,
+            telegram_username: body.telegram_username,
             email: body.email,
             name: body.name,
             amount,
@@ -2430,11 +2654,12 @@ export default {
         }
       }
 
-      // GET /api/referral/validate?code=...
+      // GET /api/referral/validate?code=...&telegram_user_id=...
       if (url.pathname === '/api/referral/validate' && request.method === 'GET') {
         try {
           await ensureStoreTables(env.DB);
           const code = url.searchParams.get('code') || '';
+          const buyerTgId = url.searchParams.get('telegram_user_id') || url.searchParams.get('tg_id') || '';
           if (!code.trim()) {
             return jsonResponse({ valid: false, error: 'Please enter a referral code.' });
           }
@@ -2445,13 +2670,30 @@ export default {
             return jsonResponse({ valid: false, error: 'Invalid referral code.' });
           }
 
+          // Anti-self-referral guard
+          if (buyerTgId && profile.telegram_user_id && buyerTgId === profile.telegram_user_id) {
+            return jsonResponse({ valid: false, error: 'You cannot use your own referral code.' });
+          }
+
+          // One-time referral check per buyer
+          if (buyerTgId) {
+            const prevConv = await env.DB
+              .prepare('SELECT id FROM referral_conversions WHERE referred_telegram_user_id = ?')
+              .bind(buyerTgId)
+              .first();
+            if (prevConv) {
+              return jsonResponse({ valid: false, error: 'Referral discount can only be claimed once per Telegram account.' });
+            }
+          }
+
           const friendType = await getStoreSetting(env.DB, 'referral_friend_discount_type', 'percent');
           const friendVal = parseFloat(await getStoreSetting(env.DB, 'referral_friend_discount_value', '10')) || 10;
 
           return jsonResponse({
             valid: true,
             code: profile.referral_code,
-            referrer_name: profile.user_name || 'Friend',
+            is_referral: true,
+            referrer_name: profile.user_name || (profile.telegram_username ? `@${profile.telegram_username}` : 'Friend'),
             discount_type: friendType,
             discount_value: friendVal,
             discount_text: friendType === 'percent' ? `${friendVal}% OFF Referral Discount` : `₹${friendVal} OFF Referral Discount`,
@@ -3088,13 +3330,37 @@ export default {
 
       // POST /api/license/verify
       if (url.pathname === '/api/license/verify' && request.method === 'POST') {
-        const body = (await request.json()) as VerifyRequest;
+        const body = (await request.json()) as VerifyRequest & { telegram_user_id?: string | number };
         if (!body.license_key || !body.hardware_id) {
           return jsonResponse({ error: 'Missing license_key or hardware_id' }, 400);
         }
 
         const cleanKey = body.license_key.trim().toUpperCase();
-        const license = await getLicenseByKey(env.DB, cleanKey);
+        let license = await getLicenseByKey(env.DB, cleanKey);
+
+        // Telegram account-bound entitlement check (e.g. TG-PRO-8566092354)
+        if (!license) {
+          const tgMatch = cleanKey.match(/^TG[-_]?PRO[-_]?(\d+)/i) || cleanKey.match(/^TG[-_]?(\d+)/i);
+          const tgId = tgMatch ? tgMatch[1] : (body.telegram_user_id ? String(body.telegram_user_id).trim() : '');
+          if (tgId) {
+            const proUser = await getProUserByTelegramId(env.DB, tgId);
+            if (proUser && proUser.is_banned === 0 && proUser.is_pro === 1) {
+              const now = Math.floor(Date.now() / 1000);
+              const isExpired = Boolean(proUser.expires_at && proUser.expires_at < now);
+              if (!isExpired) {
+                return jsonResponse({
+                  valid: true,
+                  plan_type: proUser.plan_type || 'lifetime',
+                  expires_at: proUser.expires_at,
+                  customer_name: proUser.first_name || 'TG Drive VIP User',
+                  is_pro: true,
+                });
+              } else {
+                return jsonResponse({ valid: false, reason: 'License expired' }, 200);
+              }
+            }
+          }
+        }
 
         if (!license || license.is_banned === 1) {
           return jsonResponse({ valid: false, reason: license ? 'License banned' : 'License not found' }, 200);

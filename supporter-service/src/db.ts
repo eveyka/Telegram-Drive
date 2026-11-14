@@ -649,6 +649,34 @@ export async function ensureStoreTables(db: D1Database): Promise<void> {
       // Indexes may already exist
     }
 
+    // Ensure telegram_user_id and telegram_username exist on referral tables
+    try {
+      await db.prepare(`ALTER TABLE referral_profiles ADD COLUMN telegram_user_id TEXT`).run();
+    } catch {}
+    try {
+      await db.prepare(`ALTER TABLE referral_profiles ADD COLUMN telegram_username TEXT`).run();
+    } catch {}
+    try {
+      await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ref_profiles_tg ON referral_profiles(telegram_user_id)`).run();
+    } catch {}
+
+    try {
+      await db.prepare(`ALTER TABLE referral_conversions ADD COLUMN referrer_telegram_user_id TEXT`).run();
+    } catch {}
+    try {
+      await db.prepare(`ALTER TABLE referral_conversions ADD COLUMN referred_telegram_user_id TEXT`).run();
+    } catch {}
+    try {
+      await db.prepare(`CREATE INDEX IF NOT EXISTS idx_ref_conv_referred_tg ON referral_conversions(referred_telegram_user_id)`).run();
+    } catch {}
+
+    try {
+      await db.prepare(`ALTER TABLE payout_requests ADD COLUMN telegram_user_id TEXT`).run();
+    } catch {}
+    try {
+      await db.prepare(`ALTER TABLE payout_requests ADD COLUMN telegram_username TEXT`).run();
+    } catch {}
+
     tablesInitialized = true;
   } catch (err) {
     console.error('Error in ensureStoreTables:', err);
@@ -771,6 +799,8 @@ export interface ReferralProfileRow {
   referral_code: string;
   user_email: string;
   user_name: string | null;
+  telegram_user_id?: string | null;
+  telegram_username?: string | null;
   total_clicks: number;
   total_referrals: number;
   total_pro_sales: number;
@@ -793,6 +823,8 @@ export interface PayoutRequestRow {
   referral_code: string;
   user_email: string;
   user_name: string | null;
+  telegram_user_id?: string | null;
+  telegram_username?: string | null;
   amount: number;
   payout_method: 'upi' | 'bank';
   upi_id: string | null;
@@ -812,6 +844,8 @@ export interface ReferralConversionRow {
   referral_code: string;
   referrer_email: string;
   referred_email: string;
+  referrer_telegram_user_id?: string | null;
+  referred_telegram_user_id?: string | null;
   order_id: string | null;
   order_amount: number;
   commission_amount: number;
@@ -836,50 +870,100 @@ function generateReferralCode(email: string, name?: string): string {
 
 export async function getOrCreateReferralProfile(
   db: D1Database,
-  email: string,
-  name?: string
+  identity: {
+    telegram_user_id?: string | number;
+    telegram_username?: string;
+    name?: string;
+    email?: string;
+  } | string,
+  maybeName?: string
 ): Promise<ReferralProfileRow> {
   await ensureStoreTables(db);
-  const cleanEmail = email.trim().toLowerCase();
+  let tgUserId = '';
+  let tgUsername = '';
+  let name = '';
+  let email = '';
 
-  const existing = await db
-    .prepare('SELECT * FROM referral_profiles WHERE LOWER(user_email) = ?')
-    .bind(cleanEmail)
-    .first<ReferralProfileRow>();
-
-  if (existing) {
-    if (name && (!existing.user_name || existing.user_name !== name.trim())) {
-      await db
-        .prepare('UPDATE referral_profiles SET user_name = ?, updated_at = ? WHERE id = ?')
-        .bind(name.trim(), Math.floor(Date.now() / 1000), existing.id)
-        .run();
-      existing.user_name = name.trim();
-    }
-    return existing;
+  if (typeof identity === 'string') {
+    email = identity.trim().toLowerCase();
+    name = maybeName ? maybeName.trim() : '';
+  } else {
+    tgUserId = identity.telegram_user_id ? String(identity.telegram_user_id).trim() : '';
+    tgUsername = identity.telegram_username ? identity.telegram_username.trim().replace(/^@/, '') : '';
+    name = identity.name ? identity.name.trim() : '';
+    email = (identity.email || (tgUserId ? `tg_${tgUserId}@t-drive.internal` : '')).trim().toLowerCase();
   }
 
-  const id = crypto.randomUUID();
-  let referralCode = generateReferralCode(cleanEmail, name);
+  // 1. Try finding by telegram_user_id first if available
+  if (tgUserId) {
+    const existingByTg = await db
+      .prepare('SELECT * FROM referral_profiles WHERE telegram_user_id = ?')
+      .bind(tgUserId)
+      .first<ReferralProfileRow>();
+    if (existingByTg) {
+      if ((name && existingByTg.user_name !== name) || (tgUsername && existingByTg.telegram_username !== tgUsername)) {
+        await db
+          .prepare('UPDATE referral_profiles SET user_name = COALESCE(?, user_name), telegram_username = COALESCE(?, telegram_username), updated_at = ? WHERE id = ?')
+          .bind(name || null, tgUsername || null, Math.floor(Date.now() / 1000), existingByTg.id)
+          .run();
+        existingByTg.user_name = name || existingByTg.user_name;
+        existingByTg.telegram_username = tgUsername || existingByTg.telegram_username;
+      }
+      return existingByTg;
+    }
+  }
 
-  // Ensure code uniqueness
+  // 2. Try finding by email
+  if (email && email.includes('@')) {
+    const existing = await db
+      .prepare('SELECT * FROM referral_profiles WHERE LOWER(user_email) = ?')
+      .bind(email)
+      .first<ReferralProfileRow>();
+
+    if (existing) {
+      if (tgUserId && !existing.telegram_user_id) {
+        await db
+          .prepare('UPDATE referral_profiles SET telegram_user_id = ?, telegram_username = COALESCE(?, telegram_username), updated_at = ? WHERE id = ?')
+          .bind(tgUserId, tgUsername || null, Math.floor(Date.now() / 1000), existing.id)
+          .run();
+        existing.telegram_user_id = tgUserId;
+        existing.telegram_username = tgUsername || existing.telegram_username;
+      }
+      return existing;
+    }
+  }
+
+  // 3. Create fresh referral profile based on Telegram Account
+  const id = crypto.randomUUID();
+  let baseCode = '';
+  if (tgUsername && tgUsername.length >= 3) {
+    baseCode = `TG${tgUsername.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)}`;
+  } else if (tgUserId) {
+    baseCode = `TG${tgUserId.slice(-4)}${Math.random().toString(36).substring(2, 4).toUpperCase()}`;
+  } else {
+    baseCode = `TG${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+  }
+
+  let referralCode = baseCode;
   const codeCollision = await db.prepare('SELECT id FROM referral_profiles WHERE referral_code = ?').bind(referralCode).first();
   if (codeCollision) {
-    referralCode = `TG-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    referralCode = `TG${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const cleanName = name ? name.trim() : null;
+  const cleanEmail = email || `tg_${tgUserId || id.slice(0, 8)}@t-drive.internal`;
+  const cleanName = name || (tgUsername ? `@${tgUsername}` : null);
 
   await db
     .prepare(
       `INSERT INTO referral_profiles (
-        id, referral_code, user_email, user_name,
+        id, referral_code, user_email, user_name, telegram_user_id, telegram_username,
         total_clicks, total_referrals, total_pro_sales, total_earned,
         wallet_balance, pending_payout, total_paid,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, ?, ?)`
     )
-    .bind(id, referralCode, cleanEmail, cleanName, now, now)
+    .bind(id, referralCode, cleanEmail, cleanName, tgUserId || null, tgUsername || null, now, now)
     .run();
 
   return {
@@ -887,6 +971,8 @@ export async function getOrCreateReferralProfile(
     referral_code: referralCode,
     user_email: cleanEmail,
     user_name: cleanName,
+    telegram_user_id: tgUserId || null,
+    telegram_username: tgUsername || null,
     total_clicks: 0,
     total_referrals: 0,
     total_pro_sales: 0,
@@ -925,8 +1011,10 @@ export async function recordReferralConversion(
   db: D1Database,
   data: {
     referral_code: string;
-    referrer_email: string;
-    referred_email: string;
+    referrer_email?: string;
+    referred_email?: string;
+    referrer_telegram_user_id?: string;
+    referred_telegram_user_id?: string;
     order_id?: string;
     order_amount: number;
     commission_amount: number;
@@ -938,20 +1026,34 @@ export async function recordReferralConversion(
   const id = crypto.randomUUID();
   const conversionType = data.conversion_type || 'pro_purchase';
 
+  // Prevent double conversion for the same order_id
+  if (data.order_id) {
+    const existing = await db
+      .prepare('SELECT id FROM referral_conversions WHERE order_id = ?')
+      .bind(data.order_id)
+      .first();
+    if (existing) {
+      return; // Already recorded
+    }
+  }
+
   await db.batch([
     db
       .prepare(
         `INSERT INTO referral_conversions (
           id, referral_code, referrer_email, referred_email,
+          referrer_telegram_user_id, referred_telegram_user_id,
           order_id, order_amount, commission_amount, conversion_type,
           status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)`
       )
       .bind(
         id,
         data.referral_code.toUpperCase(),
-        data.referrer_email.toLowerCase(),
-        data.referred_email.toLowerCase(),
+        (data.referrer_email || '').toLowerCase(),
+        (data.referred_email || '').toLowerCase(),
+        data.referrer_telegram_user_id || null,
+        data.referred_telegram_user_id || null,
         data.order_id || null,
         data.order_amount,
         data.commission_amount,
@@ -978,10 +1080,30 @@ export async function recordReferralConversion(
   ]);
 }
 
+export async function getReferralConversionsByCode(
+  db: D1Database,
+  code: string,
+  limit = 20
+): Promise<ReferralConversionRow[]> {
+  try {
+    await ensureStoreTables(db);
+    const clean = code.trim().toUpperCase();
+    const res = await db
+      .prepare('SELECT * FROM referral_conversions WHERE referral_code = ? ORDER BY created_at DESC LIMIT ?')
+      .bind(clean, limit)
+      .all<ReferralConversionRow>();
+    return res.results || [];
+  } catch {
+    return [];
+  }
+}
+
 export async function createPayoutRequest(
   db: D1Database,
   data: {
-    email: string;
+    telegram_user_id?: string | number;
+    telegram_username?: string;
+    email?: string;
     name?: string;
     amount: number;
     payout_method: 'upi' | 'bank';
@@ -993,8 +1115,12 @@ export async function createPayoutRequest(
   }
 ): Promise<{ success: boolean; error?: string; payout?: PayoutRequestRow }> {
   await ensureStoreTables(db);
-  const cleanEmail = data.email.trim().toLowerCase();
-  const profile = await getOrCreateReferralProfile(db, cleanEmail, data.name);
+  const profile = await getOrCreateReferralProfile(db, {
+    telegram_user_id: data.telegram_user_id,
+    telegram_username: data.telegram_username,
+    name: data.name,
+    email: data.email,
+  });
 
   if (profile.wallet_balance < data.amount) {
     return {
@@ -1005,21 +1131,26 @@ export async function createPayoutRequest(
 
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
+  const cleanEmail = profile.user_email;
+  const tgUserId = data.telegram_user_id ? String(data.telegram_user_id).trim() : (profile.telegram_user_id || null);
+  const tgUsername = data.telegram_username ? data.telegram_username.trim().replace(/^@/, '') : (profile.telegram_username || null);
 
   await db.batch([
     db
       .prepare(
         `INSERT INTO payout_requests (
-          id, referral_code, user_email, user_name, amount,
+          id, referral_code, user_email, user_name, telegram_user_id, telegram_username, amount,
           payout_method, upi_id, bank_name, bank_account, bank_ifsc, bank_holder_name,
           status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
       )
       .bind(
         id,
         profile.referral_code,
         cleanEmail,
         data.name ? data.name.trim() : profile.user_name,
+        tgUserId,
+        tgUsername,
         data.amount,
         data.payout_method,
         data.upi_id ? data.upi_id.trim() : null,
@@ -1063,7 +1194,9 @@ export async function createPayoutRequest(
       id,
       referral_code: profile.referral_code,
       user_email: cleanEmail,
-      user_name: data.name || profile.user_name,
+      user_name: data.name ? data.name.trim() : profile.user_name,
+      telegram_user_id: tgUserId,
+      telegram_username: tgUsername,
       amount: data.amount,
       payout_method: data.payout_method,
       upi_id: data.upi_id || null,
@@ -1166,16 +1299,49 @@ export async function processPayoutRequest(
 
 export async function getUserPayouts(
   db: D1Database,
-  email: string
+  identity: {
+    telegram_user_id?: string | number;
+    email?: string;
+    referral_code?: string;
+  } | string
 ): Promise<PayoutRequestRow[]> {
   try {
     await ensureStoreTables(db);
-    const cleanEmail = email.trim().toLowerCase();
-    const res = await db
-      .prepare('SELECT * FROM payout_requests WHERE LOWER(user_email) = ? ORDER BY created_at DESC')
-      .bind(cleanEmail)
-      .all<PayoutRequestRow>();
-    return res.results || [];
+    let tgUserId = '';
+    let email = '';
+    let code = '';
+    if (typeof identity === 'string') {
+      if (identity.includes('@')) email = identity.trim().toLowerCase();
+      else if (/^\d+$/.test(identity.trim())) tgUserId = identity.trim();
+      else code = identity.trim().toUpperCase();
+    } else {
+      tgUserId = identity.telegram_user_id ? String(identity.telegram_user_id).trim() : '';
+      email = identity.email ? identity.email.trim().toLowerCase() : '';
+      code = identity.referral_code ? identity.referral_code.trim().toUpperCase() : '';
+    }
+
+    if (tgUserId) {
+      const res = await db
+        .prepare('SELECT * FROM payout_requests WHERE telegram_user_id = ? OR LOWER(user_email) = ? ORDER BY created_at DESC')
+        .bind(tgUserId, `tg_${tgUserId}@t-drive.internal`)
+        .all<PayoutRequestRow>();
+      if (res.results && res.results.length > 0) return res.results;
+    }
+    if (code) {
+      const res = await db
+        .prepare('SELECT * FROM payout_requests WHERE referral_code = ? ORDER BY created_at DESC')
+        .bind(code)
+        .all<PayoutRequestRow>();
+      if (res.results && res.results.length > 0) return res.results;
+    }
+    if (email) {
+      const res = await db
+        .prepare('SELECT * FROM payout_requests WHERE LOWER(user_email) = ? ORDER BY created_at DESC')
+        .bind(email)
+        .all<PayoutRequestRow>();
+      return res.results || [];
+    }
+    return [];
   } catch {
     return [];
   }

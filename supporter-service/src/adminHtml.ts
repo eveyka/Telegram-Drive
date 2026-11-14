@@ -3,7 +3,7 @@ export function renderAdminDashboardHtml(appName: string): string {
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>${appName} - Admin Licensing Control Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,73 +12,132 @@ export function renderAdminDashboardHtml(appName: string): string {
   <style>
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #0b0f19;
+      background-color: #080d1a;
       color: #f1f5f9;
+      padding-bottom: env(safe-area-inset-bottom);
+      -webkit-tap-highlight-color: transparent;
     }
     .mono { font-family: 'JetBrains Mono', monospace; }
     .glass {
-      background: rgba(17, 24, 39, 0.75);
+      background: rgba(13, 19, 33, 0.88);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .glass-card {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: linear-gradient(145deg, rgba(22, 32, 53, 0.7) 0%, rgba(11, 17, 30, 0.9) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .glow-cyan {
-      box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.25);
+    }
+    .glow-purple {
+      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.25);
     }
     .glow-blue {
-      box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #080d1a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── Mobile Phone Responsive Card Transformation ── */
+    @media (max-width: 640px) {
+      .mobile-card-table thead {
+        display: none !important;
+      }
+      .mobile-card-table,
+      .mobile-card-table tbody,
+      .mobile-card-table tr,
+      .mobile-card-table td {
+        display: block !important;
+        width: 100% !important;
+      }
+      .mobile-card-table tr {
+        background: rgba(15, 23, 42, 0.92) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 0.875rem !important;
+        padding: 0.75rem !important;
+        margin-bottom: 0.625rem !important;
+        box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.5) !important;
+      }
+      .mobile-card-table td {
+        padding: 0.25rem 0 !important;
+        border: none !important;
+      }
+      .mobile-card-table td.card-header-cell {
+        padding-bottom: 0.5rem !important;
+        margin-bottom: 0.35rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      }
+      .mobile-card-table td.card-actions-cell {
+        padding-top: 0.5rem !important;
+        margin-top: 0.5rem !important;
+        border-top: 1px dashed rgba(255, 255, 255, 0.12) !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 0.35rem !important;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
   
-  <!-- Top Navigation -->
-  <header class="glass sticky top-0 z-40 border-b border-slate-800/80 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-extrabold shadow-lg shadow-cyan-500/20">
+  <!-- Top Navigation Header (Compact & Mobile-Optimized) -->
+  <header class="glass sticky top-0 z-40 border-b border-slate-800/90 px-3 sm:px-6 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xs shadow-md shadow-cyan-500/25 shrink-0">
         TG
       </div>
       <div>
-        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
-          ${appName}
-          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Admin Portal</span>
-        </h1>
-        <p class="text-xs text-slate-400">Edge Commercial Licensing & Device Management</p>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <h1 class="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight">
+            ${appName}
+          </h1>
+          <span class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            Admin
+          </span>
+          <span class="inline-flex items-center gap-1 text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full font-semibold border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live
+          </span>
+        </div>
       </div>
     </div>
     
-    <div id="authHeaderSection" class="flex items-center gap-3">
-      <button id="logoutBtn" onclick="logout()" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 transition-colors">
-        Logout
+    <div id="authHeaderSection" class="flex items-center gap-1.5">
+      <button onclick="showDashboard()" title="Refresh Dashboard" class="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors flex items-center gap-1">
+        <span>🔄</span>
+        <span class="hidden sm:inline">Sync</span>
+      </button>
+      <button id="logoutBtn" onclick="logout()" class="hidden text-xs font-semibold px-2.5 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/10 text-rose-300 transition-colors flex items-center gap-1">
+        <span>🚪</span>
+        <span class="hidden xs:inline">Logout</span>
       </button>
     </div>
   </header>
 
   <!-- Login Overlay -->
-  <div id="loginView" class="flex-1 flex items-center justify-center p-6">
-    <div class="glass-card w-full max-w-md p-8 rounded-2xl glow-cyan space-y-6">
-      <div class="text-center space-y-2">
-        <div class="h-12 w-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mx-auto flex items-center justify-center text-xl font-bold">
+  <div id="loginView" class="flex-1 flex items-center justify-center p-4">
+    <div class="glass-card w-full max-w-sm p-6 rounded-2xl glow-cyan space-y-4">
+      <div class="text-center space-y-1.5">
+        <div class="h-10 w-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mx-auto flex items-center justify-center text-lg font-bold">
           🔒
         </div>
-        <h2 class="text-xl font-bold text-white">Admin Authentication</h2>
-        <p class="text-xs text-slate-400">Enter your master admin key or password to access license management</p>
+        <h2 class="text-base font-bold text-white">Admin Authentication</h2>
+        <p class="text-[11px] text-slate-400">Enter master admin secret to unlock system controls</p>
       </div>
 
-      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Master Admin Secret</label>
-          <input type="password" id="adminSecretInput" required placeholder="••••••••••••••••" class="w-full px-4 py-3 rounded-xl bg-slate-900/90 border border-slate-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-cyan-500 transition-colors">
+          <label class="block text-[10px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Master Admin Secret</label>
+          <input type="password" id="adminSecretInput" required placeholder="••••••••••••••••" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-500 transition-colors font-mono">
         </div>
-        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-sm hover:from-cyan-400 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/25 active:scale-[0.98]">
-          Unlock Admin Portal
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs hover:from-cyan-400 hover:to-blue-500 transition-all shadow-md shadow-cyan-500/25 active:scale-[0.98] flex items-center justify-center gap-1.5">
+          <span>⚡</span> Unlock Admin Portal
         </button>
         <p id="loginError" class="text-xs text-rose-400 text-center hidden"></p>
       </form>
@@ -86,161 +145,217 @@ export function renderAdminDashboardHtml(appName: string): string {
   </div>
 
   <!-- Main Dashboard View -->
-  <main id="dashboardView" class="hidden flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+  <main id="dashboardView" class="hidden flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-5 space-y-3">
     
-    <!-- ── Modern Live KPI Stats Row (Pro Subscriptions & Revenue) ── -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      <!-- 1. Total Pro Users -->
-      <div class="glass-card p-4 rounded-2xl border border-violet-500/20">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Total Pro Users</span>
-          <span>💎</span>
+    <!-- ── Compact KPI Metric Micro-Grid (Organized for Phone & Desktop) ── -->
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2.5">
+      <!-- 1. Total Pro -->
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-violet-500/20 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Total Pro</span>
+          <span class="text-xs">💎</span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="statTotalProUsers" class="text-2xl font-black text-white">0</span>
-          <span class="text-[10px] text-violet-400 font-bold">Users</span>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span id="statTotalProUsers" class="text-sm sm:text-lg font-black text-white mono">0</span>
+          <span class="text-[9px] text-violet-400 font-bold hidden sm:inline">Users</span>
         </div>
       </div>
 
       <!-- 2. Active Pro -->
-      <div class="glass-card p-4 rounded-2xl border border-emerald-500/20">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Active Pro</span>
-          <span>🟢</span>
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-emerald-500/20 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Active</span>
+          <span class="text-xs">🟢</span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="statActiveProUsers" class="text-2xl font-black text-emerald-400">0</span>
-          <span class="text-[10px] text-emerald-400 font-bold">Active</span>
-        </div>
-      </div>
-
-      <!-- 3. Monthly Members -->
-      <div class="glass-card p-4 rounded-2xl border border-purple-500/20">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Monthly Pass</span>
-          <span>📅</span>
-        </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="statMonthlyUsers" class="text-2xl font-black text-purple-300">0</span>
-          <span class="text-[10px] text-purple-300 font-bold">30d</span>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span id="statActiveProUsers" class="text-sm sm:text-lg font-black text-emerald-400 mono">0</span>
+          <span class="text-[9px] text-emerald-400 font-bold hidden sm:inline">Live</span>
         </div>
       </div>
 
-      <!-- 4. Annual Members -->
-      <div class="glass-card p-4 rounded-2xl border border-sky-500/20">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Annual Pass</span>
-          <span>🌟</span>
+      <!-- 3. Monthly -->
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-purple-500/20 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Monthly</span>
+          <span class="text-xs">📅</span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="statAnnualUsers" class="text-2xl font-black text-sky-400">0</span>
-          <span class="text-[10px] text-sky-400 font-bold">365d</span>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span id="statMonthlyUsers" class="text-sm sm:text-lg font-black text-purple-300 mono">0</span>
+          <span class="text-[9px] text-purple-300 font-bold hidden sm:inline">30d</span>
         </div>
       </div>
 
-      <!-- 5. Lifetime VIPs -->
-      <div class="glass-card p-4 rounded-2xl border border-amber-500/20">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Lifetime VIP</span>
-          <span>👑</span>
+      <!-- 4. Annual -->
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-sky-500/20 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Annual</span>
+          <span class="text-xs">🌟</span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1.5">
-          <span id="statLifetimeUsers" class="text-2xl font-black text-amber-400">0</span>
-          <span class="text-[10px] text-amber-400 font-bold">VIP</span>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span id="statAnnualUsers" class="text-sm sm:text-lg font-black text-sky-400 mono">0</span>
+          <span class="text-[9px] text-sky-400 font-bold hidden sm:inline">365d</span>
+        </div>
+      </div>
+
+      <!-- 5. Lifetime VIP -->
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-amber-500/20 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Lifetime</span>
+          <span class="text-xs">👑</span>
+        </div>
+        <div class="mt-1 flex items-baseline gap-1">
+          <span id="statLifetimeUsers" class="text-sm sm:text-lg font-black text-amber-400 mono">0</span>
+          <span class="text-[9px] text-amber-400 font-bold hidden sm:inline">VIP</span>
         </div>
       </div>
 
       <!-- 6. Total Revenue -->
-      <div class="glass-card p-4 rounded-2xl border border-emerald-500/30 glow-cyan">
-        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold">
-          <span>Total Revenue</span>
-          <span>💰</span>
+      <div class="glass-card p-2 sm:p-3 rounded-xl border border-emerald-500/30 flex flex-col justify-between glow-cyan">
+        <div class="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
+          <span class="truncate">Revenue</span>
+          <span class="text-xs">💰</span>
         </div>
-        <div class="mt-2 flex items-baseline gap-1">
-          <span class="text-xs font-mono font-bold text-emerald-400">₹</span>
-          <span id="statTotalRevenue" class="text-2xl font-black text-white font-mono">0</span>
+        <div class="mt-1 flex items-baseline gap-0.5">
+          <span class="text-[10px] font-mono font-bold text-emerald-400">₹</span>
+          <span id="statTotalRevenue" class="text-sm sm:text-lg font-black text-white mono truncate">0</span>
         </div>
       </div>
     </div>
 
-    <!-- ── Modern Horizontal Navigation Tabs Bar ── -->
-    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800/80 scrollbar-none">
-      <button type="button" onclick="switchAdminTab('pro_users', this)" class="admin-tab-btn active px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25">
-        <span>💎</span> Pro Subscriptions
-      </button>
-      <button type="button" onclick="switchAdminTab('payments', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>💳</span> Razorpay Purchases
-      </button>
-      <button type="button" onclick="switchAdminTab('plans', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>⚡</span> Plans & Pricing
-      </button>
-      <button type="button" onclick="switchAdminTab('offers', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>🔥</span> Flash Deals & Coupons
-      </button>
-      <button type="button" onclick="switchAdminTab('referrals', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>🤝</span> Refer & Earn
-      </button>
-      <button type="button" onclick="switchAdminTab('broadcast', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>📢</span> Bot Broadcast
-      </button>
-      <button type="button" onclick="switchAdminTab('crashes', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>🐛</span> Crash Telemetry
-      </button>
-      <button type="button" onclick="switchAdminTab('licenses', this)" class="admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800">
-        <span>🔑</span> Legacy Keys
-      </button>
+    <!-- Hidden telemetry container keeping test element IDs and legacy metrics sync intact -->
+    <div class="hidden">
+      <span id="statTotalLicenses">0</span>
+      <span id="statActiveDevices">0</span>
+      <span id="statLifetime">0</span>
+      <span id="statBanned">0</span>
+      <span id="statCrashReports">0</span>
+    </div>
+
+    <!-- ── Category-Wise Systematic Navigation Hub (Clean, Structured, Compact) ── -->
+    <div class="glass p-2 sm:p-3 rounded-2xl border border-slate-800/90 space-y-2">
+      
+      <!-- Tier 1: Main Category Segmented Bar (Category Division) -->
+      <div class="grid grid-cols-4 gap-1 p-1 bg-slate-900/90 rounded-xl border border-slate-800/80">
+        <button type="button" onclick="selectAdminCategory('users', this)" class="admin-cat-pill active py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 bg-violet-600 text-white shadow-sm">
+          <span>👥</span> <span class="truncate">Users</span>
+        </button>
+        <button type="button" onclick="selectAdminCategory('sales', this)" class="admin-cat-pill py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 text-slate-400 hover:text-white">
+          <span>⚡</span> <span class="truncate">Plans & Promos</span>
+        </button>
+        <button type="button" onclick="selectAdminCategory('system', this)" class="admin-cat-pill py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 text-slate-400 hover:text-white">
+          <span>⚙️</span> <span class="truncate">System</span>
+        </button>
+        <button type="button" onclick="selectAdminCategory('all', this)" class="admin-cat-pill py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 text-slate-400 hover:text-white">
+          <span>✨</span> <span class="truncate">All</span>
+        </button>
+      </div>
+
+      <!-- Tier 2: Sub-Tools Bar (Compact "Chota-Chota" Buttons with Icons) -->
+      <div id="subTabsBar" class="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+        
+        <!-- Category: Users -->
+        <button type="button" data-cat="users" data-tab="pro_users" onclick="switchAdminTab('pro_users', this)" class="admin-tab-btn active px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm border border-violet-500/40">
+          <span>💎</span>
+          <span>Pro Accounts</span>
+        </button>
+
+        <button type="button" data-cat="users" data-tab="referrals" onclick="switchAdminTab('referrals', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800">
+          <span>🤝</span>
+          <span>Refer & Earn</span>
+        </button>
+
+        <button type="button" data-cat="users" data-tab="broadcast" onclick="switchAdminTab('broadcast', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800">
+          <span>📢</span>
+          <span>Bot Broadcast</span>
+        </button>
+
+        <!-- Category: Plans & Promos (Sales) -->
+        <button type="button" data-cat="sales" data-tab="plans" onclick="switchAdminTab('plans', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800 hidden">
+          <span>⚡</span>
+          <span>Plans & Pricing</span>
+        </button>
+
+        <button type="button" data-cat="sales" data-tab="offers" onclick="switchAdminTab('offers', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800 hidden">
+          <span>🎁</span>
+          <span>Promo & Deals</span>
+        </button>
+
+        <button type="button" data-cat="sales" data-tab="payments" onclick="switchAdminTab('payments', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800 hidden">
+          <span>💳</span>
+          <span>Razorpay Orders</span>
+        </button>
+
+        <!-- Category: System -->
+        <button type="button" data-cat="system" data-tab="crashes" onclick="switchAdminTab('crashes', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800 hidden">
+          <span>🐛</span>
+          <span>Crash Logs</span>
+        </button>
+
+        <button type="button" data-cat="system" data-tab="licenses" onclick="switchAdminTab('licenses', this)" class="admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800 hidden">
+          <span>🔑</span>
+          <span>License Keys</span>
+        </button>
+      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 1: 💎 Pro Telegram Subscriptions & Users (Active by Default)   -->
+    <!-- TAB 1: 💎 Pro Telegram Subscriptions (Category: Users)             -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-pro_users" class="space-y-4">
-      <div class="glass-card p-5 rounded-2xl border border-violet-500/30 glow-cyan">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-full border border-violet-500/20">
-                💎 Pro Telegram Subscriptions
+    <div id="tab-pro_users" class="space-y-3">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-violet-500/30 glow-purple">
+        
+        <!-- Header & Action Toolbar -->
+        <div class="flex flex-col gap-2 pb-2.5 border-b border-slate-800/80">
+          <div class="flex items-center justify-between gap-1.5 flex-wrap">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-full border border-violet-500/20 flex items-center gap-1">
+                <span>💎</span> Pro Telegram Accounts
               </span>
-              <span id="proUsersCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Accounts</span>
+              <span id="proUsersCountBadge" class="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">0 Account(s)</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Users whose Telegram User IDs are unlocked for 100% ad-free pro access across all devices.</p>
+            
+            <div class="flex items-center gap-1">
+              <button onclick="loadProUsers()" title="Refresh" class="p-1 px-2 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1">
+                <span>🔄</span>
+                <span class="hidden sm:inline">Refresh</span>
+              </button>
+              <button onclick="openUpgradeProModal()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-sm active:scale-[0.98] flex items-center gap-1">
+                <span>➕</span>
+                <span>Grant Pro</span>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <div class="relative">
-              <input type="text" id="proUserSearchInput" oninput="handleProUserSearch()" placeholder="Search ID / Username / Name..." class="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500">
-              <span class="absolute left-2.5 top-1.5 text-slate-500 text-xs">🔍</span>
+
+          <!-- Search & Filter Controls -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 pt-1">
+            <div class="relative flex-1">
+              <input type="text" id="proUserSearchInput" oninput="handleProUserSearch()" placeholder="Search ID / Username / Phone..." class="w-full pl-7 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500">
+              <span class="absolute left-2 top-1.5 text-slate-500 text-xs">🔍</span>
             </div>
-            <button onclick="loadProUsers()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
-              <span>🔄</span> Refresh
-            </button>
-            <button onclick="openUpgradeProModal()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-violet-500/20 active:scale-[0.98] flex items-center gap-1.5">
-              <span>➕</span> Grant Pro
-            </button>
+
+            <!-- Filter Pills Bar -->
+            <div class="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+              <button type="button" onclick="filterProUsersByPlan('all', this)" class="pro-plan-filter-btn px-2 py-1 rounded-lg bg-violet-600 text-white font-bold text-[10px] shadow-sm whitespace-nowrap">All Plans</button>
+              <button type="button" onclick="filterProUsersByPlan('monthly', this)" class="pro-plan-filter-btn px-2 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-purple-300 font-bold text-[10px] hover:bg-slate-800 whitespace-nowrap">📅 Monthly</button>
+              <button type="button" onclick="filterProUsersByPlan('annual', this)" class="pro-plan-filter-btn px-2 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-sky-300 font-bold text-[10px] hover:bg-slate-800 whitespace-nowrap">🌟 Annual</button>
+              <button type="button" onclick="filterProUsersByPlan('lifetime', this)" class="pro-plan-filter-btn px-2 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-amber-300 font-bold text-[10px] hover:bg-slate-800 whitespace-nowrap">👑 Lifetime</button>
+              <button type="button" onclick="filterProUsersByPlan('expired', this)" class="pro-plan-filter-btn px-2 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-rose-300 font-bold text-[10px] hover:bg-slate-800 whitespace-nowrap">🔴 Expired</button>
+            </div>
           </div>
         </div>
 
-        <!-- Filter Pills Bar -->
-        <div class="flex items-center gap-2 pt-3 flex-wrap">
-          <span class="text-[11px] text-slate-400 font-semibold">Filter Plan:</span>
-          <button type="button" onclick="filterProUsersByPlan('all', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-violet-600 text-white font-bold text-xs shadow-sm">All Plans</button>
-          <button type="button" onclick="filterProUsersByPlan('monthly', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-purple-300 font-bold text-xs hover:bg-slate-800">📅 Monthly Pass</button>
-          <button type="button" onclick="filterProUsersByPlan('annual', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-sky-300 font-bold text-xs hover:bg-slate-800">🌟 Annual Pass</button>
-          <button type="button" onclick="filterProUsersByPlan('lifetime', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-amber-300 font-bold text-xs hover:bg-slate-800">👑 Lifetime VIP</button>
-          <button type="button" onclick="filterProUsersByPlan('expired', this)" class="pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-rose-300 font-bold text-xs hover:bg-slate-800">🔴 Expired</button>
-        </div>
-
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
+        <!-- Table with Mobile Card View transformation -->
+        <div class="mt-2.5 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 mobile-card-table">
             <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
               <tr>
-                <th class="px-4 py-3">Telegram User</th>
-                <th class="px-4 py-3">Phone</th>
-                <th class="px-4 py-3">Plan Type</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Expiry / Countdown</th>
-                <th class="px-4 py-3">Joined Date</th>
-                <th class="px-4 py-3 text-right">Actions</th>
+                <th class="px-3 py-2">Telegram User</th>
+                <th class="px-3 py-2">Phone</th>
+                <th class="px-3 py-2">Plan</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Expiry</th>
+                <th class="px-3 py-2">Joined</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="proUsersTableBody" class="divide-y divide-slate-800/60">
@@ -256,38 +371,37 @@ export function renderAdminDashboardHtml(appName: string): string {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 2: 💳 Razorpay Direct Transactions & Purchases                 -->
+    <!-- TAB 2: 💳 Razorpay Direct Transactions (Category: Sales)           -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-payments" class="hidden space-y-4">
-      <div id="paymentTransactionsSection" class="glass-card p-5 rounded-2xl border border-blue-500/20 glow-blue">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div id="tab-payments" class="hidden space-y-3">
+      <div id="paymentTransactionsSection" class="glass-card p-3 sm:p-4 rounded-2xl border border-blue-500/20 glow-blue">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
-                💳 Razorpay Orders & Payments
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 flex items-center gap-1">
+                <span>💳</span> Razorpay Orders
               </span>
-              <span class="text-[10px] text-slate-400">Direct In-App UPI & Card Purchases</span>
+              <span class="text-[10px] text-slate-400 hidden xs:inline">Direct In-App Purchases</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Live audit log of all generated Razorpay orders and payment completions. Click "Verify with Razorpay" to confirm pending links.</p>
           </div>
-          <button onclick="loadPaymentTransactions()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
-            <span>🔄</span> Refresh
+          <button onclick="loadPaymentTransactions()" class="px-2.5 py-1 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1">
+            <span>🔄</span> <span>Refresh</span>
           </button>
         </div>
 
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
+        <div class="mt-2.5 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 mobile-card-table">
             <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
               <tr>
-                <th class="px-4 py-3">Order / Link ID</th>
-                <th class="px-4 py-3">Payment ID</th>
-                <th class="px-4 py-3">Telegram User</th>
-                <th class="px-4 py-3">Plan Type</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Created At</th>
-                <th class="px-4 py-3">Paid At</th>
-                <th class="px-4 py-3 text-right">Actions</th>
+                <th class="px-3 py-2">Order ID</th>
+                <th class="px-3 py-2">Payment ID</th>
+                <th class="px-3 py-2">User</th>
+                <th class="px-3 py-2">Plan</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Created</th>
+                <th class="px-3 py-2">Paid</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="paymentTransactionsTableBody" class="divide-y divide-slate-800/60">
@@ -303,292 +417,296 @@ export function renderAdminDashboardHtml(appName: string): string {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 3: ⚡ Plans, Pricing & Free Trial                               -->
+    <!-- TAB 3: ⚡ Plans, Pricing & Free Trial (Category: Sales)             -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-plans" class="hidden space-y-5">
+    <div id="tab-plans" class="hidden space-y-3">
+      
       <!-- Membership Plans & Dynamic Pricing Controller -->
-      <div class="glass-card p-6 rounded-2xl border border-cyan-500/30 glow-cyan space-y-5">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-cyan-500/30 glow-cyan space-y-3">
+        <div class="flex items-center justify-between gap-1.5 border-b border-slate-800/80 pb-2.5 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                ⚡ Membership Plans & Pricing Controller
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 flex items-center gap-1">
+                <span>⚡</span> Membership Pricing
               </span>
-              <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Synced with Live App & Store</span>
+              <span id="pricingStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Synced with Live App</span>
             </div>
-            <h3 class="text-lg font-bold text-white mt-1">Configure Pro Plans, Pricing & Payment URLs</h3>
-            <p class="text-xs text-slate-400">Whatever you set here will instantly appear inside the Android & Desktop apps for all users.</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Whatever you set here will instantly appear inside apps.</p>
           </div>
         </div>
 
-        <form id="plansForm" onsubmit="handleSavePlans(event)" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <form id="plansForm" onsubmit="handleSavePlans(event)" class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            
             <!-- 1. Lifetime Pro Plan -->
-            <div class="p-4 rounded-xl bg-slate-900/80 border-2 border-amber-500/40 space-y-3">
+            <div class="p-3 rounded-xl bg-slate-900/80 border-2 border-amber-500/40 space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                <span class="text-xs font-black uppercase text-amber-400 flex items-center gap-1">
                   👑 Lifetime Pro
                 </span>
-                <span class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded">Best Value</span>
+                <span class="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded">Best Value</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Live Price (₹)</label>
+                  <input type="number" id="planLifetimePrice" min="1" step="1" placeholder="499" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Crossed (₹)</label>
+                  <input type="number" id="planLifetimeOrig" min="1" step="1" placeholder="1499" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-slate-400 focus:outline-none focus:border-amber-400">
+                </div>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-                <input type="number" id="planLifetimePrice" min="1" step="1" placeholder="499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-amber-400 focus:outline-none focus:border-amber-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-                <input type="number" id="planLifetimeOrig" min="1" step="1" placeholder="1499" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-amber-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-                <input type="url" id="planLifetimeUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Razorpay Checkout URL</label>
+                <input type="url" id="planLifetimeUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-white focus:outline-none focus:border-amber-400 font-mono">
               </div>
             </div>
 
             <!-- 2. 1-Year Annual Pass -->
-            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-black uppercase text-sky-400 flex items-center gap-1.5">
-                  🌟 1-Year Annual Pass
+                <span class="text-xs font-black uppercase text-sky-400 flex items-center gap-1">
+                  🌟 1-Year Pass
                 </span>
-                <span class="text-[10px] bg-sky-500/20 text-sky-300 font-bold px-2 py-0.5 rounded">365 Days</span>
+                <span class="text-[9px] bg-sky-500/20 text-sky-300 font-bold px-1.5 py-0.5 rounded">365 Days</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Live Price (₹)</label>
+                  <input type="number" id="planAnnualPrice" min="1" step="1" placeholder="299" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-sky-400 focus:outline-none focus:border-sky-400">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Crossed (₹)</label>
+                  <input type="number" id="planAnnualOrig" min="1" step="1" placeholder="599" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-slate-400 focus:outline-none focus:border-sky-400">
+                </div>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-                <input type="number" id="planAnnualPrice" min="1" step="1" placeholder="299" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-sky-400 focus:outline-none focus:border-sky-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-                <input type="number" id="planAnnualOrig" min="1" step="1" placeholder="599" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-sky-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-                <input type="url" id="planAnnualUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-400 font-mono">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Razorpay Checkout URL</label>
+                <input type="url" id="planAnnualUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-white focus:outline-none focus:border-sky-400 font-mono">
               </div>
             </div>
 
             <!-- 3. 1-Month Pass -->
-            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-2">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-black uppercase text-purple-400 flex items-center gap-1.5">
+                <span class="text-xs font-black uppercase text-purple-400 flex items-center gap-1">
                   📅 1-Month Pass
                 </span>
-                <span class="text-[10px] bg-purple-500/20 text-purple-300 font-bold px-2 py-0.5 rounded">30 Days</span>
+                <span class="text-[9px] bg-purple-500/20 text-purple-300 font-bold px-1.5 py-0.5 rounded">30 Days</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Live Price (₹)</label>
+                  <input type="number" id="planMonthlyPrice" min="1" step="1" placeholder="49" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-purple-400 focus:outline-none focus:border-purple-400">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Crossed (₹)</label>
+                  <input type="number" id="planMonthlyOrig" min="1" step="1" placeholder="99" required class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-slate-400 focus:outline-none focus:border-purple-400">
+                </div>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Live Selling Price (₹)</label>
-                <input type="number" id="planMonthlyPrice" min="1" step="1" placeholder="49" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-purple-400 focus:outline-none focus:border-purple-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (Crossed ₹)</label>
-                <input type="number" id="planMonthlyOrig" min="1" step="1" placeholder="99" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm font-bold text-slate-400 focus:outline-none focus:border-purple-400">
-              </div>
-              <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Payment / Checkout Link</label>
-                <input type="url" id="planMonthlyUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-400 font-mono">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Razorpay Checkout URL</label>
+                <input type="url" id="planMonthlyUrl" placeholder="https://rzp.io/rzp/..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-[11px] text-white focus:outline-none focus:border-purple-400 font-mono">
               </div>
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3 pt-2">
-            <button type="submit" id="btnSavePlans" class="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:brightness-110 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all">
-              Save All Membership Plans
+          <div class="flex items-center justify-end pt-1">
+            <button type="submit" id="btnSavePlans" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:brightness-110 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1">
+              <span>💾</span> Save All Membership Plans
             </button>
           </div>
         </form>
-        <div id="plansUpdateMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
+        <div id="plansUpdateMsg" class="hidden text-xs p-2 rounded-xl text-center"></div>
       </div>
 
       <!-- Free Trial Controller -->
-      <div class="glass-card p-5 rounded-2xl border border-purple-500/20 glow-blue">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-purple-500/20 glow-blue">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
-                🎁 Free Trial Controller
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 flex items-center gap-1">
+                <span>🎁</span> Free Trial Controller
               </span>
               <span id="trialStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: 30-Day Free Trial</span>
             </div>
-            <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-              Trial Duration: <span id="displayTrialDuration" class="text-purple-300 font-mono text-2xl font-black">1 Month (30 Days)</span>
+            <h3 class="text-xs sm:text-sm font-bold text-white mt-1 flex items-center gap-2">
+              Trial Duration: <span id="displayTrialDuration" class="text-purple-300 font-mono text-sm sm:text-base font-black">1 Month (30 Days)</span>
             </h3>
-            <p class="text-xs text-slate-400">Allow new users to claim a free trial for a specific duration without payment.</p>
           </div>
 
-          <form id="trialForm" onsubmit="handleUpdateTrial(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
-            <div class="flex items-center gap-2">
-              <label class="text-xs font-semibold text-slate-300">Status:</label>
-              <select id="inputTrialEnabled" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-purple-500">
+          <form id="trialForm" onsubmit="handleUpdateTrial(event)" class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div class="flex items-center gap-1">
+              <label class="text-[10px] font-semibold text-slate-300">Status:</label>
+              <select id="inputTrialEnabled" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-purple-500">
                 <option value="1">Enabled</option>
                 <option value="0">Disabled</option>
               </select>
             </div>
 
-            <div class="flex items-center gap-2 flex-1 sm:w-52">
-              <label class="text-xs font-semibold text-slate-300">Duration:</label>
-              <select id="inputTrialDays" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-purple-300 focus:outline-none focus:border-purple-500">
-                <option value="7">7 Days (1 Week)</option>
-                <option value="14">14 Days (2 Weeks)</option>
-                <option value="30" selected>1 Month (30 Days)</option>
-                <option value="60">2 Months (60 Days)</option>
-                <option value="90">3 Months (90 Days)</option>
-                <option value="180">6 Months (180 Days)</option>
-                <option value="365">1 Year (365 Days)</option>
+            <div class="flex items-center gap-1">
+              <label class="text-[10px] font-semibold text-slate-300">Duration:</label>
+              <select id="inputTrialDays" class="px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-purple-300 focus:outline-none focus:border-purple-500">
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30" selected>30 Days (1 Mo)</option>
+                <option value="60">60 Days (2 Mo)</option>
+                <option value="90">90 Days (3 Mo)</option>
+                <option value="180">180 Days (6 Mo)</option>
+                <option value="365">365 Days (1 Yr)</option>
               </select>
             </div>
 
-            <button type="submit" id="btnUpdateTrial" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white text-sm font-bold shadow-lg shadow-purple-500/20 transition-all active:scale-[0.98] whitespace-nowrap">
-              Save Trial Settings
+            <button type="submit" id="btnUpdateTrial" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.98]">
+              Save Trial
             </button>
           </form>
         </div>
-        <div id="trialUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
+        <div id="trialUpdateMsg" class="hidden mt-2 text-xs p-2 rounded-xl text-center"></div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 4: 🔥 Flash Deals & Coupons Manager                            -->
+    <!-- TAB 4: 🔥 Flash Deals & Coupons Manager (Category: Sales)           -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-offers" class="hidden space-y-5">
+    <div id="tab-offers" class="hidden space-y-3">
+      
       <!-- Special Offers & Flash Sales Manager -->
-      <div class="glass-card p-5 rounded-2xl border border-amber-500/20 glow-blue">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-amber-500/20 glow-blue">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                🔥 Special Offers & Flash Sales
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                <span>🔥</span> Flash Deals & Banners
               </span>
-              <span class="text-[10px] text-slate-400">Promotional Banners & Deal Announcer</span>
+              <span class="text-[10px] text-slate-400 hidden xs:inline">App Promotions</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Publish live promotional deals, festive banners, and countdown timers to all Telegram Drive users.</p>
           </div>
-          <button onclick="openCreateOfferModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
-            <span>➕</span> New Special Offer
+          <button onclick="openCreateOfferModal()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1">
+            <span>➕</span> New Offer
           </button>
         </div>
 
-        <div id="offersList" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+        <div id="offersList" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2.5">
           <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading special promotional offers...</p>
         </div>
       </div>
 
       <!-- Coupons & Promotional Offers Manager -->
-      <div class="glass-card p-5 rounded-2xl border border-indigo-500/20 glow-blue">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-indigo-500/20 glow-blue">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-                Coupons & Promo Codes
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 flex items-center gap-1">
+                <span>🎁</span> Promo Codes & Coupons
               </span>
-              <span class="text-[10px] text-slate-400">Time & Usage Limited Discounts</span>
+              <span class="text-[10px] text-slate-400 hidden xs:inline">Usage Limits</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Create discount codes with custom user limits and expiration durations.</p>
           </div>
-          <button onclick="openCreateCouponModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center gap-1.5 whitespace-nowrap">
-            <span>➕</span> New Promo Code
+          <button onclick="openCreateCouponModal()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1">
+            <span>➕</span> New Coupon
           </button>
         </div>
 
-        <div id="couponsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+        <div id="couponsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2.5">
           <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading promotional coupons...</p>
         </div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 5: 🤝 Refer & Earn Controller & Payouts                         -->
+    <!-- TAB 5: 🤝 Refer & Earn Controller & Payouts (Category: Users)       -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-referrals" class="hidden space-y-5">
-      <!-- Refer & Earn Commission & Settings Controller -->
-      <div class="glass-card p-5 rounded-2xl border border-emerald-500/20 glow-cyan">
-        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+    <div id="tab-referrals" class="hidden space-y-3">
+      
+      <!-- Refer & Earn Settings Controller -->
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-emerald-500/20 glow-cyan">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                🤝 Refer & Earn Controller
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                <span>🤝</span> Referral Program
               </span>
               <span id="referralStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active: ₹50 / Sale</span>
             </div>
-            <h3 class="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-              Referral Reward: <span id="displayReferralReward" class="text-emerald-400 font-mono text-2xl font-black">₹50.00 / Sale</span>
+            <h3 class="text-xs sm:text-sm font-bold text-white mt-1 flex items-center gap-2">
+              Commission: <span id="displayReferralReward" class="text-emerald-400 font-mono text-sm sm:text-base font-black">₹50.00 / Sale</span>
             </h3>
-            <p class="text-xs text-slate-400">Users earn cash commission when friends purchase Pro using their referral code.</p>
           </div>
         </div>
 
-        <form id="referralSettingsForm" onsubmit="handleUpdateReferralSettings(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4 items-end">
+        <form id="referralSettingsForm" onsubmit="handleUpdateReferralSettings(event)" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mt-2.5 items-end">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Status</label>
-            <select id="inputReferralEnabled" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Status</label>
+            <select id="inputReferralEnabled" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
               <option value="1">Enabled</option>
               <option value="0">Disabled</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Reward Type</label>
-            <select id="inputReferralRewardType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
-              <option value="fixed">Fixed Cash (₹)</option>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Type</label>
+            <select id="inputReferralRewardType" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-emerald-500">
+              <option value="fixed">Fixed (₹)</option>
               <option value="percent">Percentage (%)</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Commission per Sale</label>
-            <input type="number" id="inputReferralRewardValue" min="1" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Reward Value</label>
+            <input type="number" id="inputReferralRewardValue" min="1" step="1" required class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-400 focus:outline-none focus:border-emerald-500">
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Friend Discount (%)</label>
-            <input type="number" id="inputReferralFriendDiscount" min="0" max="100" step="1" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-cyan-400 focus:outline-none focus:border-emerald-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Friend Disc (%)</label>
+            <input type="number" id="inputReferralFriendDiscount" min="0" max="100" step="1" required class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-cyan-400 focus:outline-none focus:border-emerald-500">
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Min Payout (₹)</label>
-            <input type="number" id="inputReferralMinPayout" min="10" step="10" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-emerald-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Min Payout (₹)</label>
+            <input type="number" id="inputReferralMinPayout" min="10" step="10" required class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-emerald-500">
           </div>
 
-          <div>
-            <button type="submit" id="btnSaveReferralSettings" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
+          <div class="col-span-2 sm:col-span-1">
+            <button type="submit" id="btnSaveReferralSettings" class="w-full py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-bold shadow-sm transition-all active:scale-[0.98]">
               Save Settings
             </button>
           </div>
         </form>
-        <div id="referralUpdateMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl text-center"></div>
+        <div id="referralUpdateMsg" class="hidden mt-2 text-xs p-2 rounded-xl text-center"></div>
       </div>
 
       <!-- Withdrawal & Payout Requests Manager -->
-      <div class="glass-card p-5 rounded-2xl border border-cyan-500/20 glow-blue">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-cyan-500/20 glow-blue">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                💸 Withdrawal & Payout Requests
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 flex items-center gap-1">
+                <span>💸</span> Payout Requests
               </span>
-              <span id="pendingPayoutBadge" class="text-[10px] text-amber-400 font-semibold">0 Pending Requests</span>
+              <span id="pendingPayoutBadge" class="text-[10px] text-amber-400 font-semibold">0 Pending</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Review and process user earnings withdrawals via UPI or Bank Transfer.</p>
           </div>
 
           <!-- Filter Buttons -->
-          <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
-            <button type="button" onclick="loadPayoutRequests('all', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">All</button>
-            <button type="button" onclick="loadPayoutRequests('pending', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold shadow-sm transition-all">Pending</button>
-            <button type="button" onclick="loadPayoutRequests('completed', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Completed</button>
-            <button type="button" onclick="loadPayoutRequests('rejected', this)" class="payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all">Rejected</button>
+          <div class="flex items-center gap-1 p-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px]">
+            <button type="button" onclick="loadPayoutRequests('all', this)" class="payout-filter-btn px-2 py-1 rounded text-slate-400 hover:text-white font-semibold">All</button>
+            <button type="button" onclick="loadPayoutRequests('pending', this)" class="payout-filter-btn px-2 py-1 rounded bg-cyan-500 text-slate-950 font-bold">Pending</button>
+            <button type="button" onclick="loadPayoutRequests('completed', this)" class="payout-filter-btn px-2 py-1 rounded text-slate-400 hover:text-white font-semibold">Completed</button>
+            <button type="button" onclick="loadPayoutRequests('rejected', this)" class="payout-filter-btn px-2 py-1 rounded text-slate-400 hover:text-white font-semibold">Rejected</button>
           </div>
         </div>
 
-        <div class="overflow-x-auto mt-4">
-          <table class="w-full text-left text-xs text-slate-300">
-            <thead class="bg-slate-900/80 uppercase font-semibold text-slate-400 border-b border-slate-800">
+        <div class="overflow-x-auto mt-2.5">
+          <table class="w-full text-left text-xs text-slate-300 mobile-card-table">
+            <thead class="bg-slate-900/80 uppercase font-semibold text-slate-400 border-b border-slate-800 text-[11px]">
               <tr>
-                <th class="px-4 py-3">User / Code</th>
-                <th class="px-4 py-3">Amount</th>
-                <th class="px-4 py-3">Payment Details</th>
-                <th class="px-4 py-3">Date Requested</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Actions</th>
+                <th class="px-3 py-2">User / Code</th>
+                <th class="px-3 py-2">Amount</th>
+                <th class="px-3 py-2">Payment Details</th>
+                <th class="px-3 py-2">Requested</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="payoutsTableBody" class="divide-y divide-slate-800/60">
@@ -601,102 +719,103 @@ export function renderAdminDashboardHtml(appName: string): string {
       </div>
 
       <!-- Top Referrers Leaderboard -->
-      <div class="glass-card p-5 rounded-2xl border border-indigo-500/20">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-              🏆 Top Referrers Leaderboard
+      <div class="glass-card p-3 sm:p-4 rounded-2xl border border-indigo-500/20">
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-800/80">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 flex items-center gap-1">
+              <span>🏆</span> Top Affiliates
             </span>
-            <span class="text-[10px] text-slate-400">Best Viral Promoters</span>
           </div>
-          <button onclick="loadTopReferrers()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">🔄 Refresh</button>
+          <button onclick="loadTopReferrers()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+            <span>🔄</span> Refresh
+          </button>
         </div>
-        <div id="topReferrersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+        <div id="topReferrersList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2.5">
           <p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Loading top referrers...</p>
         </div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 6: 📢 Telegram Bot & Broadcast Manager                          -->
+    <!-- TAB 6: 📢 Telegram Bot & Broadcast Manager (Category: Users)        -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-broadcast" class="hidden space-y-4">
-      <div id="broadcastSection" class="glass-card p-5 rounded-2xl border border-sky-500/30 glow-cyan space-y-4">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div id="tab-broadcast" class="hidden space-y-3">
+      <div id="broadcastSection" class="glass-card p-3 sm:p-4 rounded-2xl border border-sky-500/30 glow-cyan space-y-3">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-full border border-sky-500/20">
-                📢 Telegram Bot Broadcast & Marketing
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 flex items-center gap-1">
+                <span>📢</span> Bot Broadcast
               </span>
-              <span id="botSubscriberCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Active Bot Subscribers</span>
+              <span id="botSubscriberCountBadge" class="text-[10px] text-emerald-400 font-semibold">0 Active Subscribers</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Broadcast new feature updates, discounts, flash sales, or announcements directly to user Telegram inboxes.</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Broadcast messages directly to Telegram user inboxes.</p>
           </div>
         </div>
 
-        <form id="broadcastForm" onsubmit="handleSendBroadcast(event)" class="space-y-4">
+        <form id="broadcastForm" onsubmit="handleSendBroadcast(event)" class="space-y-2.5">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Message Text (Supports Markdown format)</label>
-            <textarea id="broadcastMessageInput" rows="4" required placeholder="🔥 *Special 50% OFF Weekend Deal!* 💎&#10;&#10;Upgrade to TG Drive PRO today for only ₹199! No ads forever.&#10;&#10;Tap below to claim now! 👇" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"></textarea>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Message Text (Markdown supported)</label>
+            <textarea id="broadcastMessageInput" rows="3" required placeholder="🔥 *Special 50% OFF Deal!* 💎&#10;&#10;Upgrade to TG Drive PRO today for only ₹199! No ads forever.&#10;&#10;Tap below to claim now! 👇" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"></textarea>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button Text (Optional)</label>
-              <input type="text" id="broadcastButtonTextInput" placeholder="🚀 Upgrade to PRO" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+              <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">CTA Button Text (Optional)</label>
+              <input type="text" id="broadcastButtonTextInput" placeholder="🚀 Upgrade to PRO" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">CTA Button URL (Optional)</label>
-              <input type="url" id="broadcastButtonUrlInput" placeholder="https://tg-drive.vercel.app/pricing" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500">
+              <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">CTA Button URL (Optional)</label>
+              <input type="url" id="broadcastButtonUrlInput" placeholder="https://rzp.io/rzp/..." class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-sky-500 font-mono">
             </div>
           </div>
 
-          <div class="flex items-center justify-between pt-2">
-            <span class="text-[11px] text-slate-400">💡 Uses official Telegram Bot API with rate-limited queueing.</span>
-            <button type="submit" id="btnSendBroadcast" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center gap-2">
-              <span>🚀</span> Send Broadcast to All Subscribers
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
+            <span class="text-[10px] text-slate-400">💡 Uses official Telegram Bot API with rate-limited queueing.</span>
+            <button type="submit" id="btnSendBroadcast" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-1.5">
+              <span>🚀</span> Send Broadcast
             </button>
           </div>
         </form>
-        <div id="broadcastStatusMsg" class="hidden text-xs p-2.5 rounded-xl text-center"></div>
+        <div id="broadcastStatusMsg" class="hidden text-xs p-2 rounded-xl text-center"></div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 7: 🐛 Crash Telemetry & Diagnostics                             -->
+    <!-- TAB 7: 🐛 Crash Telemetry & Diagnostics (Category: System)          -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-crashes" class="hidden space-y-4">
-      <div id="crashReportsSection" class="glass-card p-5 rounded-2xl border border-rose-500/20 glow-blue">
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+    <div id="tab-crashes" class="hidden space-y-3">
+      <div id="crashReportsSection" class="glass-card p-3 sm:p-4 rounded-2xl border border-rose-500/20 glow-blue">
+        <div class="flex items-center justify-between gap-1.5 pb-2.5 border-b border-slate-800/80 flex-wrap">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-                🐛 Crash Reports & Diagnostics
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 flex items-center gap-1">
+                <span>🐛</span> Crash Diagnostics
               </span>
-              <span id="crashTelemetryStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Ingestion Active • Desktop & Android</span>
+              <span id="crashTelemetryStatusBadge" class="text-[10px] text-emerald-400 font-semibold">🟢 Active Ingestion</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Live error telemetry submitted automatically by Telegram Drive builds when an unhandled crash occurs.</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Desktop & Android unhandled error telemetry.</p>
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="loadCrashReports()" class="px-3 py-1.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5">
-              <span>🔄</span> Refresh
+          <div class="flex items-center gap-1">
+            <button onclick="loadCrashReports()" class="px-2 py-1 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1">
+              <span>🔄</span> <span>Refresh</span>
             </button>
-            <button onclick="handleClearAllCrashes()" class="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors flex items-center gap-1.5">
-              <span>🗑️</span> Clear All Logs
+            <button onclick="handleClearAllCrashes()" class="px-2 py-1 rounded-lg border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 text-xs font-bold transition-colors flex items-center gap-1">
+              <span>🗑️</span> <span>Clear Logs</span>
             </button>
           </div>
         </div>
 
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-left text-xs text-slate-300">
+        <div class="mt-2.5 overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300 mobile-card-table">
             <thead class="text-[11px] uppercase bg-slate-900/60 text-slate-400 border-b border-slate-800">
               <tr>
-                <th class="px-4 py-3">Error Type</th>
-                <th class="px-4 py-3">Source</th>
-                <th class="px-4 py-3">App Version</th>
-                <th class="px-4 py-3">Platform / OS</th>
-                <th class="px-4 py-3">Occurred At</th>
-                <th class="px-4 py-3 text-right">Actions</th>
+                <th class="px-3 py-2">Error Type</th>
+                <th class="px-3 py-2">Source</th>
+                <th class="px-3 py-2">Version</th>
+                <th class="px-3 py-2">Platform</th>
+                <th class="px-3 py-2">Occurred At</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="crashReportsTableBody" class="divide-y divide-slate-800/60">
@@ -712,42 +831,42 @@ export function renderAdminDashboardHtml(appName: string): string {
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB 8: 🔑 Legacy Software License Keys                              -->
+    <!-- TAB 8: 🔑 Legacy Software License Keys (Category: System)           -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <div id="tab-licenses" class="hidden space-y-4">
-      <div class="glass p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-        <div class="w-full md:w-96 relative">
-          <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search by Key, Customer Name, Email..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
-          <span class="absolute left-3.5 top-3 text-slate-500 text-sm">🔍</span>
+    <div id="tab-licenses" class="hidden space-y-3">
+      <div class="glass p-3 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+        <div class="relative flex-1">
+          <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search License Key, Customer Name, Email..." class="w-full pl-7 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors">
+          <span class="absolute left-2 top-1.5 text-slate-500 text-xs">🔍</span>
         </div>
 
-        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-          <button onclick="loadLicenses()" class="px-4 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-semibold transition-colors flex items-center gap-2">
-            <span>🔄</span> Refresh
+        <div class="flex items-center gap-1.5 justify-end">
+          <button onclick="loadLicenses()" class="px-2.5 py-1.5 rounded-lg border border-slate-700/80 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition-colors flex items-center gap-1">
+            <span>🔄</span> <span>Refresh</span>
           </button>
-          <button onclick="openCreateModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-bold shadow-lg shadow-cyan-500/20 transition-all active:scale-[0.98] flex items-center gap-2">
-            <span>➕</span> Generate License Key
+          <button onclick="openCreateModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.98] flex items-center gap-1 whitespace-nowrap">
+            <span>➕</span> <span>Generate Key</span>
           </button>
         </div>
       </div>
 
       <div class="glass rounded-2xl overflow-hidden border border-slate-800">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-900/80 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+          <table class="w-full text-left text-xs text-slate-300 mobile-card-table">
+            <thead class="bg-slate-900/80 text-[11px] uppercase font-semibold text-slate-400 border-b border-slate-800">
               <tr>
-                <th class="px-6 py-4">License Key</th>
-                <th class="px-6 py-4">Customer / Notes</th>
-                <th class="px-6 py-4">Plan Type</th>
-                <th class="px-6 py-4">Devices</th>
-                <th class="px-6 py-4">Status</th>
-                <th class="px-6 py-4">Created Date</th>
-                <th class="px-6 py-4 text-right">Actions</th>
+                <th class="px-3 py-2">License Key</th>
+                <th class="px-3 py-2">Customer / Notes</th>
+                <th class="px-3 py-2">Plan</th>
+                <th class="px-3 py-2">Devices</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Created</th>
+                <th class="px-3 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="licensesTableBody" class="divide-y divide-slate-800/60">
               <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">
                   Loading licenses...
                 </td>
               </tr>
@@ -759,150 +878,145 @@ export function renderAdminDashboardHtml(appName: string): string {
   </main>
 
   <!-- Create License Modal -->
-  <div id="createModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-lg p-6 rounded-2xl glow-cyan space-y-5 border border-slate-700">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+  <div id="createModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="glass-card w-full max-w-md p-4 sm:p-5 rounded-2xl glow-cyan space-y-3 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
           <span>✨</span> Generate Commercial License
         </h3>
-        <button onclick="closeCreateModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+        <button onclick="closeCreateModal()" class="text-slate-400 hover:text-white text-base">✕</button>
       </div>
 
-      <form id="createLicenseForm" onsubmit="handleCreateLicense(event)" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <form id="createLicenseForm" onsubmit="handleCreateLicense(event)" class="space-y-2.5">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Plan Duration</label>
-            <select id="planTypeSelect" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
-              <option value="lifetime">⭐ Lifetime Pro (No Expiry)</option>
-              <option value="annual">📅 1 Year (Annual)</option>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Plan Duration</label>
+            <select id="planTypeSelect" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500">
+              <option value="lifetime">⭐ Lifetime Pro</option>
+              <option value="annual">📅 1 Year</option>
               <option value="monthly">🌙 1 Month</option>
               <option value="trial">⏳ 7-Day Trial</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Max Allowed Devices</label>
-            <select id="maxDevicesSelect" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
-              <option value="1">1 Device (Single PC/Phone)</option>
-              <option value="2" selected>2 Devices (PC + Mobile)</option>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Max Devices</label>
+            <select id="maxDevicesSelect" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500">
+              <option value="1">1 Device</option>
+              <option value="2" selected>2 Devices</option>
               <option value="3">3 Devices</option>
-              <option value="5">5 Devices (Power User)</option>
+              <option value="5">5 Devices</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Customer Name (Optional)</label>
-          <input type="text" id="customerNameInput" placeholder="e.g. John Doe" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Customer Name (Optional)</label>
+          <input type="text" id="customerNameInput" placeholder="John Doe" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Customer Email (Optional)</label>
-          <input type="text" id="customerEmailInput" placeholder="e.g. customer@example.com" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Customer Email (Optional)</label>
+          <input type="text" id="customerEmailInput" placeholder="customer@example.com" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Telegram User ID (Optional)</label>
-            <input type="text" id="telegramUserIdInput" placeholder="e.g. 58291039" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Telegram User ID</label>
+            <input type="text" id="telegramUserIdInput" placeholder="58291039" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500 font-mono">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Phone Number (Optional)</label>
-            <input type="text" id="phoneNumberInput" placeholder="e.g. +919876543210" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Phone Number</label>
+            <input type="text" id="phoneNumberInput" placeholder="+919876543210" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500 font-mono">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Order Notes / Memo (Optional)</label>
-          <input type="text" id="notesInput" placeholder="e.g. LemonSqueezy Order #1234 or UPI Ref" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-cyan-500">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Memo / Notes</label>
+          <input type="text" id="notesInput" placeholder="Order memo or UPI reference" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-500">
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-          <button type="button" onclick="closeCreateModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:text-white text-sm font-semibold">Cancel</button>
-          <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-sm font-bold hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20">Generate Key</button>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeCreateModal()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold hover:from-cyan-400 hover:to-blue-500 shadow-sm">Generate</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Generated Key Success Modal -->
-  <div id="successModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md p-6 rounded-2xl glow-cyan space-y-4 border border-cyan-500/40 text-center">
-      <div class="h-12 w-12 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center text-2xl font-bold border border-emerald-500/20">
+  <div id="successModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="glass-card w-full max-w-xs p-4 rounded-2xl glow-cyan space-y-3 border border-cyan-500/40 text-center">
+      <div class="h-9 w-9 rounded-full bg-emerald-500/10 text-emerald-400 mx-auto flex items-center justify-center text-lg font-bold border border-emerald-500/20">
         ✓
       </div>
-      <h3 class="text-lg font-bold text-white">License Key Generated!</h3>
-      <p class="text-xs text-slate-400">Share this key with your customer to activate TG Drive Pro</p>
+      <h3 class="text-sm font-bold text-white">License Key Ready!</h3>
       
-      <div class="p-3.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex items-center justify-between gap-3">
-        <span id="generatedKeyDisplay" class="mono text-base font-bold text-cyan-400 tracking-wider"></span>
-        <button onclick="copyGeneratedKey()" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors">
+      <div class="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 flex items-center justify-between gap-1.5">
+        <span id="generatedKeyDisplay" class="mono text-xs font-bold text-cyan-400 tracking-wider truncate"></span>
+        <button onclick="copyGeneratedKey()" class="px-2 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shrink-0">
           Copy
         </button>
       </div>
 
-      <button onclick="closeSuccessModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-colors">
+      <button onclick="closeSuccessModal()" class="w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">
         Done
       </button>
     </div>
   </div>
 
   <!-- Create Coupon Modal -->
-  <div id="createCouponModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
-    <div class="glass-card w-full max-w-md p-6 rounded-2xl border border-indigo-500/30 space-y-5">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
+  <div id="createCouponModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
+    <div class="glass-card w-full max-w-sm p-4 rounded-2xl border border-indigo-500/30 space-y-3 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
           <span>🎁</span> Create Promo Coupon
         </h3>
         <button onclick="closeCreateCouponModal()" class="text-slate-400 hover:text-white">&times;</button>
       </div>
 
-      <form id="createCouponForm" onsubmit="handleCreateCoupon(event)" class="space-y-4">
+      <form id="createCouponForm" onsubmit="handleCreateCoupon(event)" class="space-y-2.5">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Coupon Code (Uppercase)</label>
-          <input type="text" id="couponCodeInput" required placeholder="e.g. LAUNCH50 or DIWALI" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-indigo-400 uppercase tracking-wider focus:outline-none focus:border-indigo-500">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Coupon Code (Uppercase)</label>
+          <input type="text" id="couponCodeInput" required placeholder="LAUNCH50 or DIWALI" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-indigo-400 uppercase tracking-wider focus:outline-none focus:border-indigo-500">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Discount Amount</label>
-            <input type="number" id="couponAmountInput" min="1" max="100" required placeholder="50" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-white focus:outline-none focus:border-indigo-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Discount Value</label>
+            <input type="number" id="couponAmountInput" min="1" max="100" required placeholder="50" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Type</label>
-            <select id="couponTypeInput" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Type</label>
+            <select id="couponTypeInput" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500">
               <option value="percent">Percentage (%)</option>
-              <option value="fixed">Flat Amount (₹)</option>
+              <option value="fixed">Flat (₹)</option>
             </select>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">User Usage Limit</label>
-            <input type="number" id="couponLimitInput" min="0" placeholder="e.g. 50 (0 = no limit)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
-            <span class="text-[10px] text-slate-500">Max users who can claim</span>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">User Limit</label>
+            <input type="number" id="couponLimitInput" min="0" placeholder="0 = unlimited" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Time Duration</label>
-            <select id="couponDurationInput" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white focus:outline-none focus:border-indigo-500">
-              <option value="0">Never Expires</option>
-              <option value="1">24 Hours (1 Day)</option>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Duration</label>
+            <select id="couponDurationInput" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500">
+              <option value="0">Never</option>
+              <option value="1">24 Hours</option>
               <option value="3">3 Days</option>
-              <option value="7" selected>7 Days (1 Week)</option>
-              <option value="30">30 Days (1 Month)</option>
+              <option value="7" selected>7 Days</option>
+              <option value="30">30 Days</option>
             </select>
-            <span class="text-[10px] text-slate-500">Auto-expires after time</span>
           </div>
         </div>
 
-        <div id="couponCreateError" class="hidden text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20"></div>
+        <div id="couponCreateError" class="hidden text-xs p-1.5 rounded-lg text-center bg-rose-500/10 text-rose-400 border border-rose-500/20"></div>
 
-        <div class="pt-2 flex items-center justify-end gap-3">
-          <button type="button" onclick="closeCreateCouponModal()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">
-            Cancel
-          </button>
-          <button type="submit" id="btnSubmitCoupon" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20">
-            Create Live Coupon
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+          <button type="button" onclick="closeCreateCouponModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">Cancel</button>
+          <button type="submit" id="btnSubmitCoupon" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-sm">
+            Create Coupon
           </button>
         </div>
       </form>
@@ -910,204 +1024,281 @@ export function renderAdminDashboardHtml(appName: string): string {
   </div>
 
   <!-- Create Special Offer Modal -->
-  <div id="createOfferModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in overflow-y-auto">
-    <div class="glass-card w-full max-w-xl p-6 rounded-2xl border border-amber-500/30 space-y-4 my-8">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span>🔥</span> Publish Promotional Offer & Deal
+  <div id="createOfferModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm hidden animate-fade-in overflow-y-auto">
+    <div class="glass-card w-full max-w-md p-4 rounded-2xl border border-amber-500/30 space-y-3 my-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+          <span>🔥</span> Publish Promotional Deal
         </h3>
-        <button onclick="closeCreateOfferModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+        <button onclick="closeCreateOfferModal()" class="text-slate-400 hover:text-white">&times;</button>
       </div>
 
-      <form id="createOfferForm" onsubmit="handleCreateOffer(event)" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="sm:col-span-2">
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Offer Title / Campaign Headline</label>
-            <input type="text" id="offerTitleInput" required placeholder="e.g. Diwali Mega Sale: 50% OFF Lifetime Pro" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+      <form id="createOfferForm" onsubmit="handleCreateOffer(event)" class="space-y-2.5">
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-2">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Headline</label>
+            <input type="text" id="offerTitleInput" required placeholder="Diwali Mega Sale: 50% OFF" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-amber-500">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Badge Tag</label>
-            <input type="text" id="offerBadgeInput" placeholder="e.g. 50% OFF FLASH DEAL" value="LIMITED TIME OFFER" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 uppercase tracking-wider focus:outline-none focus:border-amber-500">
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Badge</label>
+            <input type="text" id="offerBadgeInput" value="50% OFF" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-amber-400 uppercase focus:outline-none focus:border-amber-500">
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Offer Summary / Description</label>
-          <textarea id="offerDescriptionInput" required rows="2" placeholder="e.g. Get lifetime unlimited cloud storage + 2 device slots at a flat promotional discount!" class="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"></textarea>
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Description</label>
+          <textarea id="offerDescriptionInput" required rows="2" placeholder="Get lifetime unlimited cloud storage at 50% off!" class="w-full px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
         </div>
 
-        <!-- Offer Discount Mode & Pricing -->
-        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">💰 Offer Discount & Pricing</span>
-            <span class="text-[10px] text-slate-400">Select discount calculation</span>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block">💰 Pricing Calculation</span>
+          <div class="grid grid-cols-4 gap-1.5">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Discount Type</label>
-              <select id="offerDiscountType" onchange="calculateOfferPrice()" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500">
-                <option value="percent">Percentage (%)</option>
-                <option value="flat">Flat Amount (₹)</option>
-                <option value="bundle">Special Deal (Custom)</option>
+              <label class="block text-[9px] text-slate-400 mb-0.5">Type</label>
+              <select id="offerDiscountType" onchange="calculateOfferPrice()" class="w-full px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500">
+                <option value="percent">%</option>
+                <option value="flat">₹</option>
               </select>
             </div>
-
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Original Price (₹)</label>
-              <input type="number" id="offerOriginalPrice" value="399" oninput="calculateOfferPrice()" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500">
+              <label class="block text-[9px] text-slate-400 mb-0.5">Orig (₹)</label>
+              <input type="number" id="offerOriginalPrice" value="399" oninput="calculateOfferPrice()" class="w-full px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white">
             </div>
-
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Discount Value</label>
-              <input type="number" id="offerDiscountValue" value="50" oninput="calculateOfferPrice()" placeholder="50" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500">
+              <label class="block text-[9px] text-slate-400 mb-0.5">Discount</label>
+              <input type="number" id="offerDiscountValue" value="50" oninput="calculateOfferPrice()" class="w-full px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs font-bold text-amber-400">
             </div>
-
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Final Deal Price (₹)</label>
-              <input type="number" id="offerFinalPrice" value="199.50" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-emerald-500/40 text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-400">
+              <label class="block text-[9px] text-slate-400 mb-0.5">Deal (₹)</label>
+              <input type="number" id="offerFinalPrice" value="199.50" class="w-full px-1.5 py-1 rounded-lg bg-slate-950 border border-emerald-500/40 text-xs font-black text-emerald-400">
             </div>
           </div>
         </div>
 
-        <!-- Kya-kya Offer Me Milega (Perks & Benefits) -->
-        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">🎁 Kya-Kya Offer Me Milega (Offer Perks)</span>
-            <span class="text-[10px] text-slate-400">Displayed on deal banner</span>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-            <label class="flex items-center gap-2 cursor-pointer">
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block">🎁 Perks Included</span>
+          <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-300">
+            <label class="flex items-center gap-1 cursor-pointer">
               <input type="checkbox" name="offerPerk" value="Lifetime Unlimited Cloud Storage" checked class="accent-cyan-500 rounded">
-              <span>Lifetime Unlimited Storage</span>
+              <span class="truncate">Unlimited Storage</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="offerPerk" value="2 Hardware Device Slots (PC + Phone)" checked class="accent-cyan-500 rounded">
-              <span>2 Hardware Device Slots</span>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" name="offerPerk" value="2 Hardware Device Slots" checked class="accent-cyan-500 rounded">
+              <span class="truncate">2 Device Slots</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
+            <label class="flex items-center gap-1 cursor-pointer">
               <input type="checkbox" name="offerPerk" value="High-Speed Multi-Part Engine" checked class="accent-cyan-500 rounded">
-              <span>High-Speed Multi-Part Engine</span>
+              <span class="truncate">High-Speed Engine</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer">
+            <label class="flex items-center gap-1 cursor-pointer">
               <input type="checkbox" name="offerPerk" value="100% Offline Vault Capable" checked class="accent-cyan-500 rounded">
-              <span>100% Offline Vault Capable</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="offerPerk" value="+1 Free Extra Device Slot (3 Devices Total)" class="accent-cyan-500 rounded">
-              <span>+1 Free Extra Device Slot</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="offerPerk" value="VIP Priority Telegram Support" class="accent-cyan-500 rounded">
-              <span>VIP Priority Support</span>
+              <span class="truncate">Offline Vault</span>
             </label>
           </div>
-
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Custom Extra Perk (Optional)</label>
-            <input type="text" id="offerCustomPerk" placeholder="e.g. Free Cloud Backup Encryption Tool" class="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500">
-          </div>
+          <input type="text" id="offerCustomPerk" placeholder="Custom Extra Perk (Optional)" class="w-full px-2 py-1 rounded-lg bg-slate-950 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
         </div>
 
-        <!-- Kitna Time Tak Chalega (Duration & Theme) -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-3 gap-1.5">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">⏳ Kitna Time Tak Chalega</label>
-            <select id="offerDurationInput" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500">
-              <option value="6">⚡ 6 Hours Flash Sale</option>
-              <option value="12">⚡ 12 Hours Half-Day Deal</option>
-              <option value="24" selected>⏳ 24 Hours (1 Day Flash)</option>
-              <option value="48">⏳ 48 Hours Weekend Deal</option>
-              <option value="72">📅 3 Days Special</option>
-              <option value="168">📅 7 Days (1 Week Sale)</option>
-              <option value="720">🌙 30 Days (Month-Long)</option>
-              <option value="0">♾️ Permanent / Ongoing Deal</option>
+            <label class="block text-[10px] text-slate-300 mb-0.5">⏳ Duration</label>
+            <select id="offerDurationInput" class="w-full px-1.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">
+              <option value="6">6 Hours</option>
+              <option value="12">12 Hours</option>
+              <option value="24" selected>24 Hours</option>
+              <option value="48">48 Hours</option>
+              <option value="72">3 Days</option>
+              <option value="168">7 Days</option>
+              <option value="0">Ongoing</option>
             </select>
           </div>
-
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Auto-Coupon Code</label>
-            <input type="text" id="offerCouponInput" placeholder="e.g. DIWALI50" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-indigo-400 uppercase tracking-wider focus:outline-none focus:border-indigo-500">
+            <label class="block text-[10px] text-slate-300 mb-0.5">Coupon Code</label>
+            <input type="text" id="offerCouponInput" placeholder="DIWALI50" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-indigo-400 uppercase">
           </div>
-
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Banner Visual Theme</label>
-            <select id="offerStyleInput" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-500">
-              <option value="gold">🏆 Royal Gold & Amber</option>
-              <option value="fire">🔥 Neon Flame & Orange</option>
-              <option value="cyan">⚡ Cyber Neon Cyan</option>
-              <option value="emerald">💎 Emerald Pro</option>
-              <option value="purple">🔮 Royal Purple</option>
+            <label class="block text-[10px] text-slate-300 mb-0.5">Theme</label>
+            <select id="offerStyleInput" class="w-full px-1.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">
+              <option value="gold">🏆 Gold</option>
+              <option value="fire">🔥 Fire</option>
+              <option value="cyan">⚡ Cyan</option>
+              <option value="emerald">💎 Emerald</option>
+              <option value="purple">🔮 Purple</option>
             </select>
           </div>
         </div>
 
-        <div id="offerCreateError" class="hidden text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20"></div>
+        <div id="offerCreateError" class="hidden text-xs p-1.5 rounded-lg text-center bg-rose-500/10 text-rose-400 border border-rose-500/20"></div>
 
-        <div class="pt-2 flex items-center justify-end gap-3 border-t border-slate-800">
-          <button type="button" onclick="closeCreateOfferModal()" class="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">
-            Cancel
-          </button>
-          <button type="submit" id="btnSubmitOffer" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20">
-            Publish Offer Live
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+          <button type="button" onclick="closeCreateOfferModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">Cancel</button>
+          <button type="submit" id="btnSubmitOffer" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 text-xs font-bold shadow-sm">
+            Publish Offer
           </button>
         </div>
       </form>
     </div>
   </div>
 
-
   <!-- Stack Trace & Crash Inspection Modal -->
-  <div id="crashInspectModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-2xl p-6 rounded-2xl glow-cyan space-y-4 border border-slate-700">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
+  <div id="crashInspectModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="glass-card w-full max-w-lg p-4 sm:p-5 rounded-2xl glow-cyan space-y-3 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
           <span class="text-rose-400">⚡</span> Crash Diagnostic Details
         </h3>
-        <button onclick="closeCrashInspectModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+        <button onclick="closeCrashInspectModal()" class="text-slate-400 hover:text-white text-base font-bold">✕</button>
       </div>
       
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-          <span class="text-slate-400 block text-[10px] uppercase">Error Type</span>
-          <span id="inspectErrorType" class="font-bold text-rose-400 mono"></span>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
+        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+          <span class="text-slate-400 block text-[9px] uppercase">Error Type</span>
+          <span id="inspectErrorType" class="font-bold text-rose-400 mono text-xs truncate block"></span>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-          <span class="text-slate-400 block text-[10px] uppercase">Source</span>
-          <span id="inspectSource" class="font-bold text-cyan-400"></span>
+        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+          <span class="text-slate-400 block text-[9px] uppercase">Source</span>
+          <span id="inspectSource" class="font-bold text-cyan-400 text-xs block"></span>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-          <span class="text-slate-400 block text-[10px] uppercase">App Version</span>
-          <span id="inspectVersion" class="font-bold text-white mono"></span>
+        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+          <span class="text-slate-400 block text-[9px] uppercase">App Version</span>
+          <span id="inspectVersion" class="font-bold text-white mono text-xs block"></span>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-          <span class="text-slate-400 block text-[10px] uppercase">Platform</span>
-          <span id="inspectPlatform" class="font-bold text-indigo-400"></span>
+        <div class="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+          <span class="text-slate-400 block text-[9px] uppercase">Platform</span>
+          <span id="inspectPlatform" class="font-bold text-indigo-400 text-xs block"></span>
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Stack Trace Frames (Sanitized)</label>
-        <div id="inspectFrames" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-mono text-xs max-h-60 overflow-y-auto space-y-1">
-        </div>
+        <label class="block text-[10px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Stack Frames</label>
+        <div id="inspectFrames" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 font-mono text-xs max-h-48 overflow-y-auto space-y-1"></div>
       </div>
 
-      <div class="text-[11px] text-slate-500">
+      <div class="text-[10px] text-slate-500">
         Timestamp: <span id="inspectOccurredAt" class="text-slate-400 mono"></span>
       </div>
 
-      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-        <button type="button" onclick="closeCrashInspectModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors">Close</button>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+        <button type="button" onclick="closeCrashInspectModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">Close</button>
       </div>
     </div>
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden px-4 py-3 rounded-xl bg-slate-800 text-white text-sm font-medium border border-slate-700 shadow-xl"></div>
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden px-3.5 py-2 rounded-xl bg-slate-800 text-white text-xs font-medium border border-slate-700 shadow-xl flex items-center gap-1.5"></div>
+
+  <!-- Grant Pro Modal -->
+  <div id="upgradeProModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="glass-card w-full max-w-sm p-4 sm:p-5 rounded-2xl glow-cyan space-y-3 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+          <span>💎</span> Grant Pro Access
+        </h3>
+        <button onclick="closeUpgradeProModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+
+      <form id="grantProForm" onsubmit="handleGrantPro(event)" class="space-y-2.5">
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Telegram User ID <span class="text-rose-400">*</span></label>
+          <input type="text" id="grantTgUserId" required placeholder="123456789" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500 font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">First Name</label>
+            <input type="text" id="grantFirstName" placeholder="John" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Username</label>
+            <input type="text" id="grantUsername" placeholder="@john_doe" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Plan</label>
+            <select id="grantPlanType" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+              <option value="lifetime">⭐ Lifetime Pro</option>
+              <option value="annual">📅 1 Year</option>
+              <option value="monthly">🌙 1 Month</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Days (0=Forever)</label>
+            <input type="number" id="grantDurationDays" placeholder="0" min="0" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Notes</label>
+          <input type="text" id="grantNotes" placeholder="VIP Supporter / Referral" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-800">
+          <button type="button" onclick="closeUpgradeProModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">Cancel</button>
+          <button type="submit" id="btnSubmitGrantPro" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-xs font-bold hover:from-violet-400 hover:to-indigo-500 shadow-sm">Grant Pro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Process Payout Modal -->
+  <div id="processPayoutModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="glass-card w-full max-w-sm p-4 rounded-2xl glow-cyan space-y-3 border border-slate-700 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+          <span>💸</span> Process Payout
+        </h3>
+        <button onclick="closeProcessPayoutModal()" class="text-slate-400 hover:text-white text-base">✕</button>
+      </div>
+
+      <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1 text-xs">
+        <div class="flex justify-between"><span class="text-slate-400">User:</span> <span id="modalPayoutUser" class="font-bold text-white truncate max-w-[150px]"></span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Amount:</span> <span id="modalPayoutAmount" class="font-bold text-emerald-400 font-mono text-sm"></span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Method:</span> <span id="modalPayoutMethod" class="font-bold text-cyan-300 uppercase"></span></div>
+        <div class="pt-1 border-t border-slate-800">
+          <div class="text-slate-400 text-[10px] mb-0.5">Destination:</div>
+          <div id="modalPayoutDetails" class="font-mono text-slate-200 bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-[11px] break-all select-all"></div>
+        </div>
+      </div>
+
+      <form id="processPayoutForm" onsubmit="handleProcessPayoutSubmit(event)" class="space-y-2.5">
+        <input type="hidden" id="modalPayoutId">
+        
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Action</label>
+          <select id="modalPayoutAction" onchange="togglePayoutActionFields()" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-cyan-500">
+            <option value="completed">✅ Mark Paid (Completed)</option>
+            <option value="rejected">❌ Reject & Refund</option>
+          </select>
+        </div>
+
+        <div id="fieldUtr">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">UTR / Reference Number</label>
+          <input type="text" id="modalPayoutUtr" placeholder="426189218291" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500 font-mono">
+        </div>
+
+        <div id="fieldRejectReason" class="hidden">
+          <label class="block text-[10px] font-semibold text-slate-300 mb-0.5">Rejection Reason</label>
+          <input type="text" id="modalPayoutReason" placeholder="Invalid UPI ID" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-rose-500">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeProcessPayoutModal()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs font-semibold">Cancel</button>
+          <button type="submit" id="btnSubmitProcessPayout" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-sm">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
     let adminToken = localStorage.getItem('tg_admin_secret') || '';
+    let currentCategory = 'users';
+    let currentTab = 'pro_users';
+
+    const CATEGORY_MAP = {
+      users: ['pro_users', 'referrals', 'broadcast'],
+      sales: ['plans', 'offers', 'payments'],
+      system: ['crashes', 'licenses']
+    };
 
     window.addEventListener('DOMContentLoaded', () => {
       if (adminToken) {
@@ -1149,82 +1340,550 @@ export function renderAdminDashboardHtml(appName: string): string {
       loadCrashReports();
     }
 
-    async function loadTrialSettings() {
-      try {
-        const res = await fetch('/api/admin/trial', {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const enabled = !!data.trial_enabled;
-        const days = data.trial_days || 30;
+    function selectAdminCategory(cat, btnEl) {
+      currentCategory = cat;
 
-        document.getElementById('inputTrialEnabled').value = enabled ? '1' : '0';
-        document.getElementById('inputTrialDays').value = String(days);
-        
-        let label = days + ' Days';
-        if (days === 30) label = '1 Month (30 Days)';
-        else if (days === 90) label = '3 Months (90 Days)';
-        else if (days === 365) label = '1 Year (365 Days)';
+      // Update Category pills UI
+      document.querySelectorAll('.admin-cat-pill').forEach(btn => {
+        btn.className = 'admin-cat-pill py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 text-slate-400 hover:text-white';
+      });
+      if (btnEl) {
+        btnEl.className = 'admin-cat-pill active py-1.5 px-1 sm:px-3 rounded-lg text-[11px] sm:text-xs font-bold transition-all text-center flex items-center justify-center gap-1 bg-violet-600 text-white shadow-sm';
+      }
 
-        document.getElementById('displayTrialDuration').textContent = enabled ? label : 'Disabled';
-        document.getElementById('trialStatusBadge').textContent = enabled ? '🟢 Active: ' + label : '🔴 Disabled';
-        document.getElementById('trialStatusBadge').className = enabled ? 'text-[10px] text-emerald-400 font-semibold' : 'text-[10px] text-rose-400 font-semibold';
-      } catch (err) {
-        console.error('Failed to load trial settings:', err);
+      // Filter visible subtabs
+      const tabBtns = document.querySelectorAll('.admin-tab-btn');
+      let firstVisibleTab = null;
+      let activeTabStillVisible = false;
+
+      tabBtns.forEach(b => {
+        const tabName = b.getAttribute('data-tab');
+        const tabCat = b.getAttribute('data-cat');
+        if (cat === 'all' || tabCat === cat) {
+          b.classList.remove('hidden');
+          if (!firstVisibleTab) firstVisibleTab = tabName;
+          if (tabName === currentTab) activeTabStillVisible = true;
+        } else {
+          b.classList.add('hidden');
+        }
+      });
+
+      // If active tab was hidden by category filter, switch to first visible tab
+      if (!activeTabStillVisible && firstVisibleTab) {
+        const targetBtn = document.querySelector('.admin-tab-btn[data-tab="' + firstVisibleTab + '"]');
+        switchAdminTab(firstVisibleTab, targetBtn);
       }
     }
 
-    async function handleUpdateTrial(e) {
-      e.preventDefault();
-      const enabled = document.getElementById('inputTrialEnabled').value === '1';
-      const days = parseInt(document.getElementById('inputTrialDays').value, 10) || 30;
+    function switchAdminTab(tabName, clickedBtn) {
+      currentTab = tabName;
+      const allTabs = ['pro_users', 'payments', 'plans', 'offers', 'referrals', 'broadcast', 'crashes', 'licenses'];
+      allTabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.classList.add('hidden');
+      });
 
-      const btn = document.getElementById('btnUpdateTrial');
-      const msgBox = document.getElementById('trialUpdateMsg');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-      msgBox.classList.add('hidden');
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.remove('hidden');
+
+      // Update button styling
+      document.querySelectorAll('.admin-tab-btn').forEach(b => {
+        b.className = 'admin-tab-btn px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800/70 border border-slate-800';
+      });
+      if (!clickedBtn) {
+        clickedBtn = document.querySelector('.admin-tab-btn[data-tab="' + tabName + '"]');
+      }
+      if (clickedBtn) {
+        clickedBtn.className = 'admin-tab-btn active px-2.5 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center gap-1 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm border border-violet-500/40';
+      }
+
+      // Auto-load tab data
+      if (tabName === 'pro_users') loadProUsers();
+      else if (tabName === 'payments') loadPaymentTransactions();
+      else if (tabName === 'plans') { loadPlans(); loadTrialSettings(); }
+      else if (tabName === 'offers') { loadDiscounts(); loadOffers(); }
+      else if (tabName === 'referrals') { loadReferralSettings(); loadPayoutRequests(); }
+      else if (tabName === 'broadcast') loadBotSubscribers();
+      else if (tabName === 'crashes') loadCrashReports();
+      else if (tabName === 'licenses') loadLicenses();
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (document.getElementById('statTotalProUsers')) document.getElementById('statTotalProUsers').textContent = data.totalProUsers || 0;
+          if (document.getElementById('statActiveProUsers')) document.getElementById('statActiveProUsers').textContent = data.activeProUsers || 0;
+          if (document.getElementById('statMonthlyUsers')) document.getElementById('statMonthlyUsers').textContent = data.monthlyProUsers || 0;
+          if (document.getElementById('statAnnualUsers')) document.getElementById('statAnnualUsers').textContent = data.annualProUsers || 0;
+          if (document.getElementById('statLifetimeUsers')) document.getElementById('statLifetimeUsers').textContent = data.lifetimeProUsers || 0;
+          if (document.getElementById('statTotalRevenue')) document.getElementById('statTotalRevenue').textContent = (data.totalRevenueInr || 0).toLocaleString();
+
+          if (document.getElementById('statTotalLicenses')) document.getElementById('statTotalLicenses').textContent = data.totalLicenses || 0;
+          if (document.getElementById('statActiveDevices')) document.getElementById('statActiveDevices').textContent = data.activeDevices || 0;
+          if (document.getElementById('statLifetime')) document.getElementById('statLifetime').textContent = data.lifetimeLicenses || 0;
+          if (document.getElementById('statBanned')) document.getElementById('statBanned').textContent = data.bannedLicenses || 0;
+          const crashStatEl = document.getElementById('statCrashReports');
+          if (crashStatEl) {
+            crashStatEl.textContent = data.totalCrashes || 0;
+          }
+        }
+      } catch (err) {
+        console.error('Stats error:', err);
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const secret = document.getElementById('adminSecretInput').value.trim();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
 
       try {
-        const res = await fetch('/api/admin/trial/update', {
+        const res = await fetch('/api/admin/auth/verify', {
           method: 'POST',
           headers: {
-            'Authorization': 'Bearer ' + adminToken,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + secret
           },
-          body: JSON.stringify({ trial_enabled: enabled, trial_days: days })
+          body: JSON.stringify({ secret })
+        });
+        const data = await res.json();
+        if (res.ok && data.valid) {
+          adminToken = secret;
+          localStorage.setItem('tg_admin_secret', secret);
+          showDashboard();
+        } else {
+          errEl.textContent = data.error || 'Invalid admin secret';
+          errEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        errEl.textContent = 'Failed to connect to server';
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('tg_admin_secret');
+      adminToken = '';
+      showLogin();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ── Pro Users Management ──
+    let cachedProUsers = [];
+    let currentProPlanFilter = 'all';
+
+    async function loadProUsers(query = '') {
+      const tbody = document.getElementById('proUsersTableBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Pro subscriptions...</td></tr>';
+      try {
+        const url = query ? '/api/admin/pro-users?q=' + encodeURIComponent(query) : '/api/admin/pro-users';
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + adminToken } });
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Failed to load Pro subscriptions</td></tr>';
+          return;
+        }
+        const data = await res.json();
+        cachedProUsers = data.users || [];
+        document.getElementById('proUsersCountBadge').textContent = \`\${cachedProUsers.length} Account(s)\`;
+        renderProUsers();
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Network error loading Pro subscriptions</td></tr>';
+      }
+    }
+
+    function handleProUserSearch() {
+      const q = document.getElementById('proUserSearchInput').value.toLowerCase().trim();
+      renderProUsers(q);
+    }
+
+    function filterProUsersByPlan(plan, btnEl) {
+      currentProPlanFilter = plan;
+      document.querySelectorAll('.pro-plan-filter-btn').forEach(b => {
+        b.className = 'pro-plan-filter-btn px-2 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-slate-300 font-bold text-[10px] hover:bg-slate-800 whitespace-nowrap';
+      });
+      if (btnEl) {
+        btnEl.className = 'pro-plan-filter-btn px-2 py-1 rounded-lg bg-violet-600 text-white font-bold text-[10px] shadow-sm whitespace-nowrap';
+      }
+      handleProUserSearch();
+    }
+
+    function renderProUsers(query = '') {
+      const tbody = document.getElementById('proUsersTableBody');
+      const now = Math.floor(Date.now() / 1000);
+
+      let filtered = cachedProUsers;
+      if (query) {
+        filtered = filtered.filter(u => 
+          String(u.telegram_user_id).includes(query) ||
+          (u.username && u.username.toLowerCase().includes(query)) ||
+          (u.first_name && u.first_name.toLowerCase().includes(query)) ||
+          (u.phone_number && u.phone_number.includes(query))
+        );
+      }
+
+      if (currentProPlanFilter === 'monthly') {
+        filtered = filtered.filter(u => u.plan_type === 'monthly');
+      } else if (currentProPlanFilter === 'annual') {
+        filtered = filtered.filter(u => u.plan_type === 'annual');
+      } else if (currentProPlanFilter === 'lifetime') {
+        filtered = filtered.filter(u => u.plan_type === 'lifetime');
+      } else if (currentProPlanFilter === 'expired') {
+        filtered = filtered.filter(u => u.expires_at && u.expires_at <= now);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No matching Pro accounts found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(u => {
+        const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString('en-IN') : '—';
+        const isBanned = u.is_banned === 1;
+        const isExpired = Boolean(u.expires_at && u.expires_at <= now);
+
+        let planBadge = '';
+        if (u.plan_type === 'monthly') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">📅 Monthly Pass</span>';
+        } else if (u.plan_type === 'annual') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border border-sky-500/30">🌟 Annual Pass</span>';
+        } else if (u.plan_type === 'lifetime') {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">👑 Lifetime VIP</span>';
+        } else {
+          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-800 text-slate-300 border border-slate-700">' + (u.plan_type || 'PRO') + '</span>';
+        }
+
+        let statusBadge = '';
+        if (isBanned) {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">🚫 Banned</span>';
+        } else if (isExpired) {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">🔴 Expired</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 Active</span>';
+        }
+
+        let expiryDisplay = '';
+        if (!u.expires_at || u.plan_type === 'lifetime') {
+          expiryDisplay = '<span class="text-amber-400 font-bold font-mono">👑 Lifetime</span>';
+        } else {
+          const diff = u.expires_at - now;
+          const expDate = new Date(u.expires_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          if (diff <= 0) {
+            const expDaysAgo = Math.floor(Math.abs(diff) / 86400);
+            expiryDisplay = '<span class="text-rose-400 font-bold font-mono">🔴 Expired ' + (expDaysAgo > 0 ? expDaysAgo + 'd ago' : 'today') + '</span>';
+          } else {
+            const daysLeft = Math.floor(diff / 86400);
+            const hoursLeft = Math.floor((diff % 86400) / 3600);
+            const cdText = daysLeft > 0 ? (daysLeft + 'd left') : (hoursLeft + 'h left');
+            if (daysLeft <= 3) {
+              expiryDisplay = '<span class="text-amber-400 font-bold font-mono">⚠️ ' + cdText + ' (' + expDate + ')</span>';
+            } else {
+              expiryDisplay = '<span class="text-emerald-400 font-bold font-mono">🟢 ' + cdText + ' (' + expDate + ')</span>';
+            }
+          }
+        }
+
+        const nameDisp = u.first_name || u.username ? ((u.first_name || '') + (u.username ? ' (@' + u.username + ')' : '')).trim() : 'Telegram User';
+
+        return \`
+          <tr class="hover:bg-slate-900/50 transition-colors">
+            <td class="card-header-cell px-3 py-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">\${u.plan_type === 'lifetime' ? '👑' : '💎'}</span>
+                  <div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-mono font-bold text-white text-xs">\${u.telegram_user_id}</span>
+                      <button type="button" onclick="navigator.clipboard.writeText('\${u.telegram_user_id}'); showToast('Copied ID!')" class="text-slate-500 hover:text-white text-xs">📋</button>
+                    </div>
+                    <div class="text-[11px] font-sans font-normal text-slate-400 truncate max-w-xs">\${nameDisp}</div>
+                  </div>
+                </div>
+                <div class="sm:hidden">\${statusBadge}</div>
+              </div>
+            </td>
+            <td class="px-3 py-1 sm:py-2 text-slate-300 font-mono text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Phone:</span>
+              <span>\${u.phone_number || '—'}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Plan:</span>
+              <span>\${planBadge}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 hidden sm:table-cell">\${statusBadge}</td>
+            <td class="px-3 py-1 sm:py-2 text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Expiry:</span>
+              <span>\${expiryDisplay}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 text-slate-400 text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Joined:</span>
+              <span>\${joined}</span>
+            </td>
+            <td class="card-actions-cell px-3 py-2 text-right whitespace-nowrap">
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 30, 'monthly')" title="Extend +30 Days" class="px-2 py-1 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 font-bold text-[10px] transition-all">+30d</button>
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 365, 'annual')" title="Extend +1 Year" class="px-2 py-1 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 font-bold text-[10px] transition-all">+1yr</button>
+              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 0, 'lifetime')" title="Make Lifetime VIP" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-bold text-[10px] transition-all">👑 VIP</button>
+              \${isBanned 
+                ? \`<button onclick="handleUnbanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold text-[10px]">Unban</button>\`
+                : \`<button onclick="handleBanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 font-bold text-[10px]">Ban</button>\`
+              }
+              <button onclick="handleDeleteProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:text-rose-400 font-bold text-[10px]">Delete</button>
+            </td>
+          </tr>
+        \`;
+      }).join('');
+    }
+
+    async function handleQuickExtend(tgUserId, days, planType) {
+      if (!confirm(\`Extend user \${tgUserId} by \${days === 0 ? 'LIFETIME' : days + ' days'} (\${planType})?\`)) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/extend', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgUserId, duration_days: days, plan_type: planType })
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          msgBox.textContent = data.message || 'Trial settings saved!';
-          msgBox.classList.remove('hidden');
-
-          let label = days + ' Days';
-          if (days === 30) label = '1 Month (30 Days)';
-          else if (days === 90) label = '3 Months (90 Days)';
-          else if (days === 365) label = '1 Year (365 Days)';
-
-          document.getElementById('displayTrialDuration').textContent = enabled ? label : 'Disabled';
-          document.getElementById('trialStatusBadge').textContent = enabled ? '🟢 Active: ' + label : '🔴 Disabled';
-          document.getElementById('trialStatusBadge').className = enabled ? 'text-[10px] text-emerald-400 font-semibold' : 'text-[10px] text-rose-400 font-semibold';
-          showToast('Free trial settings updated live!');
+          showToast('Updated Pro plan successfully!');
+          loadProUsers();
+          loadStats();
         } else {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          msgBox.textContent = data.error || 'Failed to update trial settings.';
-          msgBox.classList.remove('hidden');
+          showToast(data.error || 'Failed to update user');
         }
       } catch (err) {
-        msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-        msgBox.textContent = 'Network error while updating trial.';
-        msgBox.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Trial Settings';
+        showToast('Network error');
       }
     }
 
+    async function handleBanProUser(tgUserId) {
+      if (!confirm(\`Ban user \${tgUserId} from Telegram Pro access?\`)) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/ban', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgUserId })
+        });
+        if (res.ok) {
+          showToast('User banned');
+          loadProUsers();
+          loadStats();
+        } else {
+          showToast('Failed to ban user');
+        }
+      } catch (err) {
+        showToast('Network error');
+      }
+    }
+
+    async function handleUnbanProUser(tgUserId) {
+      try {
+        const res = await fetch('/api/admin/pro-users/unban', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgUserId })
+        });
+        if (res.ok) {
+          showToast('User unbanned');
+          loadProUsers();
+          loadStats();
+        } else {
+          showToast('Failed to unban user');
+        }
+      } catch (err) {
+        showToast('Network error');
+      }
+    }
+
+    async function handleDeleteProUser(tgUserId) {
+      if (!confirm(\`Permanently delete Pro status for user \${tgUserId}?\`)) return;
+      try {
+        const res = await fetch('/api/admin/pro-users/delete', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_user_id: tgUserId })
+        });
+        if (res.ok) {
+          showToast('User Pro record deleted');
+          loadProUsers();
+          loadStats();
+        } else {
+          showToast('Failed to delete user');
+        }
+      } catch (err) {
+        showToast('Network error');
+      }
+    }
+
+    function openUpgradeProModal() {
+      document.getElementById('upgradeProModal').classList.remove('hidden');
+    }
+
+    function closeUpgradeProModal() {
+      document.getElementById('upgradeProModal').classList.add('hidden');
+      document.getElementById('grantProForm').reset();
+    }
+
+    async function handleGrantPro(e) {
+      e.preventDefault();
+      const tgUserId = document.getElementById('grantTgUserId').value.trim();
+      const firstName = document.getElementById('grantFirstName').value.trim();
+      const username = document.getElementById('grantUsername').value.trim().replace(/^@/, '');
+      const planType = document.getElementById('grantPlanType').value;
+      const durationDays = parseInt(document.getElementById('grantDurationDays').value, 10) || 0;
+      const notes = document.getElementById('grantNotes').value.trim();
+
+      const btn = document.getElementById('btnSubmitGrantPro');
+      btn.disabled = true;
+      btn.textContent = 'Granting...';
+
+      try {
+        const res = await fetch('/api/admin/pro-users/grant', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_user_id: tgUserId,
+            first_name: firstName,
+            username: username,
+            plan_type: planType,
+            duration_days: durationDays,
+            notes: notes
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Pro granted to ' + tgUserId);
+          closeUpgradeProModal();
+          loadProUsers();
+          loadStats();
+        } else {
+          showToast(data.error || 'Failed to grant Pro');
+        }
+      } catch (err) {
+        showToast('Network error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Grant Pro';
+      }
+    }
+
+    // ── Payment Transactions (Razorpay) ──
+    async function loadPaymentTransactions() {
+      const tbody = document.getElementById('paymentTransactionsTableBody');
+      tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">Loading transactions...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/payment-transactions', { headers: { 'Authorization': 'Bearer ' + adminToken } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const txs = data.transactions || [];
+
+        if (txs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No payment transactions recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = txs.map(t => {
+          const amt = '₹' + (t.amount >= 100 ? (t.amount / 100).toFixed(2) : t.amount);
+          const created = t.created_at ? new Date(t.created_at * 1000).toLocaleString('en-IN') : '—';
+          const paid = t.paid_at ? new Date(t.paid_at * 1000).toLocaleString('en-IN') : '—';
+          const statusBadge = t.status === 'paid'
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✅ Paid</span>'
+            : t.status === 'created'
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Created</span>'
+              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">❌ Failed</span>';
+
+          const planDisp = t.plan_type === 'monthly'
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">📅 Monthly</span>'
+            : t.plan_type === 'annual'
+              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">🌟 Annual</span>'
+              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">👑 Lifetime</span>';
+
+          return \`
+            <tr class="hover:bg-slate-900/50 transition-colors">
+              <td class="card-header-cell px-3 py-2">
+                <div class="flex items-center justify-between">
+                  <div class="font-mono font-bold text-white text-xs truncate max-w-[200px]">\${t.order_id}</div>
+                  <div class="sm:hidden">\${statusBadge}</div>
+                </div>
+              </td>
+              <td class="px-3 py-1 sm:py-2 font-mono text-slate-300 text-xs flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Payment ID:</span>
+                <span>\${t.payment_id || '—'}</span>
+              </td>
+              <td class="px-3 py-1 sm:py-2 text-cyan-400 text-xs flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Telegram User:</span>
+                <span class="font-mono">\${t.telegram_user_id} \${t.phone_number ? '(' + t.phone_number + ')' : ''}</span>
+              </td>
+              <td class="px-3 py-1 sm:py-2 flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Plan:</span>
+                <span>\${planDisp}</span>
+              </td>
+              <td class="px-3 py-1 sm:py-2 font-mono font-bold text-emerald-400 text-xs flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Amount:</span>
+                <span>\${amt}</span>
+              </td>
+              <td class="px-3 py-1 sm:py-2 hidden sm:table-cell">\${statusBadge}</td>
+              <td class="px-3 py-1 sm:py-2 text-slate-400 text-[11px] flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Created:</span>
+                <span>\${created}</span>
+              </td>
+              <td class="px-3 py-1 sm:py-2 text-slate-400 text-[11px] flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Paid:</span>
+                <span>\${paid}</span>
+              </td>
+              <td class="card-actions-cell px-3 py-2 text-right">
+                <button type="button" onclick="handleVerifyPaymentLink('\${t.order_id}', '\${t.payment_id || ''}', '\${t.telegram_user_id}')" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold transition-all active:scale-95 whitespace-nowrap">
+                  ⚡ Verify with Razorpay
+                </button>
+              </td>
+            </tr>
+          \`;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-rose-400">Error loading payment transactions</td></tr>';
+      }
+    }
+
+    async function handleVerifyPaymentLink(orderId, paymentId, tgUserId) {
+      if (!confirm(\`Verify order \${orderId} against Razorpay API now?\`)) return;
+      try {
+        const res = await fetch('/api/admin/payments/verify-link', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: orderId,
+            payment_link_id: orderId.startsWith('plink_') ? orderId : undefined,
+            payment_id: paymentId || undefined,
+            telegram_user_id: tgUserId
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Payment verified successfully: ' + data.status);
+          loadPaymentTransactions();
+          loadProUsers();
+          loadStats();
+        } else {
+          showToast(data.error || 'Verification returned status: ' + (data.status || 'unknown'));
+        }
+      } catch (err) {
+        showToast('Network error verifying payment link');
+      }
+    }
+
+    // ── Plans & Dynamic Pricing ──
     async function loadPlans() {
       try {
         const res = await fetch('/api/admin/plans', {
@@ -1281,17 +1940,17 @@ export function renderAdminDashboardHtml(appName: string): string {
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
           msgBox.textContent = data.message || 'All membership plans updated successfully! Apps will sync immediately.';
           msgBox.classList.remove('hidden');
           showToast('Membership plans saved live!');
         } else {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
           msgBox.textContent = data.error || 'Failed to save plans.';
           msgBox.classList.remove('hidden');
         }
       } catch (err) {
-        msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
         msgBox.textContent = 'Network error while updating plans.';
         msgBox.classList.remove('hidden');
       } finally {
@@ -1300,188 +1959,86 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    function openCreateCouponModal() {
-      const errBox = document.getElementById('couponCreateError');
-      if (errBox) errBox.classList.add('hidden');
-      document.getElementById('createCouponModal').classList.remove('hidden');
-    }
-
-    function closeCreateCouponModal() {
-      document.getElementById('createCouponModal').classList.add('hidden');
-      document.getElementById('createCouponForm').reset();
-    }
-
-    async function loadDiscounts() {
-      const container = document.getElementById('couponsList');
-      if (!container) return;
+    // ── Free Trial Controller ──
+    async function loadTrialSettings() {
       try {
-        const res = await fetch('/api/admin/discounts', {
+        const res = await fetch('/api/admin/trial', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
-        if (!res.ok) {
-          container.innerHTML = '<p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Unable to load coupons from Lemon Squeezy.</p>';
-          return;
-        }
+        if (!res.ok) return;
         const data = await res.json();
-        const discounts = data.discounts || [];
-        if (!discounts.length) {
-          container.innerHTML = '<p class="text-xs text-slate-500 py-3 italic col-span-full text-center">No active coupons. Click "+ New Promo Code" to create one!</p>';
-          return;
-        }
+        const enabled = !!data.trial_enabled;
+        const days = data.trial_days || 30;
 
-        container.innerHTML = discounts.map(d => {
-          const discountVal = d.amount_type === 'percent' ? d.amount + '% OFF' : '₹' + d.amount + ' OFF';
-          const expiryStr = d.expires_at 
-            ? new Date(d.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'Never Expires';
-          const usageStr = d.is_limited_redemptions && d.max_redemptions 
-            ? 'Limit: ' + d.max_redemptions + ' users'
-            : 'Unlimited Claims';
+        document.getElementById('inputTrialEnabled').value = enabled ? '1' : '0';
+        document.getElementById('inputTrialDays').value = String(days);
+        
+        let label = days + ' Days';
+        if (days === 30) label = '1 Month (30 Days)';
+        else if (days === 90) label = '3 Months (90 Days)';
+        else if (days === 365) label = '1 Year (365 Days)';
 
-          return \`
-            <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/70 hover:border-indigo-500/50 transition-all flex flex-col justify-between gap-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div>
-                  <span class="mono text-sm font-bold text-indigo-400 tracking-wider">\${d.code}</span>
-                  <div class="text-[11px] text-emerald-400 font-semibold mt-0.5">\${discountVal}</div>
-                </div>
-                <button onclick="copyToClipboard('\${d.code}')" class="text-slate-400 hover:text-indigo-400 text-xs p-1" title="Copy Code">📋</button>
-              </div>
-              <div class="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800/80 pt-2">
-                <div class="flex flex-col">
-                  <span>👥 \${usageStr}</span>
-                  <span>⏳ \${expiryStr}</span>
-                </div>
-                <button onclick="handleDeleteCoupon('\${d.id}', '\${d.code}')" class="px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium text-[10px] transition-colors" title="Delete Coupon">
-                  Delete
-                </button>
-              </div>
-            </div>
-          \`;
-        }).join('');
+        document.getElementById('displayTrialDuration').textContent = enabled ? label : 'Disabled';
+        document.getElementById('trialStatusBadge').textContent = enabled ? '🟢 Active: ' + label : '🔴 Disabled';
+        document.getElementById('trialStatusBadge').className = enabled ? 'text-[10px] text-emerald-400 font-semibold' : 'text-[10px] text-rose-400 font-semibold';
       } catch (err) {
-        container.innerHTML = '<p class="text-xs text-rose-400 py-3 italic col-span-full text-center">Failed to fetch coupons.</p>';
+        console.error('Failed to load trial settings:', err);
       }
     }
 
-    async function handleCreateCoupon(e) {
+    async function handleUpdateTrial(e) {
       e.preventDefault();
-      const code = document.getElementById('couponCodeInput').value.trim();
-      const amount = parseFloat(document.getElementById('couponAmountInput').value);
-      const amountType = document.getElementById('couponTypeInput').value;
-      const limit = parseInt(document.getElementById('couponLimitInput').value, 10) || 0;
-      const duration = parseInt(document.getElementById('couponDurationInput').value, 10) || 0;
+      const enabled = document.getElementById('inputTrialEnabled').value === '1';
+      const days = parseInt(document.getElementById('inputTrialDays').value, 10) || 30;
 
-      const btn = document.getElementById('btnSubmitCoupon');
-      const errEl = document.getElementById('couponCreateError');
+      const btn = document.getElementById('btnUpdateTrial');
+      const msgBox = document.getElementById('trialUpdateMsg');
       btn.disabled = true;
-      btn.textContent = 'Creating...';
-      errEl.classList.add('hidden');
+      btn.textContent = 'Saving...';
+      msgBox.classList.add('hidden');
 
       try {
-        const res = await fetch('/api/admin/discounts/create', {
+        const res = await fetch('/api/admin/trial/update', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            code,
-            amount,
-            amount_type: amountType,
-            max_redemptions: limit > 0 ? limit : undefined,
-            duration_days: duration > 0 ? duration : undefined
-          })
+          body: JSON.stringify({ trial_enabled: enabled, trial_days: days })
         });
-
         const data = await res.json();
         if (res.ok && data.success) {
-          closeCreateCouponModal();
-          showToast('Coupon ' + code + ' created successfully!');
-          loadDiscounts();
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          msgBox.textContent = data.message || 'Trial settings saved!';
+          msgBox.classList.remove('hidden');
+
+          let label = days + ' Days';
+          if (days === 30) label = '1 Month (30 Days)';
+          else if (days === 90) label = '3 Months (90 Days)';
+          else if (days === 365) label = '1 Year (365 Days)';
+
+          document.getElementById('displayTrialDuration').textContent = enabled ? label : 'Disabled';
+          document.getElementById('trialStatusBadge').textContent = enabled ? '🟢 Active: ' + label : '🔴 Disabled';
+          document.getElementById('trialStatusBadge').className = enabled ? 'text-[10px] text-emerald-400 font-semibold' : 'text-[10px] text-rose-400 font-semibold';
+          showToast('Free trial settings updated live!');
         } else {
-          errEl.textContent = data.error || 'Failed to create coupon';
-          errEl.classList.remove('hidden');
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          msgBox.textContent = data.error || 'Failed to update trial settings.';
+          msgBox.classList.remove('hidden');
         }
       } catch (err) {
-        errEl.textContent = 'Network error creating coupon';
-        errEl.classList.remove('hidden');
+        msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        msgBox.textContent = 'Network error while updating trial.';
+        msgBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Create Live Coupon';
+        btn.textContent = 'Save Trial';
       }
     }
 
-    async function handleDeleteCoupon(id, code) {
-      if (!confirm('Delete coupon code ' + code + '? Users will no longer be able to use this discount.')) return;
-      try {
-        const res = await fetch('/api/admin/discounts/delete', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + adminToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ id, code })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast('Coupon ' + code + ' deleted.');
-          loadDiscounts();
-        } else {
-          alert(data.error || 'Failed to delete coupon');
-        }
-      } catch (err) {
-        alert('Network error deleting coupon');
-      }
-    }
-
-    async function openCreateOfferModal() {
-      const errBox = document.getElementById('offerCreateError');
-      if (errBox) errBox.classList.add('hidden');
-      document.getElementById('createOfferModal').classList.remove('hidden');
-      // Auto-fill the current live price so offer discounts are accurate
-      try {
-        const res = await fetch('/api/admin/pricing', { headers: { 'Authorization': 'Bearer ' + adminToken } });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.price) {
-            const origInput = document.getElementById('offerOriginalPrice');
-            if (origInput) origInput.value = data.price;
-          }
-        }
-      } catch(e) {}
-      calculateOfferPrice();
-    }
-
-    function closeCreateOfferModal() {
-      document.getElementById('createOfferModal').classList.add('hidden');
-      document.getElementById('createOfferForm').reset();
-    }
-
-    function calculateOfferPrice() {
-      const orig = parseFloat(document.getElementById('offerOriginalPrice').value) || 0;
-      const type = document.getElementById('offerDiscountType').value;
-      const val = parseFloat(document.getElementById('offerDiscountValue').value) || 0;
-      const badgeInput = document.getElementById('offerBadgeInput');
-      const finalInput = document.getElementById('offerFinalPrice');
-
-      let finalPrice = orig;
-      if (type === 'percent') {
-        finalPrice = Math.max(0, orig - (orig * val / 100));
-        if (badgeInput) badgeInput.value = val + '% OFF MEGA DEAL';
-      } else if (type === 'flat') {
-        finalPrice = Math.max(0, orig - val);
-        if (badgeInput) badgeInput.value = 'FLAT ₹' + val + ' OFF';
-      } else {
-        if (badgeInput) badgeInput.value = 'SPECIAL PROMO BUNDLE';
-      }
-      if (finalInput) finalInput.value = finalPrice.toFixed(2);
-    }
-
+    // ── Flash Deals & Offers ──
     async function loadOffers() {
       const container = document.getElementById('offersList');
-      if (!container) return;
-
       try {
         const res = await fetch('/api/admin/offers', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
@@ -1493,8 +2050,8 @@ export function renderAdminDashboardHtml(appName: string): string {
         const data = await res.json();
         const offers = data.offers || [];
 
-        if (!offers.length) {
-          container.innerHTML = '<p class="text-xs text-slate-500 py-4 italic col-span-full text-center">No promotional offers published yet. Click "+ New Special Offer" to launch a campaign!</p>';
+        if (offers.length === 0) {
+          container.innerHTML = '<p class="text-xs text-slate-500 py-4 italic col-span-full text-center">No promotional offers published yet. Click "+ New Offer" to launch a campaign!</p>';
           return;
         }
 
@@ -1543,38 +2100,36 @@ export function renderAdminDashboardHtml(appName: string): string {
           ).join('');
 
           return \`
-            <div class="p-4 rounded-2xl border \${styleBorder} flex flex-col justify-between gap-3 shadow-lg transition-all">
-              <div class="space-y-2">
+            <div class="p-3 sm:p-3.5 rounded-2xl border \${styleBorder} flex flex-col justify-between gap-2 shadow-sm transition-all">
+              <div class="space-y-1.5">
                 <div class="flex items-start justify-between gap-2">
-                  <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border \${badgeColor}">
+                  <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border \${badgeColor}">
                     \${o.badge || 'LIMITED OFFER'}
                   </span>
                   <div>\${statusBadge}</div>
                 </div>
 
                 <div>
-                  <h4 class="text-sm font-bold text-white">\${o.title}</h4>
-                  <p class="text-xs text-slate-400 mt-0.5">\${o.description}</p>
+                  <h4 class="text-xs sm:text-sm font-bold text-white">\${o.title}</h4>
+                  <p class="text-[11px] text-slate-400 mt-0.5">\${o.description}</p>
                 </div>
 
-                <!-- Price & Discount -->
-                <div class="flex items-baseline gap-2 pt-1">
-                  <span class="text-lg font-black text-emerald-400 font-mono">₹\${o.offer_price || 0}</span>
+                <div class="flex items-baseline gap-2 pt-0.5">
+                  <span class="text-sm sm:text-base font-black text-emerald-400 font-mono">₹\${o.offer_price || 0}</span>
                   \${o.original_price ? \`<span class="text-xs text-slate-500 line-through">₹\${o.original_price}</span>\` : ''}
-                  \${o.coupon_code ? \`<span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">CODE: \${o.coupon_code}</span>\` : ''}
+                  \${o.coupon_code ? \`<span class="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">CODE: \${o.coupon_code}</span>\` : ''}
                 </div>
 
-                <!-- Perks List -->
-                \${perksHtml ? \`<div class="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1">\${perksHtml}</div>\` : ''}
+                \${perksHtml ? \`<div class="p-1.5 rounded-lg bg-slate-950/60 border border-slate-800/80 space-y-0.5">\${perksHtml}</div>\` : ''}
               </div>
 
-              <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[11px]">
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px]">
                 <span class="text-slate-400">⏳ \${countdownText}</span>
-                <div class="flex items-center gap-2">
-                  <button onclick="toggleOfferActive('\${o.id}', \${isActive ? 1 : 0})" class="px-2.5 py-1 rounded-lg text-xs font-semibold \${isActive ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}">
-                    \${isActive ? 'Pause' : 'Activate Live'}
+                <div class="flex items-center gap-1">
+                  <button onclick="toggleOfferActive('\${o.id}', \${isActive ? 1 : 0})" class="px-2 py-0.5 rounded text-[10px] font-semibold \${isActive ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}">
+                    \${isActive ? 'Pause' : 'Activate'}
                   </button>
-                  <button onclick="deleteOffer('\${o.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="Delete Offer">
+                  <button onclick="deleteOffer('\${o.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="Delete">
                     🗑️
                   </button>
                 </div>
@@ -1587,28 +2142,65 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
+    function openCreateOfferModal() {
+      document.getElementById('createOfferModal').classList.remove('hidden');
+    }
+
+    function closeCreateOfferModal() {
+      document.getElementById('createOfferModal').classList.add('hidden');
+      document.getElementById('createOfferForm').reset();
+      document.getElementById('offerCreateError').classList.add('hidden');
+    }
+
+    function calculateOfferPrice() {
+      const type = document.getElementById('offerDiscountType').value;
+      const orig = parseFloat(document.getElementById('offerOriginalPrice').value) || 0;
+      const val = parseFloat(document.getElementById('offerDiscountValue').value) || 0;
+      let finalPrice = orig;
+
+      if (type === 'percent') {
+        finalPrice = Math.max(0, orig - (orig * (val / 100)));
+      } else if (type === 'flat') {
+        finalPrice = Math.max(0, orig - val);
+      } else {
+        finalPrice = val;
+      }
+      document.getElementById('offerFinalPrice').value = finalPrice.toFixed(2);
+    }
+
     async function handleCreateOffer(e) {
       e.preventDefault();
-      const title = document.getElementById('offerTitleInput').value.trim();
-      const badge = document.getElementById('offerBadgeInput').value.trim();
-      const description = document.getElementById('offerDescriptionInput').value.trim();
-      const discountType = document.getElementById('offerDiscountType').value;
-      const discountVal = parseFloat(document.getElementById('offerDiscountValue').value) || 0;
-      const origPrice = parseFloat(document.getElementById('offerOriginalPrice').value) || 0;
-      const offerPrice = parseFloat(document.getElementById('offerFinalPrice').value) || 0;
-      const durationHours = parseFloat(document.getElementById('offerDurationInput').value) || 0;
-      const couponCode = document.getElementById('offerCouponInput').value.trim();
-      const bannerStyle = document.getElementById('offerStyleInput').value;
+      const errBox = document.getElementById('offerCreateError');
+      errBox.classList.add('hidden');
 
-      const checkedPerks = Array.from(document.querySelectorAll('input[name="offerPerk"]:checked')).map(cb => cb.value);
+      const perks = [];
+      document.querySelectorAll('input[name="offerPerk"]:checked').forEach(c => perks.push(c.value));
       const customPerk = document.getElementById('offerCustomPerk').value.trim();
-      if (customPerk) checkedPerks.push(customPerk);
+      if (customPerk) perks.push(customPerk);
+
+      const durationHours = parseInt(document.getElementById('offerDurationInput').value, 10);
+      let countdownEnd = null;
+      if (durationHours > 0) {
+        countdownEnd = Math.floor(Date.now() / 1000) + (durationHours * 3600);
+      }
+
+      const payload = {
+        title: document.getElementById('offerTitleInput').value.trim(),
+        badge: document.getElementById('offerBadgeInput').value.trim(),
+        description: document.getElementById('offerDescriptionInput').value.trim(),
+        original_price: parseFloat(document.getElementById('offerOriginalPrice').value) || null,
+        offer_price: parseFloat(document.getElementById('offerFinalPrice').value) || 0,
+        discount_type: document.getElementById('offerDiscountType').value,
+        discount_value: parseFloat(document.getElementById('offerDiscountValue').value) || 0,
+        countdown_end: countdownEnd,
+        coupon_code: document.getElementById('offerCouponInput').value.trim().toUpperCase() || null,
+        banner_style: document.getElementById('offerStyleInput').value,
+        perks_list: perks
+      };
 
       const btn = document.getElementById('btnSubmitOffer');
-      const errEl = document.getElementById('offerCreateError');
       btn.disabled = true;
       btn.textContent = 'Publishing...';
-      errEl.classList.add('hidden');
 
       try {
         const res = await fetch('/api/admin/offers/create', {
@@ -1617,40 +2209,27 @@ export function renderAdminDashboardHtml(appName: string): string {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            title,
-            badge: badge || undefined,
-            description,
-            discount_type: discountType,
-            discount_value: discountVal,
-            original_price: origPrice > 0 ? origPrice : undefined,
-            offer_price: offerPrice > 0 ? offerPrice : undefined,
-            perks: checkedPerks,
-            coupon_code: couponCode || undefined,
-            banner_style: bannerStyle,
-            duration_hours: durationHours > 0 ? durationHours : undefined
-          })
+          body: JSON.stringify(payload)
         });
-
         const data = await res.json();
         if (res.ok && data.success) {
+          showToast('Offer published live!');
           closeCreateOfferModal();
-          showToast('Promotional offer published live!');
           loadOffers();
         } else {
-          errEl.textContent = data.error || 'Failed to create offer';
-          errEl.classList.remove('hidden');
+          errBox.textContent = data.error || 'Failed to create offer.';
+          errBox.classList.remove('hidden');
         }
       } catch (err) {
-        errEl.textContent = 'Network error publishing offer';
-        errEl.classList.remove('hidden');
+        errBox.textContent = 'Network error publishing offer.';
+        errBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Publish Offer Live';
+        btn.textContent = 'Publish Offer';
       }
     }
 
-    async function toggleOfferActive(id, currentActive) {
+    async function toggleOfferActive(offerId, currentActive) {
       try {
         const res = await fetch('/api/admin/offers/toggle', {
           method: 'POST',
@@ -1658,19 +2237,21 @@ export function renderAdminDashboardHtml(appName: string): string {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ id, is_active: currentActive === 1 ? 0 : 1 })
+          body: JSON.stringify({ id: offerId, is_active: currentActive ? 0 : 1 })
         });
         if (res.ok) {
-          showToast('Offer status updated');
+          showToast(currentActive ? 'Offer paused.' : 'Offer activated!');
           loadOffers();
+        } else {
+          showToast('Failed to update offer state.');
         }
-      } catch (e) {
-        alert('Failed to toggle offer status');
+      } catch (err) {
+        showToast('Network error updating offer.');
       }
     }
 
-    async function deleteOffer(id) {
-      if (!confirm('Are you sure you want to delete this promotional offer?')) return;
+    async function deleteOffer(offerId) {
+      if (!confirm('Are you sure you want to permanently delete this offer?')) return;
       try {
         const res = await fetch('/api/admin/offers/delete', {
           method: 'POST',
@@ -1678,361 +2259,160 @@ export function renderAdminDashboardHtml(appName: string): string {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ id })
+          body: JSON.stringify({ id: offerId })
         });
         if (res.ok) {
-          showToast('Offer deleted');
+          showToast('Offer deleted.');
           loadOffers();
-        }
-      } catch (e) {
-        alert('Failed to delete offer');
-      }
-    }
-
-
-
-
-    function logout() {
-      localStorage.removeItem('tg_admin_secret');
-      adminToken = '';
-      showLogin();
-    }
-
-    async function handleLogin(e) {
-      e.preventDefault();
-      const secret = document.getElementById('adminSecretInput').value.trim();
-      const errEl = document.getElementById('loginError');
-      errEl.classList.add('hidden');
-
-      try {
-        const res = await fetch('/api/admin/stats', {
-          headers: { 'Authorization': 'Bearer ' + secret }
-        });
-        if (res.ok) {
-          adminToken = secret;
-          localStorage.setItem('tg_admin_secret', secret);
-          showDashboard();
         } else {
-          errEl.textContent = 'Invalid Master Secret Password';
-          errEl.classList.remove('hidden');
+          showToast('Failed to delete offer.');
         }
       } catch (err) {
-        errEl.textContent = 'Failed to connect to server';
-        errEl.classList.remove('hidden');
+        showToast('Network error deleting offer.');
       }
     }
 
-    function switchAdminTab(tabName, clickedBtn) {
-      const allTabs = ['pro_users', 'payments', 'plans', 'offers', 'referrals', 'broadcast', 'crashes', 'licenses'];
-      allTabs.forEach(t => {
-        const el = document.getElementById('tab-' + t);
-        if (el) el.classList.add('hidden');
-      });
-
-      const target = document.getElementById('tab-' + tabName);
-      if (target) target.classList.remove('hidden');
-
-      // Update button styling
-      document.querySelectorAll('.admin-tab-btn').forEach(b => {
-        b.className = 'admin-tab-btn px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all text-slate-400 hover:text-white hover:bg-slate-800';
-      });
-      if (clickedBtn) {
-        clickedBtn.className = 'admin-tab-btn active px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 whitespace-nowrap transition-all bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25';
-      }
-
-      // Auto-load tab data
-      if (tabName === 'pro_users') loadProUsers();
-      else if (tabName === 'payments') loadPaymentTransactions();
-      else if (tabName === 'plans') { loadPlans(); loadTrialSettings(); }
-      else if (tabName === 'offers') { loadDiscounts(); loadOffers(); }
-      else if (tabName === 'referrals') { loadReferralSettings(); loadPayoutRequests(); }
-      else if (tabName === 'broadcast') loadBotSubscribers();
-      else if (tabName === 'crashes') loadCrashReports();
-      else if (tabName === 'licenses') loadLicenses();
-    }
-
-    async function loadStats() {
+    // ── Coupons ──
+    async function loadDiscounts() {
+      const container = document.getElementById('couponsList');
       try {
-        const res = await fetch('/api/admin/stats', {
+        const res = await fetch('/api/admin/discounts', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
-        if (res.ok) {
-          const data = await res.json();
-          // Pro user KPIs
-          if (document.getElementById('statTotalProUsers')) document.getElementById('statTotalProUsers').textContent = data.totalProUsers || 0;
-          if (document.getElementById('statActiveProUsers')) document.getElementById('statActiveProUsers').textContent = data.activeProUsers || 0;
-          if (document.getElementById('statMonthlyUsers')) document.getElementById('statMonthlyUsers').textContent = data.monthlyProUsers || 0;
-          if (document.getElementById('statAnnualUsers')) document.getElementById('statAnnualUsers').textContent = data.annualProUsers || 0;
-          if (document.getElementById('statLifetimeUsers')) document.getElementById('statLifetimeUsers').textContent = data.lifetimeProUsers || 0;
-          if (document.getElementById('statTotalRevenue')) document.getElementById('statTotalRevenue').textContent = (data.totalRevenueInr || 0).toLocaleString();
-
-          // Legacy license KPIs if present
-          if (document.getElementById('statTotalLicenses')) document.getElementById('statTotalLicenses').textContent = data.totalLicenses || 0;
-          if (document.getElementById('statActiveDevices')) document.getElementById('statActiveDevices').textContent = data.activeDevices || 0;
-          if (document.getElementById('statLifetime')) document.getElementById('statLifetime').textContent = data.lifetimeLicenses || 0;
-          if (document.getElementById('statBanned')) document.getElementById('statBanned').textContent = data.bannedLicenses || 0;
-          const crashStatEl = document.getElementById('statCrashReports');
-          if (crashStatEl) {
-            crashStatEl.textContent = data.totalCrashes || 0;
-          }
-        }
-      } catch (err) {
-        console.error('Stats error:', err);
-      }
-    }
-
-    async function loadLicenses() {
-      const tbody = document.getElementById('licensesTableBody');
-      try {
-        const res = await fetch('/api/admin/licenses', {
-          headers: { 'Authorization': 'Bearer ' + adminToken }
-        });
-        if (res.status === 401) {
-          logout();
+        if (!res.ok) {
+          container.innerHTML = '<p class="text-xs text-slate-500 py-3 italic col-span-full text-center">Unable to load coupons from server.</p>';
           return;
         }
         const data = await res.json();
-        renderLicensesTable(data.licenses || []);
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-rose-400">Failed to load licenses.</td></tr>';
-      }
-    }
+        const discounts = data.discounts || [];
 
-    let searchTimeout = null;
-    function handleSearch() {
-      clearTimeout(searchTimeout);
-      const q = document.getElementById('searchInput').value.trim();
-      if (!q) {
-        loadLicenses();
-        return;
-      }
-      searchTimeout = setTimeout(async () => {
-        try {
-          const res = await fetch('/api/admin/licenses/search?q=' + encodeURIComponent(q), {
-            headers: { 'Authorization': 'Bearer ' + adminToken }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            renderLicensesTable(data.licenses || []);
-          }
-        } catch (e) {
-          console.error(e);
+        if (discounts.length === 0) {
+          container.innerHTML = '<p class="text-xs text-slate-500 py-3 italic col-span-full text-center">No active coupons. Click "+ New Coupon" to create one!</p>';
+          return;
         }
-      }, 250);
-    }
 
-    function renderLicensesTable(licenses) {
-      const tbody = document.getElementById('licensesTableBody');
-      if (!licenses.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-slate-500">No licenses found.</td></tr>';
-        return;
-      }
+        container.innerHTML = discounts.map(d => {
+          const discountVal = d.amount_type === 'percent' ? d.amount + '% OFF' : '₹' + d.amount + ' OFF';
+          const expiryStr = d.expires_at 
+            ? new Date(d.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'Never';
+          const usageStr = d.is_limited_redemptions && d.max_redemptions 
+            ? 'Limit: ' + d.max_redemptions
+            : 'Unlimited';
 
-      tbody.innerHTML = licenses.map(l => {
-        const createdDate = new Date(l.created_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const isBanned = l.is_banned === 1;
-        
-        let planBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">LIFETIME</span>';
-        if (l.plan_type === 'annual') planBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ANNUAL</span>';
-        if (l.plan_type === 'monthly') planBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">MONTHLY</span>';
-        if (l.plan_type === 'trial') planBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20">TRIAL</span>';
-
-        const statusBadge = isBanned 
-          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">BANNED</span>'
-          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ACTIVE</span>';
-
-        return \`
-          <tr class="hover:bg-slate-800/40 transition-colors">
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
-                <span class="mono font-bold text-white text-xs tracking-wider select-all">\${l.license_key}</span>
-                <button onclick="copyToClipboard('\${l.license_key}')" class="text-slate-400 hover:text-cyan-400 text-xs p-1" title="Copy Key">📋</button>
-              </div>
-            </td>
-            <td class="px-6 py-4">
-              <div class="text-xs font-semibold text-white">\${l.customer_name || '—'}</div>
-              <div class="text-[11px] text-slate-400">\${l.customer_email || l.notes || '—'}</div>
-              \${l.telegram_user_id || l.phone_number ? \`
-                <div class="text-[10px] text-cyan-400 font-mono mt-0.5">
-                  TG: \${l.telegram_user_id ? 'ID ' + l.telegram_user_id : ''}\${l.phone_number ? ' (' + l.phone_number + ')' : ''}
+          return \`
+            <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/70 hover:border-indigo-500/50 transition-all flex flex-col justify-between gap-1.5">
+              <div class="flex items-start justify-between gap-1.5">
+                <div>
+                  <span class="mono text-xs font-bold text-indigo-400 tracking-wider">\${d.code}</span>
+                  <div class="text-[10px] text-emerald-400 font-semibold mt-0.5">\${discountVal}</div>
                 </div>
-              \` : ''}
-            </td>
-            <td class="px-6 py-4">\${planBadge}</td>
-            <td class="px-6 py-4">
-              <div class="text-xs font-semibold text-slate-200">\${l.active_devices_count || 0} / \${l.max_devices}</div>
-            </td>
-            <td class="px-6 py-4">\${statusBadge}</td>
-            <td class="px-6 py-4 text-xs text-slate-400">\${createdDate}</td>
-            <td class="px-6 py-4 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <button onclick="resetDevices('\${l.license_key}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300" title="Reset all device bindings">
-                  Reset Devs
-                </button>
-                \${isBanned 
-                  ? \`<button onclick="unbanKey('\${l.license_key}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Unban</button>\`
-                  : \`<button onclick="banKey('\${l.license_key}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30">Ban</button>\`
-                }
-                <button onclick="deleteKey('\${l.license_key}')" class="text-slate-500 hover:text-rose-400 text-xs p-1" title="Delete">🗑️</button>
+                <button onclick="copyToClipboard('\${d.code}')" class="text-slate-400 hover:text-indigo-400 text-xs p-1" title="Copy">📋</button>
               </div>
-            </td>
-          </tr>
-        \`;
-      }).join('');
+              <div class="flex items-center justify-between text-[9px] text-slate-400 border-t border-slate-800/80 pt-1.5">
+                <div class="flex flex-col">
+                  <span>👥 \${usageStr}</span>
+                  <span>⏳ \${expiryStr}</span>
+                </div>
+                <button onclick="handleDeleteCoupon('\${d.id}', '\${d.code}')" class="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium text-[9px]">
+                  Delete
+                </button>
+              </div>
+            </div>
+          \`;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = '<p class="text-xs text-rose-400 py-3 italic col-span-full text-center">Failed to fetch coupons.</p>';
+      }
     }
 
-    function openCreateModal() {
-      document.getElementById('createModal').classList.remove('hidden');
-    }
-    function closeCreateModal() {
-      document.getElementById('createModal').classList.add('hidden');
+    function openCreateCouponModal() {
+      document.getElementById('createCouponModal').classList.remove('hidden');
     }
 
-    async function handleCreateLicense(e) {
+    function closeCreateCouponModal() {
+      document.getElementById('createCouponModal').classList.add('hidden');
+      document.getElementById('createCouponForm').reset();
+      document.getElementById('couponCreateError').classList.add('hidden');
+    }
+
+    async function handleCreateCoupon(e) {
       e.preventDefault();
-      const plan = document.getElementById('planTypeSelect').value;
-      const maxDevices = parseInt(document.getElementById('maxDevicesSelect').value, 10);
-      const name = document.getElementById('customerNameInput').value.trim();
-      const email = document.getElementById('customerEmailInput').value.trim();
-      const tgId = document.getElementById('telegramUserIdInput') ? document.getElementById('telegramUserIdInput').value.trim() : '';
-      const phone = document.getElementById('phoneNumberInput') ? document.getElementById('phoneNumberInput').value.trim() : '';
-      const notes = document.getElementById('notesInput').value.trim();
+      const code = document.getElementById('couponCodeInput').value.trim().toUpperCase();
+      const amount = parseFloat(document.getElementById('couponAmountInput').value);
+      const amountType = document.getElementById('couponTypeInput').value;
+      const limit = parseInt(document.getElementById('couponLimitInput').value, 10) || 0;
+      const durationDays = parseInt(document.getElementById('couponDurationInput').value, 10) || 0;
+
+      const btn = document.getElementById('btnSubmitCoupon');
+      const errBox = document.getElementById('couponCreateError');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      errBox.classList.add('hidden');
+
+      let expiresAt = null;
+      if (durationDays > 0) {
+        const d = new Date();
+        d.setDate(d.getDate() + durationDays);
+        expiresAt = d.toISOString();
+      }
 
       try {
-        const res = await fetch('/api/admin/licenses/create', {
+        const res = await fetch('/api/admin/discounts/create', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + adminToken
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            plan_type: plan,
-            max_devices: maxDevices,
-            customer_name: name || undefined,
-            customer_email: email || undefined,
-            telegram_user_id: tgId || undefined,
-            phone_number: phone || undefined,
-            notes: notes || undefined
+            code: code,
+            amount: amount,
+            amount_type: amountType,
+            max_redemptions: limit > 0 ? limit : null,
+            expires_at: expiresAt
           })
         });
-
-        if (res.ok) {
-          const data = await res.json();
-          closeCreateModal();
-          document.getElementById('createLicenseForm').reset();
-          document.getElementById('generatedKeyDisplay').textContent = data.license.license_key;
-          document.getElementById('successModal').classList.remove('hidden');
-          loadStats();
-          loadLicenses();
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Coupon ' + code + ' created!');
+          closeCreateCouponModal();
+          loadDiscounts();
         } else {
-          alert('Failed to generate license key');
+          errBox.textContent = data.error || 'Failed to create coupon.';
+          errBox.classList.remove('hidden');
         }
       } catch (err) {
-        alert('Server error generating license');
+        errBox.textContent = 'Network error while creating coupon.';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Coupon';
       }
     }
 
-    function closeSuccessModal() {
-      document.getElementById('successModal').classList.add('hidden');
-    }
-
-    function copyGeneratedKey() {
-      const key = document.getElementById('generatedKeyDisplay').textContent;
-      copyToClipboard(key);
-    }
-
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied: ' + text);
-      });
-    }
-
-    async function resetDevices(key) {
-      if (!confirm('Reset all device bindings for ' + key + '? User will be able to activate on new devices.')) return;
+    async function handleDeleteCoupon(discountId, code) {
+      if (!confirm('Are you sure you want to delete coupon ' + code + '?')) return;
       try {
-        const res = await fetch('/api/admin/licenses/reset-devices', {
+        const res = await fetch('/api/admin/discounts/delete', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + adminToken
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ license_key: key })
+          body: JSON.stringify({ id: discountId })
         });
         if (res.ok) {
-          showToast('Devices reset successfully');
-          loadLicenses();
-          loadStats();
+          showToast('Coupon deleted.');
+          loadDiscounts();
+        } else {
+          showToast('Failed to delete coupon.');
         }
-      } catch (e) {
-        alert('Failed to reset devices');
+      } catch (err) {
+        showToast('Network error while deleting coupon.');
       }
     }
 
-    async function banKey(key) {
-      const reason = prompt('Enter reason for banning this key:', 'Chargeback / Terms Violation') || 'Administrative Ban';
-      try {
-        const res = await fetch('/api/admin/licenses/ban', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + adminToken
-          },
-          body: JSON.stringify({ license_key: key, reason })
-        });
-        if (res.ok) {
-          showToast('License Banned: ' + key);
-          loadLicenses();
-          loadStats();
-        }
-      } catch (e) {
-        alert('Failed to ban key');
-      }
-    }
-
-    async function unbanKey(key) {
-      try {
-        const res = await fetch('/api/admin/licenses/unban', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + adminToken
-          },
-          body: JSON.stringify({ license_key: key })
-        });
-        if (res.ok) {
-          showToast('License Unbanned: ' + key);
-          loadLicenses();
-          loadStats();
-        }
-      } catch (e) {
-        alert('Failed to unban key');
-      }
-    }
-
-    async function deleteKey(key) {
-      if (!confirm('Permanently delete license ' + key + '? This action cannot be undone!')) return;
-      try {
-        const res = await fetch('/api/admin/licenses/delete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + adminToken
-          },
-          body: JSON.stringify({ license_key: key })
-        });
-        if (res.ok) {
-          showToast('License deleted');
-          loadLicenses();
-          loadStats();
-        }
-      } catch (e) {
-        alert('Failed to delete key');
-      }
-    }
-
-    // -------------------------------------------------------------
-    // Refer & Earn Admin Functions
-    // -------------------------------------------------------------
+    // ── Refer & Earn Controller ──
     async function loadReferralSettings() {
       try {
         const res = await fetch('/api/admin/referrals/settings', {
@@ -2040,22 +2420,16 @@ export function renderAdminDashboardHtml(appName: string): string {
         });
         if (!res.ok) return;
         const data = await res.json();
-        const enabled = !!data.referral_enabled;
-        const rewardType = data.reward_type || 'fixed';
-        const rewardVal = data.reward_value || 50;
-        const friendDisc = data.friend_discount_value || 10;
-        const minPayout = data.min_payout || 200;
 
-        document.getElementById('inputReferralEnabled').value = enabled ? '1' : '0';
-        document.getElementById('inputReferralRewardType').value = rewardType;
-        document.getElementById('inputReferralRewardValue').value = String(rewardVal);
-        document.getElementById('inputReferralFriendDiscount').value = String(friendDisc);
-        document.getElementById('inputReferralMinPayout').value = String(minPayout);
+        document.getElementById('inputReferralEnabled').value = data.enabled ? '1' : '0';
+        document.getElementById('inputReferralRewardType').value = data.reward_type || 'fixed';
+        document.getElementById('inputReferralRewardValue').value = data.reward_value || 50;
+        document.getElementById('inputReferralFriendDiscount').value = data.friend_discount_percent || 10;
+        document.getElementById('inputReferralMinPayout').value = data.min_payout_amount || 100;
 
-        const rewardText = rewardType === 'percent' ? rewardVal + '% / Sale' : '₹' + rewardVal + ' / Sale';
-        document.getElementById('displayReferralReward').textContent = enabled ? rewardText : 'Disabled';
-        document.getElementById('referralStatusBadge').textContent = enabled ? '🟢 Active: ' + rewardText : '🔴 Disabled';
-        document.getElementById('referralStatusBadge').className = enabled ? 'text-[10px] text-emerald-400 font-semibold' : 'text-[10px] text-rose-400 font-semibold';
+        const valStr = data.reward_type === 'percent' ? data.reward_value + '%' : '₹' + data.reward_value;
+        document.getElementById('displayReferralReward').textContent = valStr + ' / Sale';
+        document.getElementById('referralStatusBadge').textContent = data.enabled ? '🟢 Active: ' + valStr + ' / Sale' : '🔴 Disabled';
       } catch (err) {
         console.error('Failed to load referral settings:', err);
       }
@@ -2063,17 +2437,19 @@ export function renderAdminDashboardHtml(appName: string): string {
 
     async function handleUpdateReferralSettings(e) {
       e.preventDefault();
-      const enabled = document.getElementById('inputReferralEnabled').value === '1';
-      const rewardType = document.getElementById('inputReferralRewardType').value;
-      const rewardVal = parseFloat(document.getElementById('inputReferralRewardValue').value) || 50;
-      const friendDisc = parseFloat(document.getElementById('inputReferralFriendDiscount').value) || 10;
-      const minPayout = parseFloat(document.getElementById('inputReferralMinPayout').value) || 200;
-
       const btn = document.getElementById('btnSaveReferralSettings');
       const msgBox = document.getElementById('referralUpdateMsg');
       btn.disabled = true;
       btn.textContent = 'Saving...';
       msgBox.classList.add('hidden');
+
+      const payload = {
+        enabled: document.getElementById('inputReferralEnabled').value === '1',
+        reward_type: document.getElementById('inputReferralRewardType').value,
+        reward_value: parseFloat(document.getElementById('inputReferralRewardValue').value) || 50,
+        friend_discount_percent: parseFloat(document.getElementById('inputReferralFriendDiscount').value) || 10,
+        min_payout_amount: parseFloat(document.getElementById('inputReferralMinPayout').value) || 100
+      };
 
       try {
         const res = await fetch('/api/admin/referrals/settings', {
@@ -2082,29 +2458,23 @@ export function renderAdminDashboardHtml(appName: string): string {
             'Authorization': 'Bearer ' + adminToken,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            referral_enabled: enabled,
-            reward_type: rewardType,
-            reward_value: rewardVal,
-            friend_discount_type: 'percent',
-            friend_discount_value: friendDisc,
-            min_payout: minPayout
-          })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          msgBox.textContent = data.message || 'Referral settings saved!';
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          msgBox.textContent = 'Referral program settings updated live!';
           msgBox.classList.remove('hidden');
+          showToast('Referral program settings saved!');
           loadReferralSettings();
         } else {
-          msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          msgBox.textContent = data.error || 'Failed to save settings';
+          msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          msgBox.textContent = data.error || 'Failed to update referral settings.';
           msgBox.classList.remove('hidden');
         }
       } catch (err) {
-        msgBox.className = 'mt-3 text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-        msgBox.textContent = 'Network error saving referral settings';
+        msgBox.className = 'mt-2 text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        msgBox.textContent = 'Network error while updating referral settings.';
         msgBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
@@ -2112,19 +2482,20 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    let currentPayoutFilter = 'pending';
-    async function loadPayoutRequests(status = 'pending', clickedBtn = null) {
-      currentPayoutFilter = status;
-      if (clickedBtn) {
+    // ── Withdrawal & Payout Requests ──
+    async function loadPayoutRequests(statusFilter = 'pending', btnEl = null) {
+      if (btnEl) {
         document.querySelectorAll('.payout-filter-btn').forEach(b => {
-          b.className = 'payout-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-semibold transition-all';
+          b.className = 'payout-filter-btn px-2 py-1 rounded text-slate-400 hover:text-white font-semibold';
         });
-        clickedBtn.className = 'payout-filter-btn px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-bold shadow-sm transition-all';
+        btnEl.className = 'payout-filter-btn px-2 py-1 rounded bg-cyan-500 text-slate-950 font-bold';
       }
 
       const tbody = document.getElementById('payoutsTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Loading payout requests...</td></tr>';
+
       try {
-        const res = await fetch('/api/admin/payouts?status=' + status, {
+        const res = await fetch('/api/admin/referrals/payouts?status=' + encodeURIComponent(statusFilter), {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!res.ok) {
@@ -2135,7 +2506,7 @@ export function renderAdminDashboardHtml(appName: string): string {
         const payouts = data.payouts || [];
 
         const pendingCount = payouts.filter(p => p.status === 'pending').length;
-        document.getElementById('pendingPayoutBadge').textContent = pendingCount + ' Pending Requests';
+        document.getElementById('pendingPayoutBadge').textContent = pendingCount + ' Pending';
 
         if (!payouts.length) {
           tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 italic">No withdrawal requests found for this filter.</td></tr>';
@@ -2156,13 +2527,13 @@ export function renderAdminDashboardHtml(appName: string): string {
           if (p.payout_method === 'upi') {
             detailsStr = '<strong>UPI:</strong> ' + (p.upi_id || 'N/A');
           } else {
-            detailsStr = '<strong>Bank:</strong> ' + (p.bank_name || '') + ' | Acc: ' + (p.bank_account || '') + ' | IFSC: ' + (p.bank_ifsc || '') + ' | Holder: ' + (p.bank_holder_name || '');
+            detailsStr = '<strong>Bank:</strong> ' + (p.bank_name || '') + ' | Acc: ' + (p.bank_account || '') + ' | IFSC: ' + (p.bank_ifsc || '');
           }
 
           let actionsHtml = '';
           if (p.status === 'pending') {
             actionsHtml = \`
-              <button onclick="openProcessPayoutModal('\${p.id}', '\${p.user_email}', \${p.amount}, '\${p.payout_method}', '\${encodeURIComponent(detailsStr)}')" class="px-2.5 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition-colors shadow-sm cursor-pointer">
+              <button onclick="openProcessPayoutModal('\${p.id}', '\${p.user_email}', \${p.amount}, '\${p.payout_method}', '\${encodeURIComponent(detailsStr)}')" class="px-2.5 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] shadow-sm cursor-pointer">
                 Process
               </button>
             \`;
@@ -2174,24 +2545,30 @@ export function renderAdminDashboardHtml(appName: string): string {
 
           return \`
             <tr class="hover:bg-slate-900/50 transition-colors">
-              <td class="px-4 py-3">
-                <div class="font-bold text-white">\${p.user_name || 'Partner'}</div>
-                <div class="text-[11px] text-slate-400">\${p.user_email}</div>
-                <div class="font-mono text-[10px] text-cyan-400 mt-0.5">\${p.referral_code}</div>
+              <td class="card-header-cell px-3 py-2">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="font-bold text-white text-xs">\${p.user_name || 'Partner'}</div>
+                    <div class="text-[11px] text-slate-400">\${p.user_email}</div>
+                    <div class="font-mono text-[10px] text-cyan-400 mt-0.5">\${p.referral_code}</div>
+                  </div>
+                  <div class="sm:hidden">\${statusBadge}</div>
+                </div>
               </td>
-              <td class="px-4 py-3 font-mono font-black text-emerald-400 text-sm">
-                ₹\${p.amount.toFixed(2)}
+              <td class="px-3 py-1 sm:py-2 font-mono font-black text-emerald-400 text-xs flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Amount:</span>
+                <span>₹\${p.amount.toFixed(2)}</span>
               </td>
-              <td class="px-4 py-3 text-[11px] text-slate-300 max-w-xs">
-                <div>\${detailsStr}</div>
+              <td class="px-3 py-1 sm:py-2 text-[11px] text-slate-300 max-w-xs flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Destination:</span>
+                <span>\${detailsStr}</span>
               </td>
-              <td class="px-4 py-3 text-[11px] text-slate-400 whitespace-nowrap">
-                \${dateStr}
+              <td class="px-3 py-1 sm:py-2 text-[11px] text-slate-400 whitespace-nowrap flex items-center justify-between">
+                <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Date:</span>
+                <span>\${dateStr}</span>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                \${statusBadge}
-              </td>
-              <td class="px-4 py-3 text-right whitespace-nowrap">
+              <td class="px-3 py-1 sm:py-2 whitespace-nowrap hidden sm:table-cell">\${statusBadge}</td>
+              <td class="card-actions-cell px-3 py-2 text-right whitespace-nowrap">
                 \${actionsHtml}
               </td>
             </tr>
@@ -2202,21 +2579,18 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    function openProcessPayoutModal(id, email, amount, method, encDetails) {
+    function openProcessPayoutModal(id, userEmail, amount, method, encDetails) {
       document.getElementById('modalPayoutId').value = id;
-      document.getElementById('modalPayoutUser').textContent = email;
+      document.getElementById('modalPayoutUser').textContent = userEmail;
       document.getElementById('modalPayoutAmount').textContent = '₹' + amount.toFixed(2);
-      document.getElementById('modalPayoutMethod').textContent = method.toUpperCase();
+      document.getElementById('modalPayoutMethod').textContent = method;
       document.getElementById('modalPayoutDetails').innerHTML = decodeURIComponent(encDetails);
-      document.getElementById('modalPayoutAction').value = 'completed';
-      document.getElementById('modalPayoutUtr').value = '';
-      document.getElementById('modalPayoutReason').value = '';
-      togglePayoutActionFields();
       document.getElementById('processPayoutModal').classList.remove('hidden');
     }
 
     function closeProcessPayoutModal() {
       document.getElementById('processPayoutModal').classList.add('hidden');
+      document.getElementById('processPayoutForm').reset();
     }
 
     function togglePayoutActionFields() {
@@ -2236,13 +2610,13 @@ export function renderAdminDashboardHtml(appName: string): string {
       const action = document.getElementById('modalPayoutAction').value;
       const utr = document.getElementById('modalPayoutUtr').value.trim();
       const reason = document.getElementById('modalPayoutReason').value.trim();
-      const btn = document.getElementById('btnSubmitProcessPayout');
 
+      const btn = document.getElementById('btnSubmitProcessPayout');
       btn.disabled = true;
       btn.textContent = 'Processing...';
 
       try {
-        const res = await fetch('/api/admin/payouts/process', {
+        const res = await fetch('/api/admin/referrals/payouts/process', {
           method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + adminToken,
@@ -2250,38 +2624,37 @@ export function renderAdminDashboardHtml(appName: string): string {
           },
           body: JSON.stringify({
             payout_id: id,
-            status: action,
-            utr_number: action === 'completed' ? (utr || 'PROCESSED') : undefined,
-            reason: action === 'rejected' ? (reason || 'Rejected by Admin') : undefined
+            action: action,
+            utr_number: utr,
+            admin_notes: reason
           })
         });
         const data = await res.json();
         if (res.ok && data.success) {
+          showToast('Payout processed successfully!');
           closeProcessPayoutModal();
-          showToast(action === 'completed' ? 'Payout marked as Completed!' : 'Payout rejected and refunded.');
-          loadPayoutRequests(currentPayoutFilter);
-          loadTopReferrers();
+          loadPayoutRequests('pending');
         } else {
-          alert(data.error || 'Failed to process payout');
+          showToast(data.error || 'Failed to process payout.');
         }
       } catch (err) {
-        alert('Network error processing payout');
+        showToast('Network error processing payout.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Confirm Action';
+        btn.textContent = 'Confirm';
       }
     }
 
+    // ── Leaderboard ──
     async function loadTopReferrers() {
       const container = document.getElementById('topReferrersList');
-      if (!container) return;
       try {
         const res = await fetch('/api/admin/referrals/leaderboard', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
         if (!res.ok) return;
         const data = await res.json();
-        const referrers = data.referrers || [];
+        const referrers = data.leaderboard || [];
 
         if (!referrers.length) {
           container.innerHTML = '<p class="text-xs text-slate-500 py-3 italic col-span-full text-center">No referrers active yet.</p>';
@@ -2289,19 +2662,23 @@ export function renderAdminDashboardHtml(appName: string): string {
         }
 
         container.innerHTML = referrers.map((r, idx) => {
+          let medal = '⭐';
+          if (idx === 0) medal = '🥇';
+          else if (idx === 1) medal = '🥈';
+          else if (idx === 2) medal = '🥉';
+
           return \`
-            <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between gap-2">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">#\${idx + 1}</span>
-                <span class="mono text-xs font-bold text-cyan-400">\${r.referral_code}</span>
+            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">\${medal}</span>
+                <div>
+                  <div class="text-xs font-bold text-white truncate max-w-[120px]">\${r.user_name || 'Partner'}</div>
+                  <div class="text-[10px] text-cyan-400 font-mono">\${r.referral_code}</div>
+                </div>
               </div>
-              <div>
-                <div class="text-xs font-bold text-white truncate">\${r.user_name || 'Partner'}</div>
-                <div class="text-[10px] text-slate-400 truncate">\${r.user_email}</div>
-              </div>
-              <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-800">
-                <span class="text-slate-400">Sales: <strong class="text-white">\${r.total_pro_sales}</strong></span>
-                <span class="text-emerald-400 font-bold font-mono">₹\${r.total_earned.toFixed(0)}</span>
+              <div class="text-right">
+                <div class="text-xs font-black text-emerald-400 font-mono">₹\${(r.total_earnings || 0).toFixed(2)}</div>
+                <div class="text-[9px] text-slate-400">\${r.total_referrals || 0} sales</div>
               </div>
             </div>
           \`;
@@ -2311,58 +2688,46 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    // -------------------------------------------------------------
-    // Crash Reporting & Diagnostics Controller
-    // -------------------------------------------------------------
+    // ── Crash Diagnostics ──
     let cachedCrashReports = [];
-
-    function scrollToCrashSection() {
-      const el = document.getElementById('crashReportsSection');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function escapeHtml(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
 
     async function loadCrashReports() {
       const tbody = document.getElementById('crashReportsTableBody');
-      if (!tbody) return;
       try {
-        const res = await fetch('/api/admin/crash-reports?limit=50', {
+        const res = await fetch('/api/admin/crash-reports', {
           headers: { 'Authorization': 'Bearer ' + adminToken }
         });
+        if (res.status === 401) {
+          logout();
+          return;
+        }
         if (!res.ok) {
           tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Failed to load crash reports.</td></tr>';
           return;
         }
         const data = await res.json();
         cachedCrashReports = data.reports || [];
-        const total = data.total ?? cachedCrashReports.length;
-        const statEl = document.getElementById('statCrashReports');
-        if (statEl) statEl.textContent = total;
 
-        renderCrashReportsTable(cachedCrashReports);
+        const statEl = document.getElementById('statCrashReports');
+        if (statEl) {
+          statEl.textContent = cachedCrashReports.length;
+        }
+
+        renderCrashReports(cachedCrashReports);
       } catch (err) {
-        console.error('Error loading crash reports:', err);
         tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-rose-400">Network error fetching crash reports.</td></tr>';
       }
     }
 
-    function renderCrashReportsTable(reports) {
+    function renderCrashReports(reports) {
       const tbody = document.getElementById('crashReportsTableBody');
-      if (!tbody) return;
       if (!reports.length) {
         tbody.innerHTML = \`
           <tr>
-            <td colspan="6" class="px-4 py-10 text-center">
-              <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 text-xl mb-2 border border-emerald-500/20">✓</div>
-              <div class="text-sm font-semibold text-white">No Crashes Recorded</div>
-              <p class="text-xs text-slate-400 mt-0.5">Your application builds are currently running healthy and crash-free!</p>
+            <td colspan="6" class="px-4 py-8 text-center">
+              <div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 text-base mb-1 border border-emerald-500/20">✓</div>
+              <div class="text-xs font-semibold text-white">No Crashes Recorded</div>
+              <p class="text-[10px] text-slate-400 mt-0.5">Application builds are currently running healthy and crash-free!</p>
             </td>
           </tr>
         \`;
@@ -2380,19 +2745,31 @@ export function renderAdminDashboardHtml(appName: string): string {
 
         return \`
           <tr class="hover:bg-slate-800/40 transition-colors">
-            <td class="px-4 py-3">
-              <span class="mono font-bold text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">\${escapeHtml(r.error_type)}</span>
+            <td class="card-header-cell px-3 py-2">
+              <div class="flex items-center justify-between">
+                <span class="mono font-bold text-rose-400 text-xs bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">\${escapeHtml(r.error_type)}</span>
+                <span class="sm:hidden">\${sourceBadge}</span>
+              </div>
             </td>
-            <td class="px-4 py-3">\${sourceBadge}</td>
-            <td class="px-4 py-3 font-mono font-semibold text-white text-xs">v\${escapeHtml(r.app_version)}</td>
-            <td class="px-4 py-3 text-slate-300 text-xs">\${escapeHtml(r.platform)}</td>
-            <td class="px-4 py-3 text-slate-400 text-xs font-mono whitespace-nowrap">\${dateStr}</td>
-            <td class="px-4 py-3 text-right">
-              <div class="flex items-center justify-end gap-1.5">
-                <button onclick="openCrashInspectModal('\${r.id}')" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold transition-colors flex items-center gap-1">
+            <td class="px-3 py-1 sm:py-2 hidden sm:table-cell">\${sourceBadge}</td>
+            <td class="px-3 py-1 sm:py-2 font-mono font-semibold text-white text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Version:</span>
+              <span>v\${escapeHtml(r.app_version)}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 text-slate-300 text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Platform:</span>
+              <span>\${escapeHtml(r.platform)}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 text-slate-400 text-xs font-mono whitespace-nowrap flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Date:</span>
+              <span>\${dateStr}</span>
+            </td>
+            <td class="card-actions-cell px-3 py-2 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button onclick="openCrashInspectModal('\${r.id}')" class="px-2 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold transition-colors flex items-center gap-1">
                   <span>🔍</span> Inspect
                 </button>
-                <button onclick="handleDeleteCrash('\${r.id}')" class="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs transition-colors" title="Delete Log">
+                <button onclick="handleDeleteCrash('\${r.id}')" class="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 text-xs transition-colors" title="Delete">
                   ✕
                 </button>
               </div>
@@ -2402,30 +2779,38 @@ export function renderAdminDashboardHtml(appName: string): string {
       }).join('');
     }
 
-    function openCrashInspectModal(id) {
-      const r = cachedCrashReports.find(x => x.id === id);
-      if (!r) return;
-      document.getElementById('inspectErrorType').textContent = r.error_type;
-      document.getElementById('inspectSource').textContent = r.source;
-      document.getElementById('inspectVersion').textContent = 'v' + r.app_version;
-      document.getElementById('inspectPlatform').textContent = r.platform;
-      document.getElementById('inspectOccurredAt').textContent = r.occurred_at || new Date(r.created_at * 1000).toLocaleString();
+    function openCrashInspectModal(reportId) {
+      const report = cachedCrashReports.find(r => r.id === reportId);
+      if (!report) return;
+
+      document.getElementById('inspectErrorType').textContent = report.error_type || 'Unknown';
+      document.getElementById('inspectSource').textContent = report.source || 'react';
+      document.getElementById('inspectVersion').textContent = 'v' + (report.app_version || 'unknown');
+      document.getElementById('inspectPlatform').textContent = report.platform || 'unknown';
+      document.getElementById('inspectOccurredAt').textContent = report.occurred_at || new Date(report.created_at * 1000).toISOString();
 
       const framesBox = document.getElementById('inspectFrames');
+      let frames = [];
       try {
-        const frames = typeof r.frames === 'string' ? JSON.parse(r.frames) : r.frames;
-        if (Array.isArray(frames) && frames.length > 0) {
-          framesBox.innerHTML = frames.map((f, idx) => \`
-            <div class="flex items-start gap-2 py-1 border-b border-slate-900/80 last:border-0">
-              <span class="text-slate-500 text-[10px] select-none w-5 text-right font-mono">#\${idx + 1}</span>
-              <span class="text-rose-300 font-semibold break-all">\${escapeHtml(f)}</span>
-            </div>
-          \`).join('');
-        } else {
-          framesBox.innerHTML = '<span class="text-slate-500 italic text-xs">No stack call frames captured.</span>';
+        if (typeof report.stack_frames === 'string') {
+          frames = JSON.parse(report.stack_frames);
+        } else if (Array.isArray(report.stack_frames)) {
+          frames = report.stack_frames;
         }
-      } catch (e) {
-        framesBox.textContent = String(r.frames);
+      } catch (err) {
+        frames = [];
+      }
+
+      if (frames.length > 0) {
+        framesBox.innerHTML = frames.map((f, idx) => \`
+          <div class="text-[11px] leading-relaxed border-b border-slate-900 pb-1">
+            <span class="text-slate-500">#\${idx}</span>
+            <span class="text-cyan-300 font-semibold">\${escapeHtml(f.fn || f.function || 'anonymous')}</span>
+            <span class="text-slate-400">at \${escapeHtml(f.file || 'unknown')}:\${f.line || '?'}:\${f.col || '?'}</span>
+          </div>
+        \`).join('');
+      } else {
+        framesBox.innerHTML = '<span class="text-slate-500 italic text-xs">No stack call frames captured.</span>';
       }
 
       document.getElementById('crashInspectModal').classList.remove('hidden');
@@ -2435,14 +2820,19 @@ export function renderAdminDashboardHtml(appName: string): string {
       document.getElementById('crashInspectModal').classList.add('hidden');
     }
 
-    async function handleDeleteCrash(id) {
+    async function handleDeleteCrash(reportId) {
+      if (!confirm('Delete this crash report log?')) return;
       try {
-        const res = await fetch('/api/admin/crash-reports/' + encodeURIComponent(id), {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + adminToken }
+        const res = await fetch('/api/admin/crash-reports/delete', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: reportId })
         });
         if (res.ok) {
-          showToast('Crash log removed');
+          showToast('Crash report deleted');
           loadCrashReports();
           loadStats();
         } else {
@@ -2478,542 +2868,306 @@ export function renderAdminDashboardHtml(appName: string): string {
       }
     }
 
-    // -------------------------------------------------------------
-    // Pro Users Management (pro_users)
-    // -------------------------------------------------------------
-    let cachedProUsers = [];
-    let currentProPlanFilter = 'all';
-
-    function filterProUsersByPlan(plan, btn) {
-      currentProPlanFilter = plan;
-      document.querySelectorAll('.pro-plan-filter-btn').forEach(b => {
-        b.className = 'pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs hover:bg-slate-800';
-      });
-      if (btn) {
-        btn.className = 'pro-plan-filter-btn px-2.5 py-1 rounded-lg bg-violet-600 text-white font-bold text-xs shadow-sm';
-      }
-      renderProUsersTable();
+    // ── Bot Broadcast ──
+    async function loadBotSubscribers() {
+      try {
+        const res = await fetch('/api/admin/broadcast/subscribers', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('botSubscriberCountBadge').textContent = \`\${data.total_subscribers || 0} Active Subscribers\`;
+        }
+      } catch (err) {}
     }
 
-    function renderProUsersTable() {
-      const tbody = document.getElementById('proUsersTableBody');
-      const now = Math.floor(Date.now() / 1000);
+    async function handleSendBroadcast(e) {
+      e.preventDefault();
+      const text = document.getElementById('broadcastMessageInput').value.trim();
+      const btnText = document.getElementById('broadcastButtonTextInput').value.trim();
+      const btnUrl = document.getElementById('broadcastButtonUrlInput').value.trim();
+      const statusBox = document.getElementById('broadcastStatusMsg');
+      const btn = document.getElementById('btnSendBroadcast');
 
-      let filtered = cachedProUsers;
-      if (currentProPlanFilter === 'monthly') {
-        filtered = cachedProUsers.filter(u => u.plan_type === 'monthly');
-      } else if (currentProPlanFilter === 'annual') {
-        filtered = cachedProUsers.filter(u => u.plan_type === 'annual');
-      } else if (currentProPlanFilter === 'lifetime') {
-        filtered = cachedProUsers.filter(u => u.plan_type === 'lifetime');
-      } else if (currentProPlanFilter === 'expired') {
-        filtered = cachedProUsers.filter(u => u.expires_at && u.expires_at <= now);
+      if (!confirm('Are you sure you want to broadcast this message to ALL active bot users?')) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      statusBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/broadcast/send', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: text,
+            button_text: btnText || undefined,
+            button_url: btnUrl || undefined
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          statusBox.className = 'text-xs p-2 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          statusBox.textContent = \`Broadcast completed! Delivered: \${data.delivered || 0}, Failed: \${data.failed || 0}\`;
+          statusBox.classList.remove('hidden');
+          showToast('Broadcast sent successfully!');
+        } else {
+          statusBox.className = 'text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          statusBox.textContent = data.error || 'Failed to dispatch broadcast';
+          statusBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        statusBox.className = 'text-xs p-2 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
+        statusBox.textContent = 'Network error while broadcasting';
+        statusBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 Send Broadcast';
       }
+    }
 
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No matching Pro accounts found.</td></tr>';
+    // ── Legacy Software License Keys ──
+    let cachedLicenses = [];
+
+    async function loadLicenses() {
+      const tbody = document.getElementById('licensesTableBody');
+      try {
+        const res = await fetch('/api/admin/licenses', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (res.status === 401) {
+          logout();
+          return;
+        }
+        if (!res.ok) {
+          tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-rose-400">Failed to load licenses.</td></tr>';
+          return;
+        }
+        const data = await res.json();
+        cachedLicenses = data.licenses || [];
+        renderLicenses(cachedLicenses);
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-rose-400">Failed to load licenses.</td></tr>';
+      }
+    }
+
+    function renderLicenses(licenses) {
+      const tbody = document.getElementById('licensesTableBody');
+      if (!licenses.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-500">No licenses found.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = filtered.map(u => {
-        const joined = u.created_at ? new Date(u.created_at * 1000).toLocaleDateString('en-IN') : '—';
-        const isBanned = u.is_banned === 1;
-        const isExpired = Boolean(u.expires_at && u.expires_at <= now);
+      tbody.innerHTML = licenses.map(l => {
+        const createdDate = new Date(l.created_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const isBanned = l.is_banned === 1;
+        
+        let planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">LIFETIME</span>';
+        if (l.plan_type === 'annual') planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ANNUAL</span>';
+        if (l.plan_type === 'monthly') planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">MONTHLY</span>';
+        if (l.plan_type === 'trial') planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20">TRIAL</span>';
 
-        let planBadge = '';
-        if (u.plan_type === 'monthly') {
-          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">📅 Monthly Pass</span>';
-        } else if (u.plan_type === 'annual') {
-          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-sky-500/20 text-sky-300 border border-sky-500/30">🌟 Annual Pass</span>';
-        } else if (u.plan_type === 'lifetime') {
-          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">👑 Lifetime VIP</span>';
-        } else {
-          planBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-800 text-slate-300 border border-slate-700">' + (u.plan_type || 'PRO') + '</span>';
-        }
-
-        let statusBadge = '';
-        if (isBanned) {
-          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">🚫 Banned</span>';
-        } else if (isExpired) {
-          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse">🔴 Expired</span>';
-        } else {
-          statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">🟢 Active</span>';
-        }
-
-        let expiryDisplay = '';
-        if (!u.expires_at || u.plan_type === 'lifetime') {
-          expiryDisplay = '<span class="text-amber-400 font-bold font-mono">👑 Lifetime (Permanent)</span>';
-        } else {
-          const diff = u.expires_at - now;
-          const expDate = new Date(u.expires_at * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-          if (diff <= 0) {
-            const expDaysAgo = Math.floor(Math.abs(diff) / 86400);
-            expiryDisplay = '<span class="text-rose-400 font-bold font-mono">🔴 Expired ' + (expDaysAgo > 0 ? expDaysAgo + 'd ago' : 'today') + ' (' + expDate + ')</span>';
-          } else {
-            const daysLeft = Math.floor(diff / 86400);
-            const hoursLeft = Math.floor((diff % 86400) / 3600);
-            const cdText = daysLeft > 0 ? (daysLeft + 'd left') : (hoursLeft + 'h left');
-            if (daysLeft <= 3) {
-              expiryDisplay = '<span class="text-amber-400 font-bold font-mono">⚠️ ' + cdText + ' (' + expDate + ')</span>';
-            } else {
-              expiryDisplay = '<span class="text-emerald-400 font-bold font-mono">🟢 ' + cdText + ' (' + expDate + ')</span>';
-            }
-          }
-        }
-
-        const nameDisp = u.first_name || u.username ? ((u.first_name || '') + (u.username ? ' (@' + u.username + ')' : '')).trim() : 'Telegram User';
+        const statusBadge = isBanned 
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">BANNED</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ACTIVE</span>';
 
         return \`
-          <tr class="hover:bg-slate-900/50 transition-colors">
-            <td class="px-4 py-3 font-mono font-bold text-white flex items-center gap-2">
-              <span class="text-base">\${u.plan_type === 'lifetime' ? '👑' : '💎'}</span>
-              <div>
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="card-header-cell px-3 py-2">
+              <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-white">\${u.telegram_user_id}</span>
-                  <button type="button" onclick="navigator.clipboard.writeText('\${u.telegram_user_id}'); showToast('Copied ID!')" class="text-slate-500 hover:text-white text-xs">📋</button>
+                  <span class="mono font-bold text-white text-xs tracking-wider select-all">\${l.license_key}</span>
+                  <button onclick="copyToClipboard('\${l.license_key}')" class="text-slate-400 hover:text-cyan-400 text-xs p-1" title="Copy">📋</button>
                 </div>
-                <div class="text-[11px] font-sans font-normal text-slate-400 truncate max-w-xs">\${nameDisp}</div>
+                <div class="sm:hidden">\${statusBadge}</div>
               </div>
             </td>
-            <td class="px-4 py-3 text-slate-300 font-mono text-xs">\${u.phone_number || '—'}</td>
-            <td class="px-4 py-3">\${planBadge}</td>
-            <td class="px-4 py-3">\${statusBadge}</td>
-            <td class="px-4 py-3 text-xs">\${expiryDisplay}</td>
-            <td class="px-4 py-3 text-slate-400 text-xs">\${joined}</td>
-            <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
-              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 30, 'monthly')" title="Extend +30 Days" class="px-2 py-1 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 font-bold text-[10px] transition-all">+30d</button>
-              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 365, 'annual')" title="Extend +1 Year" class="px-2 py-1 rounded bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 font-bold text-[10px] transition-all">+1yr</button>
-              <button onclick="handleQuickExtend('\${u.telegram_user_id}', 0, 'lifetime')" title="Make Lifetime VIP" class="px-2 py-1 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 font-bold text-[10px] transition-all">👑 VIP</button>
-              \${isBanned 
-                ? \`<button onclick="handleUnbanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 font-bold text-[10px]">Unban</button>\`
-                : \`<button onclick="handleBanProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 font-bold text-[10px]">Ban</button>\`
-              }
-              <button onclick="handleDeleteProUser('\${u.telegram_user_id}')" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:text-rose-400 font-bold text-[10px]">Delete</button>
+            <td class="px-3 py-1 sm:py-2 text-xs flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Customer:</span>
+              <div class="text-right sm:text-left">
+                <div class="font-semibold text-white">\${l.customer_name || '—'}</div>
+                <div class="text-[10px] text-slate-400">\${l.customer_email || l.notes || ''}</div>
+              </div>
+            </td>
+            <td class="px-3 py-1 sm:py-2 flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Plan:</span>
+              <span>\${planBadge}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 text-xs font-semibold text-slate-200 flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Devices:</span>
+              <span>\${l.active_devices_count || 0} / \${l.max_devices}</span>
+            </td>
+            <td class="px-3 py-1 sm:py-2 hidden sm:table-cell">\${statusBadge}</td>
+            <td class="px-3 py-1 sm:py-2 text-xs text-slate-400 flex items-center justify-between">
+              <span class="text-[10px] text-slate-500 uppercase font-sans sm:hidden">Created:</span>
+              <span>\${createdDate}</span>
+            </td>
+            <td class="card-actions-cell px-3 py-2 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button onclick="resetDevices('\${l.license_key}')" class="px-2 py-1 rounded text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">
+                  Reset Devs
+                </button>
+                \${isBanned 
+                  ? \`<button onclick="unbanKey('\${l.license_key}')" class="px-2 py-1 rounded text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Unban</button>\`
+                  : \`<button onclick="banKey('\${l.license_key}')" class="px-2 py-1 rounded text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30">Ban</button>\`
+                }
+              </div>
             </td>
           </tr>
         \`;
       }).join('');
     }
 
-    async function loadProUsers(query = '') {
-      const tbody = document.getElementById('proUsersTableBody');
-      tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Loading Pro subscriptions...</td></tr>';
-      try {
-        const url = query ? '/api/admin/pro-users?q=' + encodeURIComponent(query) : '/api/admin/pro-users';
-        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + adminToken } });
-        if (!res.ok) {
-          tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Failed to load Pro subscriptions</td></tr>';
-          return;
-        }
-        const data = await res.json();
-        cachedProUsers = data.users || [];
-        document.getElementById('proUsersCountBadge').textContent = \`\${cachedProUsers.length} Account(s)\`;
-        renderProUsersTable();
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-rose-400">Network error loading Pro subscriptions</td></tr>';
+    function handleSearch() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!q) {
+        renderLicenses(cachedLicenses);
+        return;
       }
+      const filtered = cachedLicenses.filter(l => 
+        l.license_key.toLowerCase().includes(q) ||
+        (l.customer_name && l.customer_name.toLowerCase().includes(q)) ||
+        (l.customer_email && l.customer_email.toLowerCase().includes(q)) ||
+        (l.telegram_user_id && l.telegram_user_id.toLowerCase().includes(q)) ||
+        (l.notes && l.notes.toLowerCase().includes(q))
+      );
+      renderLicenses(filtered);
     }
 
-    async function handleQuickExtend(tgUserId, durationDays, planType) {
-      const desc = durationDays > 0 ? \`+\${durationDays} days (\${planType})\` : 'Permanent Lifetime VIP';
-      if (!confirm(\`Are you sure you want to update User \${tgUserId} to \${desc}?\`)) return;
-      try {
-        const res = await fetch('/api/admin/pro-users/upgrade', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telegram_user_id: tgUserId,
-            plan_type: planType,
-            duration_days: durationDays,
-            notes: \`Admin quick extension: \${planType}\`
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showToast(\`User \${tgUserId} updated to \${planType}!\`);
-          loadProUsers();
-          loadStats();
-        } else {
-          alert(data.error || 'Failed to update user');
-        }
-      } catch (e) {
-        alert('Network error updating user: ' + e.message);
-      }
+    function openCreateModal() {
+      document.getElementById('createModal').classList.remove('hidden');
     }
 
-    let proUserSearchTimeout;
-    function handleProUserSearch() {
-      clearTimeout(proUserSearchTimeout);
-      proUserSearchTimeout = setTimeout(() => {
-        const q = document.getElementById('proUserSearchInput').value.trim();
-        loadProUsers(q);
-      }, 300);
+    function closeCreateModal() {
+      document.getElementById('createModal').classList.add('hidden');
+      document.getElementById('createLicenseForm').reset();
     }
 
-    function openUpgradeProModal() {
-      document.getElementById('upgradeProModal').classList.remove('hidden');
-    }
-
-    function closeUpgradeProModal() {
-      document.getElementById('upgradeProModal').classList.add('hidden');
-    }
-
-    async function handleGrantPro(e) {
+    async function handleCreateLicense(e) {
       e.preventDefault();
-      const tgId = document.getElementById('grantTgUserId').value.trim();
-      const firstName = document.getElementById('grantFirstName').value.trim();
-      const username = document.getElementById('grantUsername').value.trim();
-      const plan = document.getElementById('grantPlanType').value;
-      const days = parseInt(document.getElementById('grantDurationDays').value, 10) || 0;
-      const notes = document.getElementById('grantNotes').value.trim();
-
-      const btn = document.getElementById('btnSubmitGrantPro');
-      btn.disabled = true;
-      btn.textContent = 'Granting...';
+      const planType = document.getElementById('planTypeSelect').value;
+      const maxDevices = parseInt(document.getElementById('maxDevicesSelect').value, 10);
+      const customerName = document.getElementById('customerNameInput').value.trim();
+      const customerEmail = document.getElementById('customerEmailInput').value.trim();
+      const telegramUserId = document.getElementById('telegramUserIdInput').value.trim();
+      const phoneNumber = document.getElementById('phoneNumberInput').value.trim();
+      const notes = document.getElementById('notesInput').value.trim();
 
       try {
-        const res = await fetch('/api/admin/pro-users/upgrade', {
+        const res = await fetch('/api/admin/licenses/create', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
-            telegram_user_id: tgId,
-            first_name: firstName,
-            username: username,
-            plan_type: plan,
-            duration_days: days,
+            plan_type: planType,
+            max_devices: maxDevices,
+            customer_name: customerName,
+            customer_email: customerEmail,
+            telegram_user_id: telegramUserId,
+            phone_number: phoneNumber,
             notes: notes
           })
         });
         const data = await res.json();
-        if (res.ok && data.success) {
-          showToast('Pro granted to Telegram user ' + tgId + '!');
-          closeUpgradeProModal();
-          loadProUsers();
+        if (res.ok && data.license_key) {
+          closeCreateModal();
+          document.getElementById('generatedKeyDisplay').textContent = data.license_key;
+          document.getElementById('successModal').classList.remove('hidden');
+          loadLicenses();
           loadStats();
         } else {
-          alert(data.error || 'Failed to grant Pro');
+          showToast(data.error || 'Failed to create license');
         }
       } catch (err) {
-        alert('Network error granting Pro');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Grant Pro Now';
+        showToast('Network error');
       }
     }
 
-    async function handleBanProUser(tgId) {
-      const reason = prompt('Enter ban reason (optional):', 'Terms violation');
-      if (reason === null) return;
+    function copyGeneratedKey() {
+      const key = document.getElementById('generatedKeyDisplay').textContent;
+      copyToClipboard(key);
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('successModal').classList.add('hidden');
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+      });
+    }
+
+    async function resetDevices(key) {
+      if (!confirm('Are you sure you want to reset all bound devices for this key?')) return;
       try {
-        const res = await fetch('/api/admin/pro-users/ban', {
+        const res = await fetch('/api/admin/licenses/reset-devices', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_user_id: tgId, reason })
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ license_key: key })
         });
         if (res.ok) {
-          showToast('User ' + tgId + ' banned');
-          loadProUsers();
-          loadStats();
-        }
-      } catch (err) {
-        showToast('Error banning user');
-      }
-    }
-
-    async function handleUnbanProUser(tgId) {
-      try {
-        const res = await fetch('/api/admin/pro-users/unban', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_user_id: tgId })
-        });
-        if (res.ok) {
-          showToast('User ' + tgId + ' unbanned');
-          loadProUsers();
-          loadStats();
-        }
-      } catch (err) {
-        showToast('Error unbanning user');
-      }
-    }
-
-    async function handleDeleteProUser(tgId) {
-      if (!confirm('Are you sure you want to permanently delete Pro entitlement for Telegram user ' + tgId + '?')) return;
-      try {
-        const res = await fetch('/api/admin/pro-users/delete', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_user_id: tgId })
-        });
-        if (res.ok) {
-          showToast('User ' + tgId + ' deleted');
-          loadProUsers();
-          loadStats();
-        }
-      } catch (err) {
-        showToast('Error deleting user');
-      }
-    }
-
-    // -------------------------------------------------------------
-    // Razorpay Payments Management (payment_transactions)
-    // -------------------------------------------------------------
-    async function loadPaymentTransactions() {
-      const tbody = document.getElementById('paymentTransactionsTableBody');
-      tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">Loading transactions...</td></tr>';
-      try {
-        const res = await fetch('/api/admin/payment-transactions', { headers: { 'Authorization': 'Bearer ' + adminToken } });
-        if (!res.ok) return;
-        const data = await res.json();
-        const txs = data.transactions || [];
-
-        if (txs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-slate-500">No payment transactions recorded yet.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = txs.map(t => {
-          const amt = '₹' + (t.amount >= 100 ? (t.amount / 100).toFixed(2) : t.amount);
-          const created = t.created_at ? new Date(t.created_at * 1000).toLocaleString('en-IN') : '—';
-          const paid = t.paid_at ? new Date(t.paid_at * 1000).toLocaleString('en-IN') : '—';
-          const statusBadge = t.status === 'paid'
-            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✅ Paid</span>'
-            : t.status === 'created'
-              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏳ Created</span>'
-              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">❌ Failed</span>';
-
-          const planDisp = t.plan_type === 'monthly'
-            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">📅 Monthly</span>'
-            : t.plan_type === 'annual'
-              ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">🌟 Annual</span>'
-              : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">👑 Lifetime</span>';
-
-          return \`
-            <tr class="hover:bg-slate-900/50 transition-colors">
-              <td class="px-4 py-3 font-mono font-bold text-white text-xs">\${t.order_id}</td>
-              <td class="px-4 py-3 font-mono text-slate-300 text-xs">\${t.payment_id || '—'}</td>
-              <td class="px-4 py-3 font-mono text-cyan-400 text-xs">
-                \${t.telegram_user_id}
-                \${t.phone_number ? \`<div class="text-[10px] text-slate-500 font-sans">\${t.phone_number}</div>\` : ''}
-              </td>
-              <td class="px-4 py-3">\${planDisp}</td>
-              <td class="px-4 py-3 font-mono font-bold text-emerald-400 text-xs">\${amt}</td>
-              <td class="px-4 py-3">\${statusBadge}</td>
-              <td class="px-4 py-3 text-slate-400 text-[11px]">\${created}</td>
-              <td class="px-4 py-3 text-slate-400 text-[11px]">\${paid}</td>
-              <td class="px-4 py-3 text-right">
-                <button type="button" onclick="handleVerifyPaymentLink('\${t.order_id}', '\${t.payment_id || ''}', '\${t.telegram_user_id}')" class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold transition-all active:scale-95 whitespace-nowrap">
-                  ⚡ Verify with Razorpay
-                </button>
-              </td>
-            </tr>
-          \`;
-        }).join('');
-      } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-rose-400">Error loading payment transactions</td></tr>';
-      }
-    }
-
-    async function handleVerifyPaymentLink(orderId, paymentId, tgUserId) {
-      if (!confirm(\`Verify order \${orderId} against Razorpay API now?\`)) return;
-      try {
-        const res = await fetch('/api/admin/payments/verify-link', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            order_id: orderId,
-            payment_link_id: orderId.startsWith('plink_') ? orderId : undefined,
-            payment_id: paymentId || undefined,
-            telegram_user_id: tgUserId
-          })
-        });
-        const data = await res.json();
-        if (res.ok && data.verified) {
-          alert(\`🎉 Payment Verified! Pro activated for user \${data.telegram_user_id} (\${data.plan_type})!\`);
-          loadPaymentTransactions();
-          loadProUsers();
+          showToast('Devices reset successfully');
+          loadLicenses();
           loadStats();
         } else {
-          alert(\`Razorpay status: \${data.status || 'not verified'}. \${data.message || ''}\`);
+          showToast('Failed to reset devices');
         }
-      } catch (e) {
-        alert('Error verifying payment: ' + e.message);
-      }
-    }
-
-    // -------------------------------------------------------------
-    // Telegram Bot Subscribers & Broadcasts
-    // -------------------------------------------------------------
-    async function loadBotSubscribers() {
-      try {
-        const res = await fetch('/api/admin/bot-subscribers', { headers: { 'Authorization': 'Bearer ' + adminToken } });
-        if (!res.ok) return;
-        const data = await res.json();
-        const count = data.active_count || (data.subscribers ? data.subscribers.length : 0);
-        document.getElementById('botSubscriberCountBadge').textContent = count + ' Active Bot Subscriber(s)';
       } catch (err) {
-        console.error('Error loading bot subscribers:', err);
+        showToast('Network error');
       }
     }
 
-    async function handleSendBroadcast(e) {
-      e.preventDefault();
-      const msg = document.getElementById('broadcastMessageInput').value.trim();
-      const btnText = document.getElementById('broadcastButtonTextInput').value.trim();
-      const btnUrl = document.getElementById('broadcastButtonUrlInput').value.trim();
-
-      if (!msg) {
-        alert('Please enter a message to broadcast');
-        return;
-      }
-
-      if (!confirm('Are you sure you want to broadcast this message to all Telegram bot subscribers?')) {
-        return;
-      }
-
-      const btn = document.getElementById('btnSendBroadcast');
-      const statusBox = document.getElementById('broadcastStatusMsg');
-      btn.disabled = true;
-      btn.textContent = 'Broadcasting...';
-      statusBox.classList.add('hidden');
-
+    async function banKey(key) {
+      if (!confirm('Are you sure you want to BAN this license key? All active devices will lose pro access.')) return;
       try {
-        const res = await fetch('/api/admin/broadcast', {
+        const res = await fetch('/api/admin/licenses/ban', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + adminToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: msg,
-            button_text: btnText || undefined,
-            button_url: btnUrl || undefined,
-          })
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ license_key: key })
         });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          statusBox.textContent = '🚀 Broadcast sent successfully! Delivered to ' + data.sent_count + ' user(s)' + (data.failed_count > 0 ? ' (' + data.failed_count + ' failed)' : '') + '.';
-          statusBox.classList.remove('hidden');
-          showToast('Broadcast dispatched on Telegram!');
+        if (res.ok) {
+          showToast('License key banned');
+          loadLicenses();
+          loadStats();
         } else {
-          statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          statusBox.textContent = data.error || 'Failed to send broadcast';
-          statusBox.classList.remove('hidden');
+          showToast('Failed to ban key');
         }
       } catch (err) {
-        statusBox.className = 'text-xs p-2.5 rounded-xl text-center bg-rose-500/10 text-rose-400 border border-rose-500/20';
-        statusBox.textContent = 'Network error while broadcasting';
-        statusBox.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '🚀 Send Broadcast to All Subscribers';
+        showToast('Network error');
+      }
+    }
+
+    async function unbanKey(key) {
+      try {
+        const res = await fetch('/api/admin/licenses/unban', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + adminToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ license_key: key })
+        });
+        if (res.ok) {
+          showToast('License key unbanned');
+          loadLicenses();
+          loadStats();
+        } else {
+          showToast('Failed to unban key');
+        }
+      } catch (err) {
+        showToast('Network error');
       }
     }
   </script>
-
-  <!-- Grant Pro Modal -->
-  <div id="upgradeProModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md p-6 rounded-2xl glow-cyan space-y-4 border border-slate-700">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-          <span>💎</span> Grant Pro to Telegram User
-        </h3>
-        <button onclick="closeUpgradeProModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
-      </div>
-
-      <form id="grantProForm" onsubmit="handleGrantPro(event)" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Telegram User ID <span class="text-rose-400">*</span></label>
-          <input type="text" id="grantTgUserId" required placeholder="e.g. 123456789" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">First Name</label>
-            <input type="text" id="grantFirstName" placeholder="John" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Username</label>
-            <input type="text" id="grantUsername" placeholder="@john_doe" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Plan</label>
-            <select id="grantPlanType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-              <option value="lifetime">⭐ Lifetime Pro</option>
-              <option value="annual">📅 1 Year</option>
-              <option value="monthly">🌙 1 Month</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Duration Days (0=Forever)</label>
-            <input type="number" id="grantDurationDays" placeholder="0" min="0" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Notes</label>
-          <input type="text" id="grantNotes" placeholder="VIP Supporter / Contest winner" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500">
-        </div>
-
-        <div class="pt-2 flex justify-end gap-2">
-          <button type="button" onclick="closeUpgradeProModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800">Cancel</button>
-          <button type="submit" id="btnSubmitGrantPro" class="px-5 py-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white text-xs font-bold hover:from-violet-400 hover:to-indigo-500">Grant Pro Now</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Process Payout Modal -->
-  <div id="processPayoutModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md p-6 rounded-2xl glow-cyan space-y-4 border border-slate-700">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span>💸</span> Process Withdrawal Request
-        </h3>
-        <button onclick="closeProcessPayoutModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
-      </div>
-
-      <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
-        <div class="flex justify-between"><span class="text-slate-400">Recipient:</span> <span id="modalPayoutUser" class="font-bold text-white"></span></div>
-        <div class="flex justify-between"><span class="text-slate-400">Amount:</span> <span id="modalPayoutAmount" class="font-bold text-emerald-400 font-mono text-sm"></span></div>
-        <div class="flex justify-between"><span class="text-slate-400">Method:</span> <span id="modalPayoutMethod" class="font-bold text-cyan-300 uppercase"></span></div>
-        <div class="pt-2 border-t border-slate-800">
-          <div class="text-slate-400 mb-1">Transfer Destination:</div>
-          <div id="modalPayoutDetails" class="font-mono text-slate-200 bg-slate-950 p-2 rounded-lg border border-slate-800 text-[11px] break-all select-all"></div>
-        </div>
-      </div>
-
-      <form id="processPayoutForm" onsubmit="handleProcessPayoutSubmit(event)" class="space-y-3">
-        <input type="hidden" id="modalPayoutId">
-        
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Select Action</label>
-          <select id="modalPayoutAction" onchange="togglePayoutActionFields()" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white focus:outline-none focus:border-cyan-500">
-            <option value="completed">✅ Mark Paid (Completed)</option>
-            <option value="rejected">❌ Reject & Refund to Wallet</option>
-          </select>
-        </div>
-
-        <div id="fieldUtr">
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Bank / UPI Reference (UTR Number)</label>
-          <input type="text" id="modalPayoutUtr" placeholder="e.g. 426189218291" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500">
-          <p class="text-[10px] text-slate-400 mt-1">This reference will be emailed to the user as proof of payment.</p>
-        </div>
-
-        <div id="fieldRejectReason" class="hidden">
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Rejection Reason</label>
-          <input type="text" id="modalPayoutReason" placeholder="e.g. Invalid UPI ID / Account not found" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500">
-          <p class="text-[10px] text-rose-400 mt-1">The requested funds will be automatically credited back to user's wallet.</p>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-2">
-          <button type="button" onclick="closeProcessPayoutModal()" class="px-3 py-1.5 rounded-xl text-slate-400 hover:text-white text-xs font-semibold">Cancel</button>
-          <button type="submit" id="btnSubmitProcessPayout" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-md shadow-cyan-500/20 transition-all">
-            Confirm Action
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
 </body>
 </html>`;
 }

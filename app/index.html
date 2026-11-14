@@ -10,6 +10,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      try {
+        var ua = window.navigator.userAgent || '';
+        if (ua.indexOf('wv') > -1 || ua.indexOf('Version/') > -1) {
+          var clean = ua.replace(/;\s*wv\)?/g, ')').replace(/Version\/[0-9.]+\s*/g, '');
+          try {
+            Object.defineProperty(navigator, 'userAgent', {
+              get: function() { return clean; },
+              configurable: true
+            });
+          } catch(e) {}
+        }
+      } catch (err) {}
+    })();
+  </script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 

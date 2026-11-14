@@ -95,6 +95,8 @@ export interface CreateRazorpayOrderRequest {
   plan_type?: LicensePlan;
   amount?: number;
   checkout_config_id?: string;
+  referral_code?: string;
+  username?: string;
 }
 
 export interface VerifyRazorpayPaymentRequest {
@@ -106,6 +108,8 @@ export interface VerifyRazorpayPaymentRequest {
   customer_name?: string;
   customer_email?: string;
   plan_type?: LicensePlan;
+  referral_code?: string;
+  username?: string;
 }
 
 export interface BroadcastMessageRequest {

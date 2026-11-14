@@ -31,7 +31,14 @@ export function useTelegramConnection(onLogoutParent: () => void) {
     const [store, setStore] = useState<Store | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isConnected, setIsConnected] = useState(true);
-    const [userProfile, setUserProfile] = useState<TelegramUserProfile | null>(null);
+    const [userProfile, setUserProfile] = useState<TelegramUserProfile | null>(() => {
+        try {
+            const cached = typeof localStorage !== 'undefined' ? localStorage.getItem('tg_cached_user_profile') : null;
+            return cached ? (JSON.parse(cached) as TelegramUserProfile) : null;
+        } catch {
+            return null;
+        }
+    });
 
     const networkIsOnline = useNetworkStatus();
     const handleSyncFoldersRef = useRef<((silentParam?: boolean | unknown) => Promise<void>) | null>(null);
@@ -156,7 +163,10 @@ export function useTelegramConnection(onLogoutParent: () => void) {
             const profile = await invoke<TelegramUserProfile>('cmd_get_me');
             if (profile) {
                 setUserProfile(profile);
-                // Silently check Pro Supporter status for this Telegram account
+                try {
+                    localStorage.setItem('tg_cached_user_profile', JSON.stringify(profile));
+                } catch {}
+                // Silently check Pro Supporter status for this Telegram account in background
                 void import('../services/licenseManager').then(({ licenseManager }) => {
                     void licenseManager.checkTelegramAccount(profile.id, profile.phone);
                 }).catch(() => {});
@@ -187,6 +197,9 @@ export function useTelegramConnection(onLogoutParent: () => void) {
             });
             clearImageMemoryCaches();
             setUserProfile(null);
+            try {
+                localStorage.removeItem('tg_cached_user_profile');
+            } catch {}
             if (store) {
                 await store.delete('api_id');
                 await store.delete('api_hash');

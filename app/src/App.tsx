@@ -54,7 +54,7 @@ interface StartupProgress {
 
 function AppContent() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>("loading");
-  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo | null>(null);
+  const [, setLicenseInfo] = useState<LicenseInfo | null>(() => licenseManager.getCachedLicense());
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [referralInitialTab, setReferralInitialTab] = useState<'referral' | 'earnings'>('referral');
   const [startupProgress, setStartupProgress] = useState<StartupProgress>({
@@ -311,8 +311,6 @@ function AppContent() {
         isOpen={isReferralModalOpen}
         onClose={() => setIsReferralModalOpen(false)}
         initialTab={referralInitialTab}
-        defaultEmail={localStorage.getItem('tg_drive_checkout_email') || undefined}
-        defaultName={licenseInfo?.customerName || localStorage.getItem('tg_drive_checkout_name') || undefined}
       />
       {authStatus === "authenticated" && (
         <Suspense fallback={

@@ -91,14 +91,16 @@ export function Dashboard({ onLogout }: { onLogout: () => void }) {
     const { confirm } = useConfirm();
     const { status: supporterStatus, refreshStatus } = useSupporter();
     const { vaultStatus } = useEncryption();
-    const [desktopLicense, setDesktopLicense] = useState<LicenseInfo | null>(null);
+    const [desktopLicense, setDesktopLicense] = useState<LicenseInfo | null>(() => {
+        return licenseManager.getCachedLicense();
+    });
 
     const loadAndVerifyDesktopLicense = useCallback(async () => {
         try {
-            const local = await licenseManager.loadLicense();
+            const local = licenseManager.getCachedLicense();
             setDesktopLicense(local);
 
-            if (userProfile) {
+            if (userProfile?.id) {
                 const res = await licenseManager.checkTelegramAccount(userProfile.id, userProfile.phone);
                 if (res.isLicensed && res.license) {
                     setDesktopLicense(res.license);

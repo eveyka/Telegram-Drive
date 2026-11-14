@@ -72,7 +72,23 @@ export function SupporterProvider({ children }: { children: ReactNode }) {
       };
     }
   }, []);
-  const [status, setStatus] = useState<SupporterStatus>(unavailableStatus);
+  const [status, setStatus] = useState<SupporterStatus>(() => {
+    try {
+      const localLic = licenseManager.getCachedLicense();
+      if (localLic && localLic.isLicensed && (!localLic.expiresAt || localLic.expiresAt > Math.floor(Date.now() / 1000))) {
+        return {
+          ...unavailableStatus,
+          state: 'active',
+          ad_free: true,
+          message: 'TG Drive Pro is active on your account.',
+          recovery_code_saved: true,
+          expires_at: localLic.expiresAt,
+          offline_until: localLic.expiresAt || (Math.floor(Date.now() / 1000) + 30 * 86400),
+        };
+      }
+    } catch {}
+    return unavailableStatus;
+  });
   const [latestRecoveryCode, setLatestRecoveryCode] = useState<string | null>(null);
 
   const refreshStatus = useCallback(async () => {

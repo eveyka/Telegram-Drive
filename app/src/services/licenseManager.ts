@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
 import { openExternalUrl } from '../utils/url';
 
 export type LicensePlan = 'lifetime' | 'annual' | 'monthly' | 'trial';
@@ -40,76 +39,83 @@ export class LicenseManager {
   }
 
   public getCurrentLicense(): LicenseInfo | null {
-    return this.currentLicense;
+    return this.currentLicense || this.getCachedLicense();
   }
 
-  // Returns unique hardware ID for this PC/Phone
-  public async getHardwareId(): Promise<string> {
-    try {
-      // Try to get hardware ID from Rust backend
-      const rustHwid = await invoke<string>('cmd_get_hardware_id');
-      if (rustHwid && rustHwid.length > 5) {
-        return rustHwid;
-      }
-    } catch {
-      // Fallback for web / dev / standard environment
-    }
-
+  // Fast synchronous unique hardware ID
+  public getHardwareIdSync(): string {
+    if (typeof localStorage === 'undefined') return 'hw-default';
     let localHwid = localStorage.getItem(STORAGE_KEY_HWID);
     if (!localHwid) {
-      // Generate cryptographic random UUID for device
-      localHwid = 'hw-' + crypto.randomUUID();
-      localStorage.setItem(STORAGE_KEY_HWID, localHwid);
+      localHwid = 'hw-' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36));
+      try {
+        localStorage.setItem(STORAGE_KEY_HWID, localHwid);
+      } catch {}
     }
     return localHwid;
   }
 
-  // Loads cached license information from local storage
-  public async loadLicense(): Promise<LicenseInfo> {
-    const hwid = await this.getHardwareId();
-    const stored = localStorage.getItem(STORAGE_KEY_LICENSE);
+  // Returns unique hardware ID for this PC/Phone
+  public async getHardwareId(): Promise<string> {
+    return this.getHardwareIdSync();
+  }
 
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as LicenseInfo;
-        // Verify license is active with either token or valid licenseKey
-        if (parsed.isLicensed && (parsed.token || parsed.licenseKey)) {
-          // If monthly or annual, ensure expiresAt is calculated if missing
-          if (!parsed.expiresAt && (parsed.planType === 'monthly' || parsed.planType === 'annual')) {
-            const durationSec = parsed.planType === 'annual' ? 365 * 86400 : 30 * 86400;
-            parsed.expiresAt = (parsed.lastVerifiedAt || Math.floor(Date.now() / 1000)) + durationSec;
-          }
-          // Check expiration if time-limited
-          if (parsed.expiresAt && parsed.expiresAt < Math.floor(Date.now() / 1000)) {
-            parsed.isLicensed = false;
-            parsed.isExpired = true;
-            localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(parsed));
-          } else {
-            parsed.hardwareId = hwid;
-            parsed.isExpired = false;
-          }
-          this.currentLicense = parsed;
-          if (parsed.isLicensed) {
-            this.notifyLicenseUpdated(parsed);
-          }
-          return parsed;
-        }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY_LICENSE);
-      }
-    }
-
-    const defaultInfo: LicenseInfo = {
+  // Default empty license info
+  public getDefaultLicenseInfo(): LicenseInfo {
+    return {
       isLicensed: false,
+      isExpired: false,
       licenseKey: null,
       planType: null,
       customerName: null,
       expiresAt: null,
       token: null,
-      hardwareId: hwid,
+      hardwareId: this.getHardwareIdSync(),
     };
-    this.currentLicense = defaultInfo;
-    return defaultInfo;
+  }
+
+  // Synchronous, 0ms instant license retrieval from cache/localStorage
+  public getCachedLicense(): LicenseInfo {
+    if (this.currentLicense && this.currentLicense.isLicensed && (!this.currentLicense.expiresAt || this.currentLicense.expiresAt > Math.floor(Date.now() / 1000))) {
+      return this.currentLicense;
+    }
+    if (typeof localStorage === 'undefined') {
+      return this.getDefaultLicenseInfo();
+    }
+    const stored = localStorage.getItem(STORAGE_KEY_LICENSE);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as LicenseInfo;
+        if (parsed && parsed.isLicensed && (parsed.token || parsed.licenseKey)) {
+          // If monthly or annual, ensure expiresAt is calculated if missing
+          if (!parsed.expiresAt && (parsed.planType === 'monthly' || parsed.planType === 'annual')) {
+            const durationSec = parsed.planType === 'annual' ? 365 * 86400 : 30 * 86400;
+            parsed.expiresAt = (parsed.lastVerifiedAt || Math.floor(Date.now() / 1000)) + durationSec;
+          }
+          if (parsed.expiresAt && parsed.expiresAt < Math.floor(Date.now() / 1000)) {
+            parsed.isLicensed = false;
+            parsed.isExpired = true;
+          } else {
+            parsed.isExpired = false;
+          }
+          parsed.hardwareId = this.getHardwareIdSync();
+          this.currentLicense = parsed;
+          return parsed;
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+    return this.getDefaultLicenseInfo();
+  }
+
+  // Loads cached license information from local storage (instantaneous)
+  public async loadLicense(): Promise<LicenseInfo> {
+    const cached = this.getCachedLicense();
+    if (cached.isLicensed) {
+      this.notifyLicenseUpdated(cached);
+    }
+    return cached;
   }
 
   public notifyLicenseUpdated(info: LicenseInfo): void {
@@ -283,7 +289,7 @@ export class LicenseManager {
     telegramUserId?: string | number | null,
     phone?: string | null
   ): Promise<{ success: boolean; isLicensed: boolean; isExpired?: boolean; message?: string; license?: LicenseInfo }> {
-    const hwid = await this.getHardwareId();
+    const hwid = this.getHardwareIdSync();
     const tgId = telegramUserId ? String(telegramUserId).trim() : '';
     const tgPhone = phone ? String(phone).trim() : '';
 
@@ -291,97 +297,126 @@ export class LicenseManager {
       return { success: false, isLicensed: false, message: 'No Telegram account info provided' };
     }
 
-    try {
-      const response = await fetch(`${this.apiEndpoint}/api/license/check-account`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_user_id: tgId,
-          phone_number: tgPhone,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        active?: boolean;
-        license_key?: string;
-        plan_type?: LicensePlan;
-        customer_name?: string;
-        customer_email?: string;
-        expires_at?: number | null;
-        token?: string;
-        message?: string;
-        is_expired?: boolean;
-        expired?: boolean;
-      };
-
-        if (response.ok && data.active) {
-        const resolvedPlan: LicensePlan = data.plan_type
-          ? data.plan_type
-          : data.expires_at
-          ? (data.expires_at - Math.floor(Date.now() / 1000) > 35 * 86400 ? 'annual' : 'monthly')
-          : 'monthly';
-
-        const licenseInfo: LicenseInfo = {
-          isLicensed: true,
-          isExpired: false,
-          licenseKey: data.license_key || `TG-PRO-${tgId}`,
-          planType: resolvedPlan,
-          customerName: data.customer_name || null,
-          expiresAt: resolvedPlan === 'lifetime' ? null : (data.expires_at || (Math.floor(Date.now() / 1000) + 30 * 86400)),
-          token: data.token || null,
-          hardwareId: hwid,
-          maxDevices: 999, // Unlocked across all user devices
-          lastVerifiedAt: Math.floor(Date.now() / 1000),
-        };
-
-        localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
-        this.currentLicense = licenseInfo;
-        this.notifyLicenseUpdated(licenseInfo);
-
-        return {
-          success: true,
-          isLicensed: true,
-          license: licenseInfo,
-        };
+    // If we already have a valid unexpired local license for this user that was checked recently, return it instantly
+    const cached = this.getCachedLicense();
+    if (cached.isLicensed && cached.licenseKey && tgId && cached.licenseKey.includes(tgId)) {
+      if (cached.lastVerifiedAt && (Math.floor(Date.now() / 1000) - cached.lastVerifiedAt < 300)) {
+        return { success: true, isLicensed: true, license: cached };
       }
-
-      if (data.is_expired || (data as unknown as { expired?: boolean }).expired) {
-        const licenseInfo: LicenseInfo = {
-          isLicensed: false,
-          isExpired: true,
-          licenseKey: data.license_key || `TG-PRO-${tgId}`,
-          planType: data.plan_type || null,
-          customerName: data.customer_name || null,
-          expiresAt: data.expires_at || null,
-          token: null,
-          hardwareId: hwid,
-          maxDevices: 999,
-          lastVerifiedAt: Math.floor(Date.now() / 1000),
-        };
-        localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
-        this.currentLicense = licenseInfo;
-        this.notifyLicenseUpdated(licenseInfo);
-        return {
-          success: true,
-          isLicensed: false,
-          isExpired: true,
-          license: licenseInfo,
-          message: 'Your Pro subscription has expired.',
-        };
-      }
-
-      return {
-        success: true,
-        isLicensed: false,
-        message: data.message || 'No active pro entitlement found for this Telegram account.',
-      };
-    } catch (err) {
-      return {
-        success: false,
-        isLicensed: false,
-        message: err instanceof Error ? err.message : 'Error connecting to license server.',
-      };
     }
+
+    const endpoints = [
+      `${this.apiEndpoint}/api/license/check-account`,
+      'https://tg-drive-license-service.jupiterbania472.workers.dev/api/license/check-account'
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            telegram_user_id: tgId,
+            phone_number: tgPhone,
+          }),
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) continue;
+
+        const data = (await response.json()) as {
+          active?: boolean;
+          license_key?: string;
+          plan_type?: LicensePlan;
+          customer_name?: string;
+          customer_email?: string;
+          expires_at?: number | null;
+          token?: string;
+          message?: string;
+          is_expired?: boolean;
+          expired?: boolean;
+        };
+
+        if (data.active) {
+          const resolvedPlan: LicensePlan = data.plan_type
+            ? data.plan_type
+            : data.expires_at
+            ? (data.expires_at - Math.floor(Date.now() / 1000) > 35 * 86400 ? 'annual' : 'monthly')
+            : 'monthly';
+
+          const licenseInfo: LicenseInfo = {
+            isLicensed: true,
+            isExpired: false,
+            licenseKey: data.license_key || `TG-PRO-${tgId}`,
+            planType: resolvedPlan,
+            customerName: data.customer_name || null,
+            expiresAt: resolvedPlan === 'lifetime' ? null : (data.expires_at || (Math.floor(Date.now() / 1000) + 30 * 86400)),
+            token: data.token || null,
+            hardwareId: hwid,
+            maxDevices: 999, // Unlocked across all user devices
+            lastVerifiedAt: Math.floor(Date.now() / 1000),
+          };
+
+          localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
+          this.currentLicense = licenseInfo;
+          this.notifyLicenseUpdated(licenseInfo);
+
+          return {
+            success: true,
+            isLicensed: true,
+            license: licenseInfo,
+          };
+        }
+
+        if (data.is_expired || (data as unknown as { expired?: boolean }).expired) {
+          const licenseInfo: LicenseInfo = {
+            isLicensed: false,
+            isExpired: true,
+            licenseKey: data.license_key || `TG-PRO-${tgId}`,
+            planType: data.plan_type || null,
+            customerName: data.customer_name || null,
+            expiresAt: data.expires_at || null,
+            token: null,
+            hardwareId: hwid,
+            maxDevices: 999,
+            lastVerifiedAt: Math.floor(Date.now() / 1000),
+          };
+          localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(licenseInfo));
+          this.currentLicense = licenseInfo;
+          this.notifyLicenseUpdated(licenseInfo);
+          return {
+            success: true,
+            isLicensed: false,
+            isExpired: true,
+            license: licenseInfo,
+            message: 'Your Pro subscription has expired.',
+          };
+        }
+
+        return {
+          success: true,
+          isLicensed: false,
+          message: data.message || 'No active pro entitlement found for this Telegram account.',
+        };
+      } catch {
+        // Try fallback endpoint
+      }
+    }
+
+    // If server unreachable, keep existing active cached license without wiping
+    if (cached.isLicensed) {
+      return { success: true, isLicensed: true, license: cached };
+    }
+
+    return {
+      success: false,
+      isLicensed: false,
+      message: 'License server unreachable; offline mode active.',
+    };
   }
 
   // Dynamically load Razorpay Checkout JS SDK if not present
@@ -439,6 +474,8 @@ export class LicenseManager {
     customerEmail?: string;
     phoneNumber?: string;
     checkoutConfigId?: string;
+    referralCode?: string;
+    username?: string;
   }): Promise<{
     success: boolean;
     orderId?: string;
@@ -460,7 +497,8 @@ export class LicenseManager {
           customer_name: data.customerName,
           customer_email: data.customerEmail,
           phone_number: data.phoneNumber,
-          checkout_config_id: data.checkoutConfigId || 'config_TiUSpvBT1EEuwz',
+          referral_code: data.referralCode,
+          username: data.username,
         }),
       });
 
@@ -470,7 +508,6 @@ export class LicenseManager {
         key_id?: string;
         amount?: number;
         currency?: string;
-        checkout_config_id?: string;
         payment_link_url?: string;
         error?: string;
       };
@@ -485,7 +522,6 @@ export class LicenseManager {
         keyId: body.key_id,
         amount: body.amount,
         currency: body.currency,
-        checkoutConfigId: body.checkout_config_id || 'config_TiUSpvBT1EEuwz',
         paymentLinkUrl: body.payment_link_url,
       };
     } catch (err) {
@@ -503,6 +539,8 @@ export class LicenseManager {
     customerName?: string;
     customerEmail?: string;
     phoneNumber?: string;
+    referralCode?: string;
+    username?: string;
   }): Promise<{ success: boolean; isPro: boolean; license?: LicenseInfo; error?: string }> {
     const hwid = await this.getHardwareId();
     const tgId = String(data.telegramUserId).trim();
@@ -520,6 +558,8 @@ export class LicenseManager {
           customer_name: data.customerName,
           customer_email: data.customerEmail,
           phone_number: data.phoneNumber,
+          referral_code: data.referralCode,
+          username: data.username,
         }),
       });
 
@@ -561,13 +601,33 @@ export class LicenseManager {
 
   // Verifies whether this Telegram account has active Pro entitlement directly from backend DB
   public async checkUserAccountProStatus(telegramUserId: string | number): Promise<{ active: boolean; isPro: boolean; license?: LicenseInfo }> {
-    const hwid = await this.getHardwareId();
+    const hwid = this.getHardwareIdSync();
     const tgId = String(telegramUserId).trim();
     if (!tgId) return { active: false, isPro: false };
 
-    try {
-      const res = await fetch(`${this.apiEndpoint}/api/user/status?telegram_user_id=${encodeURIComponent(tgId)}&_t=${Date.now()}`);
-      if (res.ok) {
+    // If cached license is already valid, return it immediately
+    const cached = this.getCachedLicense();
+    if (cached.isLicensed && cached.licenseKey && cached.licenseKey.includes(tgId)) {
+      if (cached.lastVerifiedAt && (Math.floor(Date.now() / 1000) - cached.lastVerifiedAt < 300)) {
+        return { active: true, isPro: true, license: cached };
+      }
+    }
+
+    const endpoints = [
+      `${this.apiEndpoint}/api/user/status?telegram_user_id=${encodeURIComponent(tgId)}&_t=${Date.now()}`,
+      `https://tg-drive-license-service.jupiterbania472.workers.dev/api/user/status?telegram_user_id=${encodeURIComponent(tgId)}&_t=${Date.now()}`
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) continue;
+
         const data = (await res.json()) as {
           active?: boolean;
           is_pro?: boolean;
@@ -621,10 +681,15 @@ export class LicenseManager {
           this.notifyLicenseUpdated(licenseInfo);
           return { active: false, isPro: false, license: licenseInfo };
         }
+      } catch (err) {
+        // Try fallback endpoint
       }
-    } catch (err) {
-      console.warn('[licenseManager] checkUserAccountProStatus network error:', err);
     }
+
+    if (cached.isLicensed) {
+      return { active: true, isPro: true, license: cached };
+    }
+
     return { active: false, isPro: false };
   }
 
@@ -644,6 +709,8 @@ export class LicenseManager {
     customerName?: string;
     customerEmail?: string;
     phoneNumber?: string;
+    referralCode?: string;
+    username?: string;
     onOpen?: () => void;
     onSuccess?: (license: LicenseInfo) => void;
     onError?: (error: string) => void;
@@ -657,109 +724,12 @@ export class LicenseManager {
       customerName: params.customerName,
       customerEmail: params.customerEmail,
       phoneNumber: params.phoneNumber,
+      referralCode: params.referralCode,
+      username: params.username,
     });
 
     if (!orderRes.success || !orderRes.orderId) {
       params.onError?.(orderRes.error || 'Could not initiate payment order');
-      return;
-    }
-
-    // Detect if running on mobile device or Android/iOS
-    const plat = this.detectPlatform();
-    const isMobileDevice = plat === 'android' || plat === 'ios' || (typeof window !== 'undefined' && window.innerWidth <= 768);
-
-    // If on a mobile device (Android / Phone), ALWAYS open the Razorpay checkout in the phone's
-    // external browser (Google Chrome). Inside Chrome, Google Pay, PhonePe, Paytm, and all UPI intent apps
-    // are 100% active and unblocked (unlike the restricted in-app Android WebView).
-    if (isMobileDevice) {
-      let mobilePaymentUrl = orderRes.paymentLinkUrl;
-
-      // If backend didn't return payment_link_url, create the Razorpay Payment Link directly
-      if (!mobilePaymentUrl) {
-        try {
-          const keyId = orderRes.keyId || 'rzp_live_T1mw2QboxNW91L';
-          const keySecret = 'reDkBo457g05IR6k2SwYeVkD';
-          const auth = btoa(`${keyId}:${keySecret}`);
-          const rawPhone = (params.phoneNumber || '').replace(/[^0-9+]/g, '');
-          const customerContact = rawPhone.length >= 10 ? rawPhone : undefined;
-          const customerEmail = params.customerEmail || `tg_${params.telegramUserId}@t-drive.internal`;
-
-          const plRes = await fetch('https://api.razorpay.com/v1/payment_links', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + auth,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              amount: orderRes.amount,
-              currency: 'INR',
-              accept_partial: false,
-              description: `TG Drive Pro (${params.planName || 'Lifetime'}) Upgrade`,
-              customer: {
-                name: params.customerName || 'TG Drive User',
-                contact: customerContact,
-                email: customerEmail,
-              },
-              notify: { sms: false, email: false },
-              reminder_enable: false,
-              notes: {
-                telegram_user_id: String(params.telegramUserId),
-                order_id: orderRes.orderId,
-                plan_type: params.planType || 'lifetime',
-              },
-              callback_url: `https://tg-drive-license-service.baniarohan009.workers.dev/api/payment/razorpay/callback?user_id=${encodeURIComponent(String(params.telegramUserId))}&order_id=${encodeURIComponent(orderRes.orderId)}&plan_type=${encodeURIComponent(params.planType || 'monthly')}`,
-              callback_method: 'get',
-            }),
-          });
-
-          if (plRes.ok) {
-            const plData = (await plRes.json()) as { short_url?: string };
-            if (plData.short_url) {
-              mobilePaymentUrl = plData.short_url;
-            }
-          }
-        } catch (e) {
-          console.warn('[licenseManager] Failed to create direct mobile payment link:', e);
-        }
-      }
-
-      // Fallback to static store payment link if dynamic creation failed
-      if (!mobilePaymentUrl) {
-        mobilePaymentUrl = 'https://rzp.io/rzp/eBLEV0w';
-      }
-
-      params.onOpen?.();
-      await openExternalUrl(mobilePaymentUrl);
-
-      // Start automatic polling to unlock Pro as soon as UPI payment finishes in Google Pay / PhonePe / Paytm
-      this.stopPaymentPolling();
-
-      const startTime = Date.now();
-      this.activePaymentPollTimer = setInterval(async () => {
-        // Poll for up to 5 minutes
-        if (Date.now() - startTime > 300000) {
-          this.stopPaymentPolling();
-          return;
-        }
-
-        const status = await this.checkUserAccountProStatus(params.telegramUserId);
-        if (status.active && status.isPro && status.license) {
-          this.stopPaymentPolling();
-          if (params.planType && status.license.planType !== params.planType) {
-            status.license.planType = params.planType;
-            if (params.planType === 'monthly') {
-              status.license.expiresAt = Math.floor(Date.now() / 1000) + 30 * 86400;
-            } else if (params.planType === 'annual') {
-              status.license.expiresAt = Math.floor(Date.now() / 1000) + 365 * 86400;
-            }
-            localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(status.license));
-            this.currentLicense = status.license;
-            this.notifyLicenseUpdated(status.license);
-          }
-          params.onSuccess?.(status.license);
-        }
-      }, 2500);
-
       return;
     }
 
@@ -770,39 +740,37 @@ export class LicenseManager {
       };
     }).Razorpay;
 
+    // Use In-App Razorpay Checkout Modal (works seamlessly across mobile & desktop)
     if (sdkLoaded && RazorpayCtor) {
       let paymentCompleted = false;
-
-      const checkoutConfigId = orderRes.checkoutConfigId || 'config_TiUSpvBT1EEuwz';
+      let paymentVerified = false;
 
       const options = {
-        key: orderRes.keyId || 'rzp_live_default',
+        key: orderRes.keyId || 'rzp_live_T1mw2QboxNW91L',
         amount: orderRes.amount,
         currency: orderRes.currency || 'INR',
-        name: 'TG Drive Cloud',
-        description: `${params.planName || 'Lifetime Pro'} Upgrade`,
+        name: 'TG Drive Pro',
+        description: `${params.planName || 'Pro'} Upgrade`,
         image: 'https://tg-drive.vercel.app/logo.png',
         order_id: orderRes.orderId,
-        checkout_config_id: checkoutConfigId,
-        config_id: checkoutConfigId,
         prefill: {
-          name: params.customerName || '',
-          email: params.customerEmail || '',
+          name: params.customerName || 'TG Drive User',
+          email: params.customerEmail || `tg_${params.telegramUserId}@t-drive.internal`,
           contact: params.phoneNumber || '',
         },
         theme: {
           color: '#8b5cf6',
+          backdrop_color: '#090b10',
         },
-        method: {
-          upi: true,
-          card: true,
-          netbanking: true,
-          wallet: true,
-          emi: true,
-          paylater: true,
+        notes: {
+          telegram_user_id: String(params.telegramUserId),
+          plan_type: params.planType || 'lifetime',
+          referral_code: params.referralCode || '',
+          username: params.username || '',
         },
         handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           paymentCompleted = true;
+          // Verify payment cryptographically on backend with HMAC-SHA256 signature
           const verifyRes = await this.verifyRazorpayPayment({
             orderId: response.razorpay_order_id || orderRes.orderId!,
             paymentId: response.razorpay_payment_id,
@@ -812,29 +780,21 @@ export class LicenseManager {
             customerName: params.customerName,
             customerEmail: params.customerEmail,
             phoneNumber: params.phoneNumber,
+            referralCode: params.referralCode,
+            username: params.username,
           });
 
-          if (verifyRes.success && verifyRes.license) {
-            if (params.planType && verifyRes.license.planType !== params.planType) {
-              verifyRes.license.planType = params.planType;
-              if (params.planType === 'monthly') {
-                verifyRes.license.expiresAt = Math.floor(Date.now() / 1000) + 30 * 86400;
-              } else if (params.planType === 'annual') {
-                verifyRes.license.expiresAt = Math.floor(Date.now() / 1000) + 365 * 86400;
-              }
-              localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(verifyRes.license));
-              this.currentLicense = verifyRes.license;
-              this.notifyLicenseUpdated(verifyRes.license);
-            }
+          if (verifyRes.success && verifyRes.license && verifyRes.isPro) {
+            paymentVerified = true;
             params.onSuccess?.(verifyRes.license);
           } else {
-            params.onError?.(verifyRes.error || 'Payment verification failed');
+            params.onError?.(verifyRes.error || 'Payment verification failed with server.');
           }
         },
         modal: {
+          confirm_close: true,
           ondismiss: () => {
-            console.log('Razorpay modal closed');
-            if (!paymentCompleted) {
+            if (!paymentCompleted && !paymentVerified) {
               if (params.onDismiss) {
                 params.onDismiss();
               } else {
@@ -849,7 +809,6 @@ export class LicenseManager {
 
       if (typeof rzpInstance.on === 'function') {
         rzpInstance.on('payment.failed', (response: unknown) => {
-          console.warn('Razorpay payment failed:', response);
           const errObj = response as { error?: { description?: string } };
           const errMsg = errObj?.error?.description || 'Payment failed or was declined.';
           params.onError?.(errMsg);
@@ -859,31 +818,79 @@ export class LicenseManager {
       rzpInstance.open();
       params.onOpen?.();
     } else {
-      // Fallback: If SDK script blocked or in web view, create checkout link & open in browser
-      const fallbackUrl = `${this.apiEndpoint}/api/store/create-checkout-link`;
+      // Emergency fallback if Razorpay in-app SDK is unavailable
+      const fallbackPaymentUrl = orderRes.paymentLinkUrl || 'https://rzp.io/rzp/eBLEV0w';
+      params.onOpen?.();
+      await openExternalUrl(fallbackPaymentUrl);
+
+      // Poll ONLY for verified confirmation of THIS order from Razorpay API
+      this.stopPaymentPolling();
+      const startTime = Date.now();
+      this.activePaymentPollTimer = setInterval(async () => {
+        if (Date.now() - startTime > 300000) {
+          this.stopPaymentPolling();
+          return;
+        }
+
+        try {
+          const verifyRes = await fetch(`${this.apiEndpoint}/api/payment/razorpay/verify-link`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: orderRes.orderId,
+              telegram_user_id: String(params.telegramUserId),
+              plan_type: params.planType || 'lifetime',
+            }),
+          });
+          if (verifyRes.ok) {
+            const data = (await verifyRes.json()) as { paid?: boolean; success?: boolean; is_pro?: boolean };
+            if (data.paid && data.success && data.is_pro) {
+              this.stopPaymentPolling();
+              const refreshed = await this.checkUserAccountProStatus(params.telegramUserId);
+              if (refreshed.active && refreshed.license) {
+                params.onSuccess?.(refreshed.license);
+              }
+            }
+          }
+        } catch {
+          // Continue polling until timeout
+        }
+      }, 3000);
+    }
+  }
+
+  // Public polling helper for orders initiated outside the in-app modal (e.g. browser link)
+  public pollOrderCompletion(orderId?: string, telegramUserId?: string | number, onSuccess?: (license: LicenseInfo) => void): void {
+    const tgId = telegramUserId ? String(telegramUserId).trim() : '';
+    if (!orderId || !tgId) return;
+    this.stopPaymentPolling();
+    const startTime = Date.now();
+    this.activePaymentPollTimer = setInterval(async () => {
+      if (Date.now() - startTime > 300000) {
+        this.stopPaymentPolling();
+        return;
+      }
       try {
-        const linkRes = await fetch(fallbackUrl, {
+        const verifyRes = await fetch(`${this.apiEndpoint}/api/payment/razorpay/verify-link`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: params.customerName || 'TG Drive User',
-            email: params.customerEmail || `tg_${params.telegramUserId}@telegram.org`,
-            telegram_user_id: String(params.telegramUserId),
-            phone_number: params.phoneNumber,
+            order_id: orderId,
+            telegram_user_id: tgId,
           }),
         });
-        const linkData = (await linkRes.json()) as { payment_url?: string };
-        if (linkData.payment_url) {
-          params.onOpen?.();
-          window.open(linkData.payment_url, '_blank');
-          params.onDismiss?.();
-        } else {
-          params.onError?.('Unable to generate checkout URL');
+        if (verifyRes.ok) {
+          const data = (await verifyRes.json()) as { paid?: boolean; success?: boolean; is_pro?: boolean };
+          if (data.paid && data.success && data.is_pro) {
+            this.stopPaymentPolling();
+            const refreshed = await this.checkUserAccountProStatus(tgId);
+            if (refreshed.active && refreshed.license) {
+              onSuccess?.(refreshed.license);
+            }
+          }
         }
-      } catch {
-        params.onError?.('Unable to open checkout modal');
-      }
-    }
+      } catch {}
+    }, 2500);
   }
 
   // Polls order status for real-time automatic license unlocking after checkout
@@ -949,32 +956,60 @@ export class LicenseManager {
 
   // Validates current license with server in background
   public async verifyLicense(): Promise<boolean> {
-    const current = await this.loadLicense();
+    const current = this.getCachedLicense();
     if (!current.isLicensed || !current.licenseKey) return false;
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const tgId = current.licenseKey.replace(/^TG[-_]?PRO[-_]?/i, '').trim();
+
       const response = await fetch(`${this.apiEndpoint}/api/license/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           license_key: current.licenseKey,
           hardware_id: current.hardwareId,
           token: current.token,
+          telegram_user_id: tgId || undefined,
         }),
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = (await response.json()) as { valid: boolean; reason?: string };
+        const data = (await response.json()) as {
+          valid: boolean;
+          reason?: string;
+          plan_type?: LicensePlan;
+          expires_at?: number | null;
+          customer_name?: string | null;
+        };
+
         if (!data.valid) {
-          // License was banned or revoked
-          current.isLicensed = false;
-          localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(current));
-          return false;
+          // CRITICAL: Only revoke if explicitly banned or expired
+          if (data.reason === 'License banned' || data.reason === 'License expired') {
+            current.isLicensed = false;
+            current.isExpired = data.reason === 'License expired';
+            localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(current));
+            this.notifyLicenseUpdated(current);
+            return false;
+          }
+          // If reason is "License not found", do NOT destroy local active license!
+          return current.isLicensed;
         }
+
+        if (data.plan_type) current.planType = data.plan_type;
+        if (data.expires_at !== undefined) current.expiresAt = data.expires_at;
+        if (data.customer_name) current.customerName = data.customer_name;
+        current.isExpired = false;
         current.lastVerifiedAt = Math.floor(Date.now() / 1000);
+
         localStorage.setItem(STORAGE_KEY_LICENSE, JSON.stringify(current));
+        this.notifyLicenseUpdated(current);
         return true;
       }
       // If server unreachable, allow graceful offline access
